@@ -1,0 +1,507 @@
+{
+	"name": "RAW_INGEST_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DSET_SRC_INGEST_TABLE_LIST",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_folder_name": {
+								"value": "@pipeline().globalParameters.G_TAB_LIST_LOC",
+								"type": "Expression"
+							},
+							"table_list_file_name": {
+								"value": "@concat(pipeline().Pipeline, '.lst')",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup1').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Switch1",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@toUpper(item().db_name)",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "MLIWD",
+										"activities": [
+											{
+												"name": "Fail1",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "Set variable1_copy2",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('수행 실패 테이블 명 : '  , item().db_name,'.'  , item().schema_name,'.' , item().table_name)\n\n",
+														"type": "Expression"
+													},
+													"errorCode": "-1"
+												}
+											},
+											{
+												"name": "MLIWD",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:10:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "Db2Source",
+														"query": {
+															"value": "@concat( 'select * from ' , item().schema_name, '.' , item().table_name, ';' )\n\n\n\n\n",
+															"type": "Expression"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobStorageWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"validateDataConsistency": true,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "DSET_SRC_MLIWD_TABLE",
+														"type": "DatasetReference"
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DSET_TGT_INGEST",
+														"type": "DatasetReference",
+														"parameters": {
+															"P_FOLDER_1": {
+																"value": "@pipeline().globalParameters.G_INIT_TGT",
+																"type": "Expression"
+															},
+															"P_FOLDER_2": {
+																"value": "@concat(item().db_name, '/' ,item().schema_name)",
+																"type": "Expression"
+															},
+															"P_FILE_NAME": {
+																"value": "@concat(item().table_name,'.parquet')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Set variable1",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "MLIWD",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "LOG_MSG",
+													"value": {
+														"value": "@concat(\n  pipeline().Pipeline, ',',\n  pipeline().RunId, ',',\n  item().db_Name, ',',\n  item().schema_Name, ',',\n  item().table_Name, ',',\n  string(first(activity('MLIWD').output.executionDetails).status), ',',\n  string(first(activity('MLIWD').output.executionDetails).start), ',',\n  addToTime(string(first(activity('MLIWD').output.executionDetails).start),activity('MLIWD').output.copyDuration,'second'), ',',\n  activity('MLIWD').output.copyDuration,',',\n  string(activity('MLIWD').output.rowsRead),',',\n  string(activity('MLIWD').output.rowsCopied),',',\n  string(activity('MLIWD').output.rowsSkipped),',',\n  string(activity('MLIWD').output.dataConsistencyVerification.VerificationResult) , ',',\n    activity('MLIWD').output.errors)",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set variable1_copy2",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "MLIWD",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "LOG_MSG",
+													"value": {
+														"value": "@concat(\n  pipeline().Pipeline, ',',\n  pipeline().RunId, ',',\n  item().db_Name, ',',\n  item().schema_Name, ',',\n  item().table_Name, ',',\n  string(first(activity('MLIWD').output.executionDetails).status), ',',\n  string(first(activity('MLIWD').output.executionDetails).start), ',',\n  addToTime(string(first(activity('MLIWD').output.executionDetails).start),activity('MLIWD').output.copyDuration,'second'), ',',\n  activity('MLIWD').output.copyDuration,',',\n  string(activity('MLIWD').output.rowsRead),',',\n  ',',\n  string(activity('MLIWD').output.rowsSkipped),',',\n  string(activity('MLIWD').output.dataConsistencyVerification.VerificationResult) , ',',\n    activity('MLIWD').output.errors)",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "MLMTT",
+										"activities": [
+											{
+												"name": "Fail1_copy1",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "Set variable1_copy1_copy1",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('수행 실패 테이블 명 : '  , item().db_name,'.'  , item().schema_name,'.' , item().table_name)\n",
+														"type": "Expression"
+													},
+													"errorCode": "-1"
+												}
+											},
+											{
+												"name": "MLMTT",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:10:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 60,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "Db2Source",
+														"query": {
+															"value": "@concat( 'select * from ' , item().schema_name, '.' , item().table_name, ';' )\n\n\n\n\n",
+															"type": "Expression"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobStorageWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"validateDataConsistency": true,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "DSET_SRC_META_TABLE",
+														"type": "DatasetReference"
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DSET_TGT_INGEST",
+														"type": "DatasetReference",
+														"parameters": {
+															"P_FOLDER_1": {
+																"value": "@pipeline().globalParameters.G_META_TGT",
+																"type": "Expression"
+															},
+															"P_FOLDER_2": {
+																"value": "@concat(formatDateTime(utcnow(), 'yyyyMMdd'), '/', item().db_name, '/' ,item().schema_name)",
+																"type": "Expression"
+															},
+															"P_FILE_NAME": {
+																"value": "@concat(item().table_name,'.parquet')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Set variable1_copy1",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "MLMTT",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "LOG_MSG",
+													"value": {
+														"value": "@concat(\n  pipeline().Pipeline, ',',\n  pipeline().RunId, ',',\n  item().db_Name, ',',\n  item().schema_Name, ',',\n  item().table_Name, ',',\n  string(first(activity('MLMTT').output.executionDetails).status), ',',\n  string(first(activity('MLMTT').output.executionDetails).start), ',',\n  addToTime(string(first(activity('MLMTT').output.executionDetails).start),activity('MLMTT').output.copyDuration,'second'), ',',\n  activity('MLMTT').output.copyDuration,',',\n  string(activity('MLMTT').output.rowsRead),',',\n  string(activity('MLMTT').output.rowsCopied),',',\n  string(activity('MLMTT').output.rowsSkipped),',',\n  string(activity('MLMTT').output.dataConsistencyVerification.VerificationResult) , ',',\n    activity('MLMTT').output.errors)",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set variable1_copy1_copy1",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "MLMTT",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "LOG_MSG",
+													"value": {
+														"value": "@concat(\n  pipeline().Pipeline, ',',\n  pipeline().RunId, ',',\n  item().db_Name, ',',\n  item().schema_Name, ',',\n  item().table_Name, ',',\n  string(first(activity('MLMTT').output.executionDetails).status), ',',\n  string(first(activity('MLMTT').output.executionDetails).start), ',',\n  addToTime(string(first(activity('MLMTT').output.executionDetails).start),activity('MLMTT').output.copyDuration,'second'), ',',\n  activity('MLMTT').output.copyDuration,',',\n  string(activity('MLMTT').output.rowsRead),',',\n  ',',\n  string(activity('MLMTT').output.rowsSkipped),',',\n  string(activity('MLMTT').output.dataConsistencyVerification.VerificationResult) , ',',\n    activity('MLMTT').output.errors)",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Set variable1_copy2_copy1",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "LOG_MSG",
+											"value": {
+												"value": "@concat(\n  pipeline().Pipeline, ',',\n  pipeline().RunId, ',',\n  item().db_Name, ',',\n  item().schema_Name, ',',\n  item().table_Name, ',',\n   ',',\n  formatDateTime(utcnow(), 'yyyyMMddHHmmss'), ',',\n   ',',\n   ',',\n   ',',\n   ',',\n   ',',\n   ',',\n   '디비명 확인')",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "Fail2",
+										"type": "Fail",
+										"dependsOn": [
+											{
+												"activity": "Set variable1_copy2_copy1",
+												"dependencyConditions": [
+													"Completed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat('수행 실패 테이블 명 : '  , item().db_name,'.'  , item().schema_name,'.' , item().table_name)",
+												"type": "Expression"
+											},
+											"errorCode": "-1"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "WRITE_INGEST_TAB_LOG",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "WRITE_LOG_MSG",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_forder_name": {
+										"value": "@concat(pipeline().globalParameters.G_LOG_TGT,\npipeline().Pipeline,'/')",
+										"type": "Expression"
+									},
+									"p_log_name": {
+										"value": "@concat(item().db_name,'.',item().schema_Name,'.', item().table_name,',',\nformatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.log'  )",
+										"type": "Expression"
+									},
+									"P_log_msg": {
+										"value": "@variables('LOG_MSG')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Fail3",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@variables('LOG_MSG')",
+									"type": "Expression"
+								},
+								"errorCode": "-1"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "WRITE_PIPELINE_LOG",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "WRITE_LOG_MSG",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_forder_name": {
+							"value": "@pipeline().globalParameters.G_INIT_STATUS_TGT",
+							"type": "Expression"
+						},
+						"p_log_name": {
+							"value": "@concat(formatDateTime(utcnow(), 'yyyyMMddHHmmss'),'.txt')",
+							"type": "Expression"
+						},
+						"P_log_msg": "성공"
+					}
+				}
+			}
+		],
+		"variables": {
+			"LOG_MSG": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "01_MLMTT"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-23T13:01:45Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

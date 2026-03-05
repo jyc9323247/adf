@@ -1,0 +1,154 @@
+{
+	"name": "WRITE_LOG_MSG",
+	"properties": {
+		"activities": [
+			{
+				"name": "WRITE_LOG_MSG",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "WRITE_LOG_MSG_copy2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "PATCH",
+					"disableCertValidation": false,
+					"url": {
+						"value": "@concat('https://ab3.dfs.core.windows.net/ingest/my.log?action=append&position=0')\n",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@pipeline().parameters.P_log_msg",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://storage.azure.com"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "body_length",
+					"value": {
+						"value": "@add(length(pipeline().parameters.P_log_msg),0)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "WRITE_LOG_MSG_copy1",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "WRITE_LOG_MSG",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "PATCH",
+					"disableCertValidation": false,
+					"url": {
+						"value": "@concat('https://ab3.dfs.core.windows.net/ingest/my.log?action=flush&position=',variables('body_length'))\n\n\n",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@pipeline().parameters.p_forder_name",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://storage.azure.com"
+					}
+				}
+			},
+			{
+				"name": "WRITE_LOG_MSG_copy2",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "PUT",
+					"disableCertValidation": false,
+					"url": {
+						"value": "@concat('https://ab3.dfs.core.windows.net/ingest/my.log?resource=file')",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@pipeline().parameters.p_forder_name",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://storage.azure.com"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"p_forder_name": {
+				"type": "string"
+			},
+			"p_log_name": {
+				"type": "string"
+			},
+			"P_log_msg": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"body_length": {
+				"type": "Integer"
+			},
+			"ddddd": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-23T13:01:45Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

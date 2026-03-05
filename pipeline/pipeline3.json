@@ -1,0 +1,76 @@
+{
+	"name": "pipeline3",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "ParquetReadSettings"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DSET_TGT_INGEST",
+						"type": "DatasetReference",
+						"parameters": {
+							"P_FOLDER_1": "ingest/dp/raw/init/MLADBT",
+							"P_FOLDER_2": "dbo",
+							"P_FILE_NAME": "test.parquet"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DSET_TGT_INGEST",
+						"type": "DatasetReference",
+						"parameters": {
+							"P_FOLDER_1": "ingest",
+							"P_FOLDER_2": "dp",
+							"P_FILE_NAME": "new_test.parquet"
+						}
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-03-05T07:30:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

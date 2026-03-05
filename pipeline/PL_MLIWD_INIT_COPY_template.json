@@ -1,0 +1,100 @@
+{
+	"name": "PL_MLIWD_INIT_COPY_template",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data db2 to adls gen2",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source",
+						"query": {
+							"value": "@concat( 'select * from ' , pipeline().parameters.schema, '.' , pipeline().parameters.table, ';' )\n",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DSET_SRC_MLIWD_TABLE",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DEL_DSET_TGT_INIT_INGEST",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_folder_name": {
+								"value": "@pipeline().parameters.container_folder",
+								"type": "Expression"
+							},
+							"db_name": {
+								"value": "@pipeline().parameters.system",
+								"type": "Expression"
+							},
+							"schema_name": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"file_name": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"schema": {
+				"type": "string",
+				"defaultValue": "db2inst1"
+			},
+			"table": {
+				"type": "string",
+				"defaultValue": "act"
+			},
+			"system": {
+				"type": "string",
+				"defaultValue": "db2sample"
+			},
+			"container_folder": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "template"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-17T02:36:32Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
