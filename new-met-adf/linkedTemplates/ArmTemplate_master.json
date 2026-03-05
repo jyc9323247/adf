@@ -1,0 +1,167 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory 이름",
+			"defaultValue": "new-met-adf"
+		},
+		"Db21mydb_connectionString": {
+			"type": "secureString",
+			"metadata": "'Db21mydb'의 'connectionString'에 대한 보안 문자열"
+		},
+		"SRC_META_connectionString": {
+			"type": "secureString",
+			"metadata": "'SRC_META'의 'connectionString'에 대한 보안 문자열"
+		},
+		"SRC_MLADBT_password": {
+			"type": "secureString",
+			"metadata": "'SRC_MLADBT'의 'password'에 대한 보안 문자열"
+		},
+		"SRC_MLIWD_connectionString": {
+			"type": "secureString",
+			"metadata": "'SRC_MLIWD'의 'connectionString'에 대한 보안 문자열"
+		},
+		"Sftp1_password": {
+			"type": "secureString",
+			"metadata": "'Sftp1'의 'password'에 대한 보안 문자열"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ab3.dfs.core.windows.net/"
+		},
+		"CosmosDbNoSql1_properties_typeProperties_accountEndpoint": {
+			"type": "string",
+			"defaultValue": "https://dffdsfdsfdsafdsafds.documents.azure.com:443/"
+		},
+		"CosmosDbNoSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "mydb"
+		},
+		"SRC_INGEST_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://ab3.blob.core.windows.net/"
+		},
+		"SRC_MLADBT_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "192.168.0.114,1942"
+		},
+		"SRC_MLADBT_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "master"
+		},
+		"SRC_MLADBT_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "jeon"
+		},
+		"Sftp1_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "192.168.10.10"
+		},
+		"Sftp1_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "jeon"
+		},
+		"TGT_INGEST_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://ab3.blob.core.windows.net/"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "연결된 ARM 템플릿을 포함하는 스토리지 계정에 대한 SAS 토큰"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "new-met-adf_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Db21mydb_connectionString": {
+						"value": "[parameters('Db21mydb_connectionString')]"
+					},
+					"SRC_META_connectionString": {
+						"value": "[parameters('SRC_META_connectionString')]"
+					},
+					"SRC_MLADBT_password": {
+						"value": "[parameters('SRC_MLADBT_password')]"
+					},
+					"SRC_MLIWD_connectionString": {
+						"value": "[parameters('SRC_MLIWD_connectionString')]"
+					},
+					"AzureDataLakeStorage1_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"CosmosDbNoSql1_properties_typeProperties_accountEndpoint": {
+						"value": "[parameters('CosmosDbNoSql1_properties_typeProperties_accountEndpoint')]"
+					},
+					"CosmosDbNoSql1_properties_typeProperties_database": {
+						"value": "[parameters('CosmosDbNoSql1_properties_typeProperties_database')]"
+					},
+					"SRC_INGEST_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('SRC_INGEST_properties_typeProperties_serviceEndpoint')]"
+					},
+					"TGT_INGEST_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('TGT_INGEST_properties_typeProperties_serviceEndpoint')]"
+					},
+					"SRC_MLADBT_properties_typeProperties_server": {
+						"value": "[parameters('SRC_MLADBT_properties_typeProperties_server')]"
+					},
+					"SRC_MLADBT_properties_typeProperties_database": {
+						"value": "[parameters('SRC_MLADBT_properties_typeProperties_database')]"
+					},
+					"SRC_MLADBT_properties_typeProperties_userName": {
+						"value": "[parameters('SRC_MLADBT_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "new-met-adf_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Sftp1_password": {
+						"value": "[parameters('Sftp1_password')]"
+					},
+					"Sftp1_properties_typeProperties_host": {
+						"value": "[parameters('Sftp1_properties_typeProperties_host')]"
+					},
+					"Sftp1_properties_typeProperties_userName": {
+						"value": "[parameters('Sftp1_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'new-met-adf_ArmTemplate_0')]"
+			]
+		}
+	]
+}

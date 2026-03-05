@@ -1,0 +1,54 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "new-met-adf"
+		},
+		"Db21mydb_connectionString": {
+			"value": ""
+		},
+		"SRC_META_connectionString": {
+			"value": ""
+		},
+		"SRC_MLADBT_password": {
+			"value": ""
+		},
+		"SRC_MLIWD_connectionString": {
+			"value": ""
+		},
+		"Sftp1_password": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://ab3.dfs.core.windows.net/"
+		},
+		"CosmosDbNoSql1_properties_typeProperties_accountEndpoint": {
+			"value": "https://dffdsfdsfdsafdsafds.documents.azure.com:443/"
+		},
+		"CosmosDbNoSql1_properties_typeProperties_database": {
+			"value": "mydb"
+		},
+		"SRC_INGEST_properties_typeProperties_serviceEndpoint": {
+			"value": "https://ab3.blob.core.windows.net/"
+		},
+		"SRC_MLADBT_properties_typeProperties_server": {
+			"value": "192.168.0.114,1942"
+		},
+		"SRC_MLADBT_properties_typeProperties_database": {
+			"value": "master"
+		},
+		"SRC_MLADBT_properties_typeProperties_userName": {
+			"value": "jeon"
+		},
+		"Sftp1_properties_typeProperties_host": {
+			"value": "192.168.10.10"
+		},
+		"Sftp1_properties_typeProperties_userName": {
+			"value": "jeon"
+		},
+		"TGT_INGEST_properties_typeProperties_serviceEndpoint": {
+			"value": "https://ab3.blob.core.windows.net/"
+		}
+	}
+}
