@@ -19,6 +19,10 @@
 			"type": "string",
 			"defaultValue": "dadfs"
 		},
+		"default_properties_dteawte_value": {
+			"type": "string",
+			"defaultValue": "adfadfdfa"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
@@ -54,6 +58,9 @@
 					},
 					"default_properties_dae_value": {
 						"value": "[parameters('default_properties_dae_value')]"
+					},
+					"default_properties_dteawte_value": {
+						"value": "[parameters('default_properties_dteawte_value')]"
 					}
 				}
 			},

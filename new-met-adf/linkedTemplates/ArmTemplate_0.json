@@ -18,6 +18,10 @@
 		"default_properties_dae_value": {
 			"type": "string",
 			"defaultValue": "dadfs"
+		},
+		"default_properties_dteawte_value": {
+			"type": "string",
+			"defaultValue": "adfadfdfa"
 		}
 	},
 	"variables": {
@@ -36,6 +40,10 @@
 				"dae": {
 					"type": "string",
 					"value": "[parameters('default_properties_dae_value')]"
+				},
+				"dteawte": {
+					"type": "string",
+					"value": "[parameters('default_properties_dteawte_value')]"
 				}
 			},
 			"dependsOn": []
