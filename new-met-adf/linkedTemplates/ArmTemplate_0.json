@@ -7,9 +7,17 @@
 			"metadata": "Data Factory 이름",
 			"defaultValue": "new-met-adf"
 		},
+		"Db21_connectionString": {
+			"type": "secureString",
+			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
+		},
 		"default_properties_testpram_value": {
 			"type": "string",
 			"defaultValue": "adfddfs"
+		},
+		"default_properties_dafdd_value": {
+			"type": "string",
+			"defaultValue": "adfafd"
 		}
 	},
 	"variables": {
@@ -24,6 +32,10 @@
 				"testpram": {
 					"type": "string",
 					"value": "[parameters('default_properties_testpram_value')]"
+				},
+				"dafdd": {
+					"type": "string",
+					"value": "[parameters('default_properties_dafdd_value')]"
 				}
 			},
 			"dependsOn": []
@@ -75,6 +87,25 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Db21')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Db2",
+				"typeProperties": {
+					"connectionString": "[parameters('Db21_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
 			]
 		}
 	]

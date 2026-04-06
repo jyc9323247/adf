@@ -7,9 +7,17 @@
 			"metadata": "Data Factory 이름",
 			"defaultValue": "new-met-adf"
 		},
+		"Db21_connectionString": {
+			"type": "secureString",
+			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
+		},
 		"default_properties_testpram_value": {
 			"type": "string",
 			"defaultValue": "adfddfs"
+		},
+		"default_properties_dafdd_value": {
+			"type": "string",
+			"defaultValue": "adfafd"
 		},
 		"containerUri": {
 			"type": "string",
@@ -38,8 +46,14 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
+					"Db21_connectionString": {
+						"value": "[parameters('Db21_connectionString')]"
+					},
 					"default_properties_testpram_value": {
 						"value": "[parameters('default_properties_testpram_value')]"
+					},
+					"default_properties_dafdd_value": {
+						"value": "[parameters('default_properties_dafdd_value')]"
 					}
 				}
 			},
