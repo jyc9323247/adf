@@ -11,6 +11,14 @@
 			"type": "secureString",
 			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
 		},
+		"default_properties_testparm_value": {
+			"type": "string",
+			"defaultValue": "adffadadf"
+		},
+		"default_properties_dae_value": {
+			"type": "string",
+			"defaultValue": "dadfs"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
@@ -40,6 +48,12 @@
 					},
 					"Db21_connectionString": {
 						"value": "[parameters('Db21_connectionString')]"
+					},
+					"default_properties_testparm_value": {
+						"value": "[parameters('default_properties_testparm_value')]"
+					},
+					"default_properties_dae_value": {
+						"value": "[parameters('default_properties_dae_value')]"
 					}
 				}
 			},

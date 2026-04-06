@@ -7,6 +7,12 @@
 		},
 		"Db21_connectionString": {
 			"value": ""
+		},
+		"default_properties_testparm_value": {
+			"value": "adffadadf"
+		},
+		"default_properties_dae_value": {
+			"value": "dadfs"
 		}
 	}
 }
