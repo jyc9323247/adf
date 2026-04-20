@@ -11,9 +11,21 @@
 			"type": "secureString",
 			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
 		},
+		"Odbc1_connectionString": {
+			"type": "secureString",
+			"metadata": "'Odbc1'의 'connectionString'에 대한 보안 문자열"
+		},
+		"Odbc1_password": {
+			"type": "secureString",
+			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
+		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"type": "string",
 			"defaultValue": "https://ab3.blob.core.windows.net/"
+		},
+		"Odbc1_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "db2inst1"
 		},
 		"containerUri": {
 			"type": "string",
@@ -45,8 +57,17 @@
 					"Db21_connectionString": {
 						"value": "[parameters('Db21_connectionString')]"
 					},
+					"Odbc1_connectionString": {
+						"value": "[parameters('Odbc1_connectionString')]"
+					},
+					"Odbc1_password": {
+						"value": "[parameters('Odbc1_password')]"
+					},
 					"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 						"value": "[parameters('AzureBlobStorage1_properties_typeProperties_serviceEndpoint')]"
+					},
+					"Odbc1_properties_typeProperties_userName": {
+						"value": "[parameters('Odbc1_properties_typeProperties_userName')]"
 					}
 				}
 			},

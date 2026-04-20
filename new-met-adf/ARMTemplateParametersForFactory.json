@@ -8,8 +8,17 @@
 		"Db21_connectionString": {
 			"value": ""
 		},
+		"Odbc1_connectionString": {
+			"value": ""
+		},
+		"Odbc1_password": {
+			"value": ""
+		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"value": "https://ab3.blob.core.windows.net/"
+		},
+		"Odbc1_properties_typeProperties_userName": {
+			"value": "db2inst1"
 		}
 	}
 }
