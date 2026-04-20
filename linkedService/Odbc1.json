@@ -11,7 +11,7 @@
 			},
 			"authenticationType": "Basic",
 			"userName": "db2inst1",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIwYjMxOTgxOC05MzcwLTRhNTktYWMxOS02OGUwNTFiOTVmZjAiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJlOGNiZTQ3ZC1iOWZhLTRmM2QtYjEzNS04OWJkNjk4NjkyMWUiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
