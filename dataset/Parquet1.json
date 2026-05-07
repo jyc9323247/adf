@@ -5,12 +5,27 @@
 			"referenceName": "AzureDataLakeStorage1",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"p1": {
+				"type": "string"
+			},
+			"p2": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "test.parquet",
+				"fileName": {
+					"value": "@concat(dataset().p2,'.parquet')",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().p1",
+					"type": "Expression"
+				},
 				"fileSystem": "ingest"
 			},
 			"compressionCodec": "snappy"

@@ -1,5 +1,5 @@
 {
-	"name": "pipeline1",
+	"name": "pipeline_tcph_lineitem",
 	"properties": {
 		"activities": [
 			{
@@ -17,11 +17,16 @@
 				"typeProperties": {
 					"source": {
 						"type": "Db2Source",
-						"query": "select * from db2inst1.NEW_EMP ;"
+						"query": "select * from db2inst1.lineitem ;"
 					},
 					"sink": {
-						"type": "OdbcSink",
-						"writeBatchSize": 0
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
 					},
 					"enableStaging": false,
 					"translator": {
@@ -41,11 +46,11 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "OdbcTable1",
+						"referenceName": "Parquet1",
 						"type": "DatasetReference",
 						"parameters": {
-							"schema": "db2inst1",
-							"tablename": "new_emp_tgt"
+							"p1": "tpch",
+							"p2": "lineitem700mb"
 						}
 					}
 				]
