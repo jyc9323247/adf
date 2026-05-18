@@ -34,7 +34,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "Db2Source",
-						"query": "select * from syscat.tables fetch first 1 rows only"
+						"query": "SELECT L_ORDERKEY, L_PARTKEY, L_SUPPKEY, L_LINENUMBER, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT, L_TAX, L_RETURNFLAG, L_LINESTATUS, L_SHIPDATE, L_COMMITDATE, L_RECEIPTDATE, L_SHIPINSTRUCT, L_SHIPMODE,\nL_COMMENT, dareum.DBX_AES_ENCRYPT(L_COMMENT , BLOB(CAST('12345678901234561234567890123456' AS VARCHAR(32) FOR BIT DATA))) AS L_ENC_COMMENT\nFROM DB2INST1.LINEITEM;\n"
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -70,7 +70,11 @@
 				"outputs": [
 					{
 						"referenceName": "Parquet1",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"p1": "0518",
+							"p2": "lineitem_enc"
+						}
 					}
 				]
 			}
