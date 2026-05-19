@@ -72,7 +72,7 @@
 						"referenceName": "Parquet1",
 						"type": "DatasetReference",
 						"parameters": {
-							"p1": "0518",
+							"p1": "tpch",
 							"p2": "lineitem_enc"
 						}
 					}
