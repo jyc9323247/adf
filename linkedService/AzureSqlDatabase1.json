@@ -1,14 +1,28 @@
 {
 	"name": "AzureSqlDatabase1",
 	"properties": {
+		"parameters": {
+			"domain_name": {
+				"type": "string",
+				"defaultValue": "dfafdbewdarfdf.database.windows.net"
+			},
+			"db_name": {
+				"type": "string",
+				"defaultValue": "free-sql-db-2022585"
+			}
+		},
 		"annotations": [],
 		"type": "AzureSqlDatabase",
 		"typeProperties": {
-			"server": "dfafdbewdarfdf.database.windows.net",
-			"database": "free-sql-db-2022585",
+			"server": "@{linkedService().domain_name}",
+			"database": "@{linkedService().db_name}",
 			"encrypt": "mandatory",
 			"trustServerCertificate": false,
 			"authenticationType": "SystemAssignedManagedIdentity"
+		},
+		"connectVia": {
+			"referenceName": "integrationRuntime1",
+			"type": "IntegrationRuntimeReference"
 		}
 	}
 }
