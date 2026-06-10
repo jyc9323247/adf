@@ -12,7 +12,7 @@
 			},
 			"id": {
 				"type": "string",
-				"defaultValue": "db2isnt1"
+				"defaultValue": "db2inst1"
 			},
 			"keyvalt_db2_sec": {
 				"type": "string",
