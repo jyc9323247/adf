@@ -83,27 +83,24 @@
 				]
 			}
 		],
-		"variables": {
+		"parameters": {
 			"p_server_name": {
-				"type": "String"
+				"type": "string"
 			},
 			"p_db_name": {
-				"type": "String"
+				"type": "string"
 			},
 			"p_id": {
-				"type": "String"
+				"type": "string"
 			},
 			"p_pwd_keyvalt": {
-				"type": "String"
+				"type": "string"
 			},
-			"P_folder": {
-				"type": "String"
+			"p_folder": {
+				"type": "string"
 			},
-			"P_filename": {
-				"type": "String"
-			},
-			"p_query": {
-				"type": "String"
+			"p_filename": {
+				"type": "string"
 			}
 		},
 		"folder": {
