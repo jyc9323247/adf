@@ -42,7 +42,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2_Table",
+						"referenceName": "SHIR_Db2_Table",
 						"type": "DatasetReference"
 					}
 				],

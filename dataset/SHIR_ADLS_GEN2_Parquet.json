@@ -1,5 +1,5 @@
 {
-	"name": "ADLS_GEN2_Parquet",
+	"name": "SHIR_ADLS_GEN2_Parquet",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage1",

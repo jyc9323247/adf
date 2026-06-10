@@ -46,13 +46,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2_Table",
+						"referenceName": "SHIR_Db2_Table",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "ADLS_GEN2_Parquet",
+						"referenceName": "SHIR_ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": "tpch",
@@ -105,13 +105,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2_Table",
+						"referenceName": "SHIR_Db2_Table",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "ADLS_GEN2_Parquet",
+						"referenceName": "SHIR_ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": "tpch",

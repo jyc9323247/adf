@@ -1,5 +1,5 @@
 {
-	"name": "Db2_Table",
+	"name": "SHIR_Db2_Table",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Db21",
