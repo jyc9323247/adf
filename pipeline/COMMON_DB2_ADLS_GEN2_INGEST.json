@@ -1,6 +1,111 @@
 {
-	"name": "Child",
+	"name": "COMMON_DB2_ADLS_GEN2_INGEST",
 	"properties": {
+		"activities": [
+			{
+				"name": "Common db2 adls gen2 ingest",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source",
+						"query": {
+							"value": "@variables('p_query')",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Db2Table",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_server_name": {
+								"value": "@variables('p_server_name')",
+								"type": "Expression"
+							},
+							"p_db_name": {
+								"value": "@variables('p_db_name')",
+								"type": "Expression"
+							},
+							"p_id": {
+								"value": "@variables('p_id')",
+								"type": "Expression"
+							},
+							"p_pwd_keyvalt": {
+								"value": "@variables('p_pwd_keyvalt')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Parquet1",
+						"type": "DatasetReference",
+						"parameters": {
+							"p1": {
+								"value": "@variables('P_folder')",
+								"type": "Expression"
+							},
+							"p2": {
+								"value": "@variables('P_filename')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"variables": {
+			"p_server_name": {
+				"type": "String"
+			},
+			"p_db_name": {
+				"type": "String"
+			},
+			"p_id": {
+				"type": "String"
+			},
+			"p_pwd_keyvalt": {
+				"type": "String"
+			},
+			"P_folder": {
+				"type": "String"
+			},
+			"P_filename": {
+				"type": "String"
+			},
+			"p_query": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "MetaV0.1"
 		},
