@@ -1,0 +1,9 @@
+{
+	"name": "Child",
+	"properties": {
+		"folder": {
+			"name": "MetaV0.1"
+		},
+		"annotations": []
+	}
+}
