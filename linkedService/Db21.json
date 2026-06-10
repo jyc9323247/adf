@@ -1,6 +1,5 @@
 {
 	"name": "Db21",
-	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"parameters": {
 			"server_name": {
@@ -10,17 +9,36 @@
 			"db_name": {
 				"type": "string",
 				"defaultValue": "xmeta"
+			},
+			"id": {
+				"type": "string",
+				"defaultValue": "db2isnt1"
+			},
+			"keyvalt_db2_sec": {
+				"type": "string",
+				"defaultValue": "db2"
 			}
 		},
 		"annotations": [],
 		"type": "Db2",
 		"typeProperties": {
-			"connectionString": "server=@{linkedService().server_name};database=@{linkedService().db_name};username=db2inst1;authenticationtype=Basic",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiI3NWIxNDk0ZC1kZTY2LTQ0MTUtYjg0My05YWI0ZjEwM2E1MmUiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"connectionString": "server=@{linkedService().server_name};database=@{linkedService().db_name};username=@{linkedService().id};authenticationType=Basic",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault1",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": {
+					"value": "@linkedService().keyvalt_db2_sec",
+					"type": "Expression"
+				}
+			}
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
 			"type": "IntegrationRuntimeReference"
 		}
-	}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
 }
