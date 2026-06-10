@@ -65,7 +65,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": {
-								"value": "@pipeline().parameters.p_filename",
+								"value": "@pipeline().parameters.p_folder",
 								"type": "Expression"
 							},
 							"p2": {
