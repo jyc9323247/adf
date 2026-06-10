@@ -3,7 +3,11 @@
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureSqlDatabase1",
-			"type": "LinkedServiceReference"
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"domain_name": "dfafdbewdarfdf.database.windows.net",
+				"db_name": "free-sql-db-2022585"
+			}
 		},
 		"annotations": [],
 		"type": "AzureSqlTable",
