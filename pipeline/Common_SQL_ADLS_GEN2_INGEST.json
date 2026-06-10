@@ -1,0 +1,104 @@
+{
+	"name": "Common_SQL_ADLS_GEN2_INGEST",
+	"properties": {
+		"activities": [
+			{
+				"name": "Common sql adls gen2 ingest",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@pipeline().parameters.p_query",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SHIR_AzureSql_Table",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_domain_name": {
+								"value": "@pipeline().parameters.p_domain",
+								"type": "Expression"
+							},
+							"p_db_name": {
+								"value": "@pipeline().parameters.P_db_name",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SHIR_ADLS_GEN2_Parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"p1": {
+								"value": "@pipeline().parameters.p_filename",
+								"type": "Expression"
+							},
+							"p2": {
+								"value": "@pipeline().parameters.p_filename",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"p_domain": {
+				"type": "string",
+				"defaultValue": "dfafdbewdarfdf.database.windows.net"
+			},
+			"P_db_name": {
+				"type": "string",
+				"defaultValue": "free-sql-db-2022585"
+			},
+			"p_query": {
+				"type": "string"
+			},
+			"p_folder": {
+				"type": "string"
+			},
+			"p_filename": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "MetaV0.1"
+		},
+		"annotations": []
+	}
+}
