@@ -1,0 +1,19 @@
+{
+	"name": "MetadataDrivenCopyTask_db2_incr_j6t_ControlDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "MetadataDrivenCopyTask_db2_incr_j6t_20260610"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "MainControlTable_j6t"
+		}
+	}
+}
