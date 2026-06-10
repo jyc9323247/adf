@@ -3,7 +3,13 @@
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Db21",
-			"type": "LinkedServiceReference"
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"server_name": "192.168.10.100:50000",
+				"db_name": "xmeta",
+				"id": "db2inst1",
+				"keyvalt_db2_sec": "db2"
+			}
 		},
 		"annotations": [],
 		"type": "Db2Table",
