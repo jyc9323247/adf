@@ -1,12 +1,28 @@
 {
-	"name": "AzureSqlTable1",
+	"name": "SHIR_AzureSql_Table",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureSqlDatabase1",
 			"type": "LinkedServiceReference",
 			"parameters": {
-				"domain_name": "dfafdbewdarfdf.database.windows.net",
-				"db_name": "free-sql-db-2022585"
+				"domain_name": {
+					"value": "@dataset().p_domain_name",
+					"type": "Expression"
+				},
+				"db_name": {
+					"value": "@dataset().p_db_name",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"p_domain_name": {
+				"type": "string",
+				"defaultValue": "dfafdbewdarfdf.database.windows.net"
+			},
+			"p_db_name": {
+				"type": "string",
+				"defaultValue": "free-sql-db-2022585"
 			}
 		},
 		"annotations": [],

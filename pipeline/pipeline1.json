@@ -52,8 +52,11 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "AzureSqlTable1",
-						"type": "DatasetReference"
+						"referenceName": "SHIR_AzureSql_Table",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_db_name": "free-sql-db-2022585"
+						}
 					}
 				],
 				"outputs": [
