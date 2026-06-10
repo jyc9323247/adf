@@ -46,13 +46,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2Table",
+						"referenceName": "Db2_Table",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet1",
+						"referenceName": "ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": "tpch",
@@ -105,13 +105,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2Table",
+						"referenceName": "Db2_Table",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet1",
+						"referenceName": "ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": "tpch",

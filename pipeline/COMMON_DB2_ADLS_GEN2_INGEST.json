@@ -43,7 +43,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2Table",
+						"referenceName": "Db2_Table",
 						"type": "DatasetReference",
 						"parameters": {
 							"p_server_name": {
@@ -67,7 +67,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet1",
+						"referenceName": "ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": {

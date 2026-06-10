@@ -42,7 +42,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2Table",
+						"referenceName": "Db2_Table",
 						"type": "DatasetReference"
 					}
 				],
