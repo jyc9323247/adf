@@ -1,5 +1,5 @@
 {
-	"name": "COMMON_DB2_ADLS_GEN2_INGEST",
+	"name": "Common_DB2_ADLS_GEN2_INGEST",
 	"properties": {
 		"activities": [
 			{
