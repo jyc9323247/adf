@@ -18,7 +18,7 @@
 					"source": {
 						"type": "Db2Source",
 						"query": {
-							"value": "@variables('p_query')",
+							"value": "@pipeline().parameters.p_query",
 							"type": "Expression"
 						}
 					},
@@ -47,19 +47,19 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"p_server_name": {
-								"value": "@variables('p_server_name')",
+								"value": "@pipeline().parameters.p_server_name",
 								"type": "Expression"
 							},
 							"p_db_name": {
-								"value": "@variables('p_db_name')",
+								"value": "@pipeline().parameters.p_db_name",
 								"type": "Expression"
 							},
 							"p_id": {
-								"value": "@variables('p_id')",
+								"value": "@pipeline().parameters.p_id",
 								"type": "Expression"
 							},
 							"p_pwd_keyvalt": {
-								"value": "@variables('p_pwd_keyvalt')",
+								"value": "@pipeline().parameters.p_pwd_keyvalt",
 								"type": "Expression"
 							}
 						}
@@ -71,11 +71,11 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"p1": {
-								"value": "@variables('P_folder')",
+								"value": "@pipeline().parameters.p_folder",
 								"type": "Expression"
 							},
 							"p2": {
-								"value": "@variables('P_filename')",
+								"value": "@pipeline().parameters.p_filename",
 								"type": "Expression"
 							}
 						}
@@ -100,6 +100,9 @@
 				"type": "string"
 			},
 			"p_filename": {
+				"type": "string"
+			},
+			"p_query": {
 				"type": "string"
 			}
 		},
