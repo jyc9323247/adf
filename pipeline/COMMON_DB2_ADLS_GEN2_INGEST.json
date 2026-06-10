@@ -85,25 +85,32 @@
 		],
 		"parameters": {
 			"p_server_name": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "192.168.10.100:50000"
 			},
 			"p_db_name": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "xmeta"
 			},
 			"p_id": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "db2inst1"
 			},
 			"p_pwd_keyvalt": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "db2"
 			},
 			"p_folder": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "init/db2"
 			},
 			"p_filename": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "test"
 			},
 			"p_query": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "select * from db2inst1.lineitem fetch first 1 rows only"
 			}
 		},
 		"folder": {
