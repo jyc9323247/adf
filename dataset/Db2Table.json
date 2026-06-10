@@ -1,5 +1,5 @@
 {
-	"name": "Db2Table1",
+	"name": "Db2Table",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Db21",
