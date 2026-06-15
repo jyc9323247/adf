@@ -1,5 +1,20 @@
 {
 	"name": "new-met-adf",
+	"properties": {
+		"globalParameters": {
+			"db2_test": {
+				"type": "object",
+				"value": {
+					"p_server_name": "192.168.10.100:50000",
+					"p_db_name": "xmeta",
+					"p_id": "db2inst1",
+					"p_pwd_keyvalt": "db2",
+					"p_folder": "init/db2",
+					"p_filename": "test"
+				}
+			}
+		}
+	},
 	"location": "koreacentral",
 	"identity": {
 		"type": "SystemAssigned",
