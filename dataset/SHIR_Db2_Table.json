@@ -37,6 +37,9 @@
 				"type": "string"
 			}
 		},
+		"folder": {
+			"name": "MetaV0.1"
+		},
 		"annotations": [],
 		"type": "Db2Table",
 		"schema": []

@@ -25,6 +25,9 @@
 				"defaultValue": "free-sql-db-2022585"
 			}
 		},
+		"folder": {
+			"name": "MetaV0.1"
+		},
 		"annotations": [],
 		"type": "AzureSqlTable",
 		"schema": [],
