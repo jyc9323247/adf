@@ -1,0 +1,27 @@
+{
+	"name": "CHILD_Common_DB2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Common_DB2_ADLS_GEN2_INGEST",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Common_DB2_ADLS_GEN2_INGEST",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "MetaV0.1/INIT"
+		},
+		"annotations": []
+	}
+}
