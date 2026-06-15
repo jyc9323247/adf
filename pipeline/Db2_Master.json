@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select s.source_db_nm , s.source_schema_nm , s.source_table_nm , c.partition_seq , c.partition_where_clause , c.target_folder_path   FROM adf_init.init_load_control_v02 c\nINNER JOIN adf_common.source_table_master s\n    ON s.source_table_id = c.source_table_id",
+						"sqlReaderQuery": "select s.source_db_nm , s.source_schema_nm , s.source_table_nm , c.partition_seq , c.partition_where_clause , c.target_folder_path,  \nconcat('select * from ', s.source_schema_nm , '.' , s.source_table_nm , ' where ', c.partition_where_clause  , '  fetch first 1 rows only'  ) as query ,\nconcat(s.source_table_nm,  '_',  c.partition_seq) as filename\n FROM adf_init.init_load_control_v02 c\nINNER JOIN adf_common.source_table_master s\n    ON s.source_table_id = c.source_table_id",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -49,10 +49,11 @@
 						"value": "@activity('Lookup1').output.value",
 						"type": "Expression"
 					},
-					"isSequential": true,
+					"isSequential": false,
+					"batchCount": 2,
 					"activities": [
 						{
-							"name": "CHILD_Common_DB2",
+							"name": "CHILD_Common_DB2_copy1",
 							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
@@ -61,10 +62,24 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "CHILD_Common_DB2",
+									"referenceName": "CHILD_Common_DB2_copy1",
 									"type": "PipelineReference"
 								},
-								"waitOnCompletion": true
+								"waitOnCompletion": true,
+								"parameters": {
+									"db_name": {
+										"value": "@item().source_db_nm",
+										"type": "Expression"
+									},
+									"filename": {
+										"value": "@item().filename",
+										"type": "Expression"
+									},
+									"query": {
+										"value": "@item().query",
+										"type": "Expression"
+									}
+								}
 							}
 						}
 					]
