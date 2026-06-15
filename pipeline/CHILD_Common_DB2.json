@@ -15,10 +15,50 @@
 						"referenceName": "Common_DB2_ADLS_GEN2_INGEST",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_server_name": {
+							"value": "@variables('p_server_name')",
+							"type": "Expression"
+						},
+						"p_db_name": {
+							"value": "@variables('p_db_name')",
+							"type": "Expression"
+						},
+						"p_id": {
+							"value": "@variables('p_id')",
+							"type": "Expression"
+						},
+						"p_pwd_keyvalt": {
+							"value": "@variables('p_pwd_keyvalt')",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],
+		"parameters": {
+			"db_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"p_server_name": {
+				"type": "String"
+			},
+			"p_db_name": {
+				"type": "String"
+			},
+			"p_id": {
+				"type": "String"
+			},
+			"p_pwd_keyvalt": {
+				"type": "String"
+			},
+			"p_folder": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "MetaV0.1/INIT"
 		},
