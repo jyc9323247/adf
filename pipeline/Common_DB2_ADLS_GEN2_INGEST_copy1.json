@@ -55,7 +55,7 @@
 								"type": "Expression"
 							},
 							"p_id": {
-								"value": "@pipeline().parameters.p_server_conn.p_db_id",
+								"value": "@pipeline().parameters.p_server_conn.p_id",
 								"type": "Expression"
 							},
 							"p_pwd_keyvalt": {
