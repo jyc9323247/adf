@@ -1,0 +1,49 @@
+{
+	"name": "MetadataDrivenCopyTask_heh_SourceDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"domain_name": {
+					"value": "@dataset().cw_ls_domain_name",
+					"type": "Expression"
+				},
+				"db_name": {
+					"value": "@dataset().cw_ls_db_name",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"cw_schema": {
+				"type": "String"
+			},
+			"cw_table": {
+				"type": "String"
+			},
+			"cw_ls_domain_name": {
+				"type": "String"
+			},
+			"cw_ls_db_name": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopyTask_heh_20260710"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().cw_schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().cw_table",
+				"type": "Expression"
+			}
+		}
+	}
+}
