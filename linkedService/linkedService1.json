@@ -1,0 +1,14 @@
+{
+	"name": "linkedService1",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "dfafdbewdarfdf.database.windows.net",
+			"database": "free-sql-db-2022585",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SystemAssignedManagedIdentity"
+		}
+	}
+}
