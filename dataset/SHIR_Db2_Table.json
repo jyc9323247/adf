@@ -16,10 +16,6 @@
 				"id": {
 					"value": "@dataset().p_id",
 					"type": "Expression"
-				},
-				"keyvalt_db2_sec": {
-					"value": "@dataset().p_pwd_keyvalt",
-					"type": "Expression"
 				}
 			}
 		},
