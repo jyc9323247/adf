@@ -162,7 +162,7 @@
 												{
 													"type": "Query",
 													"text": {
-														"value": "update\n    \"META\".ctl_ingest_target_master\nset incr_column_hw_val= @{activity('Lookup2').output.firstRow.hwmark_value}\nwhere\n    target_id = @{item().target_id} ;",
+														"value": "update\n    \"META\".ctl_ingest_target_master\nset incr_column_hw_val= '@{activity('Lookup2').output.firstRow.hwmark_value}'\nwhere\n    target_id = @{item().target_id} ;",
 														"type": "Expression"
 													}
 												}
