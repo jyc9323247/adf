@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
-				"type": "Copy",
+				"name": "Lookup1",
+				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -16,60 +16,39 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "AzureSqlSource",
-						"queryTimeout": "02:00:00",
-						"isolationLevel": "ReadCommitted",
-						"partitionOption": "DynamicRange",
-						"partitionSettings": {
-							"partitionColumnName": {
-								"value": "id",
-								"type": "Expression"
-							},
-							"partitionUpperBound": "3",
-							"partitionLowerBound": "1"
-						}
-					},
-					"sink": {
-						"type": "ParquetSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings",
-							"copyBehavior": "FlattenHierarchy"
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "SELECT t.target_id, t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n       t.landing_path_tpl,\n       'FULL_REFRESH' AS incr_method,\n       '1=1'          AS incr_where          -- WITH UR 은 차일드 템플릿에서 부착\nFROM   \"META\".ctl_ingest_target_master t\nWHERE  t.is_active  = 'Y'\nAND    t.data_class = '@{variables('v_data_class')}'\nAND    t.src_db_nm  = '@{variables('v_src_db_name')}'\n-- (:p_exec_group 파라미터도 ADF 변수를 뜻하는 것이라면 아래와 같이 처리)\nAND    ('@{variables('v_exec_group')}' = '' OR t.exec_group = '@{variables('v_exec_group')}')\nAND    CASE\n         WHEN '@{variables('v_run_mode')}' = 'PENDING'\n              THEN (t.pending_yn = 'Y')                          -- 초기적재: load_type 무관\n         ELSE (t.load_type = 'full' AND t.pending_yn = 'N')      -- 주기 full refresh: 정규 반복\n       END\nORDER  BY t.src_db_nm, t.target_id;    -- DB별로 묶어 ingest 파이프라인 호출\n",
+							"type": "Expression"
 						},
-						"formatSettings": {
-							"type": "ParquetWriteSettings"
-						}
+						"partitionOption": "None",
+						"queryTimeout": "02:00:00"
 					},
-					"enableStaging": false,
-					"parallelCopies": 3,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "SHIR_AzureSql_Table",
-						"type": "DatasetReference",
-						"parameters": {
-							"p_db_name": "free-sql-db-2022585"
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "Parquet2",
-						"type": "DatasetReference",
-						"parameters": {
-							"p2": "test"
-						}
-					}
-				]
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
+		"variables": {
+			"v_data_class": {
+				"type": "String",
+				"defaultValue": "raw"
+			},
+			"v_src_db_name": {
+				"type": "String",
+				"defaultValue": "xmeta"
+			},
+			"v_exec_group": {
+				"type": "String"
+			},
+			"v_run_mode": {
+				"type": "String",
+				"defaultValue": "PENDING"
+			}
+		},
 		"annotations": []
 	}
 }
