@@ -5,6 +5,8 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Set variable1",
@@ -41,6 +43,8 @@
 			{
 				"name": "ForEach1",
 				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -179,6 +183,8 @@
 			{
 				"name": "Set variable1",
 				"type": "SetVariable",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"secureOutput": false,
@@ -191,6 +197,111 @@
 						"value": "@if(equals(pipeline().parameters.P_IS_INIT_FULL, 'Y'), 'PENDING', 'N')",
 						"type": "Expression"
 					}
+				}
+			},
+			{
+				"name": "Script2",
+				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO \"META\".ctl_master_run_status (\n    pipeline_nm,\n    master_run_id,\n    trigger_nm,\n    ingest_type,\n    start_dt,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode\n) VALUES (\n    '@{pipeline().Pipeline}',                     \n    '@{pipeline().RunId}',                         \n    '@{pipeline().TriggerName}',                   \n    'INIT_FULL' , \n    CURRENT_TIMESTAMP,                             \n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    'PENDING',                                     -- 초기 상태\n    CASE \n        WHEN '@{pipeline().TriggerType}' = 'Manual' THEN 'MANUAL' \n        ELSE 'SCHEDULE' \n    END                                            \n);",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Script2_copy1",
+				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Script2_copy1_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "update\n    \"META\".ctl_master_run_status\nset\n    child_total_cnt = 10,\n    status = 'RUNNING',\n    update_timestamp =  now()\nwhere\n    pipeline_nm = '@{pipeline().Pipeline}'\n    and master_run_id = '@{pipeline().RunId}' ; ",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Script2_copy1_copy1",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Script2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO \"META\".ctl_ingest_run (\n    master_run_id, \n    master_pipeline_name,\n    ingest_pipeline_run_id, \n    target_id, \n    data_class, \n    load_type, \n    exec_group, \n    condition_type, \n    condition_frequency, \n    condition_interval, \n    incr_column_nm, \n    src_type, \n    src_db_nm, \n    src_schema_nm, \n    src_table_nm, \n    is_active, \n    pending_yn, \n    created_by, \n    created_dt, \n    update_by, \n    update_dt, \n    incr_column_hw_val, \n    incr_column_hw_type, \n    extract_query, \n    landing_path_tpl, \n    start_dt, \n    end_dt, \n    status, \n    save_cnt, \n    attempt_no, \n    error_log\n)\nSELECT\n    '@{pipeline().RunId}' AS master_run_id,      \n    '@{pipeline().Pipeline}' AS master_pipeline_name, \n    '-' AS ingest_pipeline_run_id ,    \n    t.target_id,\n    t.data_class,\n    t.load_type,\n    t.exec_group,\n    t.condition_type,\n    t.condition_frequency,\n    t.condition_interval,\n    t.incr_column_nm,\n    t.src_type,\n    t.src_db_nm,\n    t.src_schema_nm,\n    t.src_table_nm,\n    t.is_active,\n    t.pending_yn,\n    'ADF_MASTER' AS created_by,\n    CURRENT_TIMESTAMP AS created_dt,\n    NULL AS update_by,\n    NULL AS update_dt,\n    t.incr_column_hw_val,\n    t.incr_column_hw_type,\n    \n    -- extract_query 동적 생성 (전체 쿼리 형태로 조합)\n    'SELECT * FROM ' || t.src_schema_nm || '.' || t.src_table_nm ||\n    CASE\n        WHEN t.load_type = 'INCREMENTAL' AND t.condition_frequency IS NOT NULL THEN\n            ' WHERE ' ||\n            CASE\n                 WHEN t.condition_frequency IN ('minutely','hourly','daily','weekly','monthly','yearly') THEN\n                     t.incr_column_nm || ' < ''' ||\n                     CASE t.condition_frequency\n                          WHEN 'minutely' THEN DATE_TRUNC('minute', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= ''' ||  DATE_TRUNC('minute', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' minutes')::interval ||  ''''\n                          WHEN 'hourly'   THEN DATE_TRUNC('hour', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= ''' ||   DATE_TRUNC('hour', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' hours')::interval   || ''''\n                          WHEN 'daily'    THEN DATE_TRUNC('day', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| CURRENT_DATE - (t.condition_interval || ' days')::interval       || ''''\n                          WHEN 'weekly'   THEN DATE_TRUNC('day', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| CURRENT_DATE - (t.condition_interval*7 || ' days')::interval       || ''''\n                          WHEN 'monthly'  THEN \n                               CASE WHEN t.incr_column_nm IN ('CLYM') THEN\n                                         TO_CHAR(CURRENT_DATE, 'YYMM') || ''' and '|| t.incr_column_nm || ' >= '''||  TO_CHAR(CURRENT_DATE - (t.condition_interval || ' months')::interval, 'YYMM')    || ''''\n                                    ELSE DATE_TRUNC('month', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| DATE_TRUNC('month', CURRENT_TIMESTAMP)::timestamp  - (t.condition_interval || ' months')::interval       || ''''\n                               END\n                          WHEN 'yearly'   THEN DATE_TRUNC('year', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| DATE_TRUNC('year', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' years')::interval      || ''''\n                     END\n            END\n        ELSE '' -- 증분(INCREMENTAL)이 아니면 WHERE 조건 없음 (FULL LOAD)\n    END AS extract_query,\n    t.landing_path_tpl,\n    CURRENT_TIMESTAMP AS start_dt,\n    NULL AS end_dt,\n    'READY' AS status,       -- 초기 상태값\n    0 AS save_cnt,           -- 초기 저장 건수\n    1 AS attempt_no,         -- 초기 시도 횟수\n    NULL AS error_log\nFROM\n    \"META\".ctl_ingest_target_master t\nWHERE\n    t.is_active = 'Y';       -- 사용 여부가 'Y'인 타겟만 추출",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],
