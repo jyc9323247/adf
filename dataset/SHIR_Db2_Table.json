@@ -3,35 +3,7 @@
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Db21",
-			"type": "LinkedServiceReference",
-			"parameters": {
-				"server_name": {
-					"value": "@dataset().p_server_name",
-					"type": "Expression"
-				},
-				"db_name": {
-					"value": "@dataset().p_db_name",
-					"type": "Expression"
-				},
-				"id": {
-					"value": "@dataset().p_id",
-					"type": "Expression"
-				}
-			}
-		},
-		"parameters": {
-			"p_server_name": {
-				"type": "string"
-			},
-			"p_db_name": {
-				"type": "string"
-			},
-			"p_id": {
-				"type": "string"
-			},
-			"p_pwd_keyvalt": {
-				"type": "string"
-			}
+			"type": "LinkedServiceReference"
 		},
 		"folder": {
 			"name": "MetaV0.1"

@@ -1,0 +1,147 @@
+{
+	"name": "pipeline_incr_clym",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set variable1_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "SELECT t.target_id, t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n       t.landing_path_tpl, t.incr_column_nm,\n       'INCR_WINDOW' AS incr_method,\n       t.incr_column_nm || ' >= ' ||\n       CASE\n         WHEN t.condition_frequency IN ('minutely','hourly') THEN\n              'CURRENT TIMESTAMP - ' ||\n              CASE t.condition_frequency\n                   WHEN 'minutely' THEN t.condition_interval || ' MINUTES'\n                   WHEN 'hourly'   THEN t.condition_interval || ' HOURS'\n              END\n         ELSE\n              'CURRENT DATE - ' ||\n              CASE t.condition_frequency\n                   WHEN 'daily'   THEN t.condition_interval        || ' DAYS'\n                   WHEN 'weekly'  THEN (t.condition_interval * 7)   || ' DAYS'   -- DB2 WEEKS 없음\n                   WHEN 'monthly' THEN t.condition_interval        || ' MONTHS'\n                   WHEN 'yearly'  THEN t.condition_interval        || ' YEARS'\n              END\n       END AS incr_where          -- 예: IPDTM >= CURRENT DATE - 3 DAYS\nFROM   \"META\".ctl_ingest_target_master t\nWHERE  t.is_active         = 'Y'\nAND    t.data_class        ='@{variables('v_data_class')}'\nand    t.src_db_nm         = '@{variables('v_src_db_name')}'\nAND    t.load_type         = 'incr'\nAND    t.condition_type    = 'window'\nAND    t.condition_frequency = '@{variables('v_frequency')}'\nAND    t.condition_interval  = '@{variables('v_interval')}'\nAND    t.pending_yn        = 'N'         -- 초기적재 완료 건만 증분\nORDER  BY t.src_db_nm, t.target_id;",
+							"type": "Expression"
+						},
+						"partitionOption": "None",
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup1').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Fail1",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@item().target_id",
+									"type": "Expression"
+								},
+								"errorCode": "0"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_frequency",
+					"value": {
+						"value": "@pipeline().parameters.P_FREQUENCY",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable1_copy1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_interval",
+					"value": {
+						"value": "@pipeline().parameters.P_INTERVAL",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"P_FREQUENCY": {
+				"type": "string",
+				"defaultValue": "monthly"
+			},
+			"P_INTERVAL": {
+				"type": "string",
+				"defaultValue": "3"
+			}
+		},
+		"variables": {
+			"v_data_class": {
+				"type": "String",
+				"defaultValue": "raw"
+			},
+			"v_src_db_name": {
+				"type": "String",
+				"defaultValue": "xmeta"
+			},
+			"v_frequency": {
+				"type": "String",
+				"defaultValue": "monthly"
+			},
+			"v_interval": {
+				"type": "String",
+				"defaultValue": "3"
+			}
+		},
+		"annotations": []
+	}
+}
