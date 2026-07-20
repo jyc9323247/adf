@@ -2,25 +2,11 @@
 	"name": "Db21",
 	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
-		"parameters": {
-			"server_name": {
-				"type": "string",
-				"defaultValue": "192.168.10.100:50000"
-			},
-			"db_name": {
-				"type": "string",
-				"defaultValue": "xmeta"
-			},
-			"id": {
-				"type": "string",
-				"defaultValue": "db2inst1"
-			}
-		},
 		"annotations": [],
 		"type": "Db2",
 		"typeProperties": {
-			"connectionString": "server=@{linkedService().server_name};database=@{linkedService().db_name};username=@{linkedService().id};authenticationtype=Basic",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJlNGIyYjc1ZS01NmM4LTQ0OGQtOTZlNi1mMWZhNmQwMjcxN2UiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"connectionString": "server=192.168.10.100:50000;database=xmeta;username=db2inst1;authenticationtype=Basic",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIxOGFlMGJlMC03YTAxLTQ3NDYtYjUyZi05MTA5MWE2NDQyMDkiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
