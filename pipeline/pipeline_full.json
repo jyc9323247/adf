@@ -7,14 +7,7 @@
 				"type": "Lookup",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Set variable1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -130,7 +123,10 @@
 										"typeProperties": {
 											"source": {
 												"type": "Db2Source",
-												"query": "select max(@{item().incr_column_nm}) as \"hwmark_value\" from @{item().src_schema_nm}.@{item().src_table_nm} ; \n"
+												"query": {
+													"value": "select max(@{item().incr_column_nm}) as \"hwmark_value\" from @{item().src_schema_nm}.@{item().src_table_nm} ; \n",
+													"type": "Expression"
+												}
 											},
 											"dataset": {
 												"referenceName": "SHIR_Db2_Table",
@@ -178,25 +174,6 @@
 							}
 						}
 					]
-				}
-			},
-			{
-				"name": "Set variable1",
-				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "v_run_mode",
-					"value": {
-						"value": "@if(equals(pipeline().parameters.P_IS_INIT_FULL, 'Y'), 'PENDING', 'N')",
-						"type": "Expression"
-					}
 				}
 			},
 			{
@@ -345,7 +322,7 @@
 				}
 			},
 			{
-				"name": "Script3",
+				"name": "Script init or full",
 				"type": "Script",
 				"dependsOn": [],
 				"policy": {
@@ -365,7 +342,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "DO $$ \nDECLARE\n    v_row_count INT;\nBEGIN\n    -- 1. 첫 번째 단일 INSERT 실행\n    INSERT INTO \"META\".ctl_master_run_status (\n    pipeline_nm,\n    master_run_id,\n    trigger_nm,\n    ingest_type,\n    start_dt,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode\n    ) VALUES (\n    '@{pipeline().Pipeline}',                     \n    '@{pipeline().RunId}',                         \n    '@{pipeline().TriggerName}',                   \n    'INIT_FULL' , \n    CURRENT_TIMESTAMP,                             \n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    'PENDING',                                     -- 초기 상태\n    CASE \n        WHEN '@{pipeline().TriggerType}' = 'Manual' THEN 'MANUAL' \n        ELSE 'SCHEDULE' \n    END                                            \n    );\n\n    -- (선택 사항) 방금 실행한 INSERT가 몇 건 적용되었는지 확인\n    GET DIAGNOSTICS v_row_count = ROW_COUNT;\n\n    -- 2. 첫 번째 INSERT가 성공(1건 이상 반영)했을 경우에만 다음 작업 수행\n    IF v_row_count > 0 THEN\n        RAISE NOTICE '첫 번째 INSERT 성공. %건 반영됨. 다음 작업을 진행합니다.', v_row_count;\n        \n        -- 3. INSERT ... SELECT 실행\n        INSERT INTO \"META\".ctl_ingest_run (\n    master_run_id, \n    master_pipeline_name,\n    ingest_pipeline_run_id, \n    target_id, \n    data_class, \n    load_type, \n    exec_group, \n    condition_type, \n    condition_frequency, \n    condition_interval, \n    incr_column_nm, \n    src_type, \n    src_db_nm, \n    src_schema_nm, \n    src_table_nm, \n    is_active, \n    pending_yn, \n    created_by, \n    created_dt, \n    update_by, \n    update_dt, \n    incr_column_hw_val, \n    incr_column_hw_type, \n    extract_query, \n    landing_path, \n    start_dt, \n    end_dt, \n    status, \n    save_cnt, \n    attempt_no, \n    error_log\n)\nSELECT\n    '@{pipeline().RunId}' AS master_run_id,      \n    '@{pipeline().Pipeline}' AS master_pipeline_name, \n    '-' AS ingest_pipeline_run_id ,    \n    t.target_id,\n    t.data_class,\n    t.load_type,\n    t.exec_group,\n    t.condition_type,\n    t.condition_frequency,\n    t.condition_interval,\n    t.incr_column_nm,\n    t.src_type,\n    t.src_db_nm,\n    t.src_schema_nm,\n    t.src_table_nm,\n    t.is_active,\n    t.pending_yn,\n    'ADF_MASTER' AS created_by,\n    CURRENT_TIMESTAMP AS created_dt,\n    NULL AS update_by,\n    NULL AS update_dt,\n    t.incr_column_hw_val,\n    t.incr_column_hw_type,\n    'SELECT * FROM ' || t.src_schema_nm || '.' || t.src_table_nm ||\n    CASE\n        WHEN t.load_type = 'incr' AND t.condition_frequency IS NOT NULL THEN\n            ' WHERE ' ||\n            CASE\n                 WHEN t.condition_frequency IN ('minutely','hourly','daily','weekly','monthly','yearly') THEN\n                     t.incr_column_nm || ' < ''' ||\n                     CASE t.condition_frequency\n                          WHEN 'minutely' THEN DATE_TRUNC('minute', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= ''' ||  DATE_TRUNC('minute', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' minutes')::interval ||  ''''\n                          WHEN 'hourly'   THEN DATE_TRUNC('hour', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= ''' ||   DATE_TRUNC('hour', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' hours')::interval   || ''''\n                          WHEN 'daily'    THEN DATE_TRUNC('day', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| CURRENT_DATE - (t.condition_interval || ' days')::interval       || ''''\n                          WHEN 'weekly'   THEN DATE_TRUNC('day', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| CURRENT_DATE - (t.condition_interval*7 || ' days')::interval       || ''''\n                          WHEN 'monthly'  THEN \n                               CASE WHEN t.incr_column_nm IN ('CLYM') THEN\n                                         TO_CHAR(CURRENT_DATE, 'YYMM') || ''' and '|| t.incr_column_nm || ' >= '''||  TO_CHAR(CURRENT_DATE - (t.condition_interval || ' months')::interval, 'YYMM')    || ''''\n                                    ELSE DATE_TRUNC('month', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| DATE_TRUNC('month', CURRENT_TIMESTAMP)::timestamp  - (t.condition_interval || ' months')::interval       || ''''\n                               END\n                          WHEN 'yearly'   THEN DATE_TRUNC('year', CURRENT_TIMESTAMP)::timestamp || ''' and '|| t.incr_column_nm || ' >= '''|| DATE_TRUNC('year', CURRENT_TIMESTAMP)::timestamp - (t.condition_interval || ' years')::interval      || ''''\n                     END\n            END\n        ELSE '' \n    END AS extract_query,\n    'ingest/'||'@{pipeline().Pipeline}' AS landing_path,   \n    CURRENT_TIMESTAMP AS start_dt,\n    NULL AS end_dt,\n    'READY' AS status,\n    0 AS save_cnt,\n    0 AS attempt_no,\n    NULL AS error_log\nFROM\n    \"META\".ctl_ingest_target_master t\nWHERE\n    t.is_active = 'Y'\n    AND    t.data_class = '@{variables('v_data_class')}'\nAND    t.src_db_nm  = '@{variables('v_src_db_name')}'\n-- (:p_exec_group 파라미터도 ADF 변수를 뜻하는 것이라면 아래와 같이 처리)\nAND    ('@{variables('v_exec_group')}' = '' OR t.exec_group = '@{variables('v_exec_group')}')\nAND    CASE\n         WHEN '@{variables('v_run_mode')}' = 'PENDING'\n              THEN (t.pending_yn = 'Y')                          -- 초기적재: load_type 무관\n         ELSE (t.load_type = 'full' AND t.pending_yn = 'N')      -- 주기 full refresh: 정규 반복\n       END;\n        \n        RAISE NOTICE 'INSERT ... SELECT 작업이 완료되었습니다.';\n    ELSE\n        RAISE NOTICE '첫 번째 INSERT가 반영되지 않았습니다. 다음 작업을 건너뜁니다.';\n    END IF;\n\nEXCEPTION \n    -- 4. 실행 중 오류가 발생할 경우 예외 처리 (자동 롤백됨)\n    WHEN OTHERS THEN\n        RAISE NOTICE '오류가 발생하여 모든 작업이 롤백되었습니다. 오류 메시지: %', SQLERRM;\n        -- 필요하다면 오류를 다시 던져서 호출한 클라이언트(ADF 등)가 실패를 인지하게 할 수 있습니다.\n        RAISE EXCEPTION 'Transaction failed: %', SQLERRM;\nEND $$;",
+								"value": "DO $$ \nDECLARE\n    v_row_count INT;\n    v_child_count INT; -- 추가된 변수: child 건수 저장용\nBEGIN\n    SET search_path TO \"META_ADF\", public;\n    -- 1. 첫 번째 단일 INSERT 실행 (마스터 러닝 생성)\n    INSERT INTO ctl_master_pipeline_run (\n        master_run_id,\n        master_pipeline_nm,\n        trigger_id,\n        trigger_nm,\n        ingest_type,\n        start_dt,\n        exec_group, \n        created_by,\n        status,\n        skip_type,\n        run_mode\n    ) VALUES (\n        '@{pipeline().RunId}',\n        '@{pipeline().Pipeline}',                     \n        '@{pipeline().TriggerId}',                         \n        '@{pipeline().TriggerName}',                   \n        'full', \n        CURRENT_TIMESTAMP,  \n        '',\n        'ADF',                           \n        'PENDING',                                     \n        null,\n        CASE \n            WHEN '@{pipeline().TriggerType}' = 'Manual' THEN 'MANUAL' \n            ELSE 'SCHEDULE' \n        END                                             \n    );\n\n    -- 첫 번째 INSERT 실행 결과 확인\n    GET DIAGNOSTICS v_row_count = ROW_COUNT;\n\n    -- 2. 첫 번째 INSERT가 성공(1건 이상 반영)했을 경우에만 다음 작업 수행\n    IF v_row_count > 0 THEN\n        RAISE NOTICE '첫 번째 INSERT 성공. %건 반영됨. 다음 작업을 진행합니다.', v_row_count;\n        \n        -- 3. INSERT ... SELECT 실행 (하위 인제스트 러닝 생성)\n        INSERT INTO ctl_ingest_pipeline_run (\n            ingest_pipeline_id,\n            master_run_id,\n            master_pipeline_nm,\n            target_id,\n            src_type,\n            src_db_nm,\n            src_schema_nm,\n            src_table_nm,\n            data_class,\n            ingest_type,\n            exec_group,\n            condition_type,\n            condition_frequency,\n            condition_interval,\n            incr_column_nm,\n            incr_column_type,\n            incr_column_hw_val,\n            is_active,\n            pending_yn,\n            extract_query,\n            landing_path,\n            status,\n            created_by,\n            created_dt\n        )\n        SELECT\n            gen_random_uuid()::text,\n            '@{pipeline().RunId}',     \n            '@{pipeline().Pipeline}',\n            t.target_id,\n            t.src_type,\n            t.src_db_nm,\n            t.src_schema_nm,\n            t.src_table_nm,\n            t.data_class,\n            t.ingest_type,\n            t.exec_group,\n            t.condition_type,\n            t.condition_frequency,\n            t.condition_interval,\n            t.incr_column_nm,\n            t.incr_column_type,\n            t.incr_column_hw_val,\n            t.is_active,\n            t.pending_yn,\n            'select * from ' || t.src_schema_nm ||'.'||t.src_table_nm || ' fetch first 1 rows only with ur;',\n            'ingest/'||'@{pipeline().Pipeline}',\n            'PENDING',\n            'ADF',\n            CURRENT_TIMESTAMP \n        FROM\n            ctl_ingest_target_master t\n        WHERE\n            lower(t.is_active) = 'y'\n            AND lower(t.data_class) = 'raw'\n            AND CASE\n                    WHEN lower('@{pipeline().parameters.P_IS_INIT_FULL}') = 'y'\n                        THEN (lower(t.pending_yn) = 'y')\n                    ELSE (lower(t.ingest_type) = 'full' AND lower(t.pending_yn) = 'n')\n                END;\n\n        -- 4. INSERT ... SELECT 건수 확인\n        GET DIAGNOSTICS v_child_count = ROW_COUNT;\n\n        -- 5. ctl_master_pipeline_run 의 child_total_cnt 업데이트\n        UPDATE ctl_master_pipeline_run\n           SET child_total_cnt = v_child_count ,\n\t\t       update_dt = CURRENT_TIMESTAMP,\n\t\t\t   update_by = 'ADF' \n         WHERE master_run_id = '@{pipeline().RunId}';\n\n        RAISE NOTICE 'INSERT ... SELECT 완료. child_total_cnt(%건) 업데이트 완료.', v_child_count;\n\n    ELSE\n        RAISE NOTICE '첫 번째 INSERT가 반영되지 않았습니다. 다음 작업을 건너뜁니다.';\n    END IF;\n\nEXCEPTION \n    WHEN OTHERS THEN\n        RAISE NOTICE '오류가 발생하여 모든 작업이 롤백되었습니다. 오류 메시지: %', SQLERRM;\n        RAISE EXCEPTION 'Transaction failed: %', SQLERRM;\nEND $$;",
 								"type": "Expression"
 							}
 						}
@@ -377,24 +354,12 @@
 		"parameters": {
 			"P_IS_INIT_FULL": {
 				"type": "string",
-				"defaultValue": "N"
+				"defaultValue": "y"
 			}
 		},
 		"variables": {
-			"v_data_class": {
-				"type": "String",
-				"defaultValue": "raw"
-			},
-			"v_src_db_name": {
-				"type": "String",
-				"defaultValue": "xmeta"
-			},
 			"v_exec_group": {
 				"type": "String"
-			},
-			"v_run_mode": {
-				"type": "String",
-				"defaultValue": "PENDING"
 			},
 			"v_load_type": {
 				"type": "String",
