@@ -208,6 +208,8 @@
 			{
 				"name": "Script3",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "pipeline1_child",
@@ -244,6 +246,8 @@
 			{
 				"name": "Filter1",
 				"type": "Filter",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -267,6 +271,8 @@
 			{
 				"name": "pipeline1_child",
 				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Filter1",
@@ -296,6 +302,29 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "Filter1_copy1",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup1').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().src_db_nm, 'mydb')",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -323,10 +352,6 @@
 			"v_data_class": {
 				"type": "String",
 				"defaultValue": "RAW"
-			},
-			"v_src_db_name": {
-				"type": "String",
-				"defaultValue": "xmeta"
 			}
 		},
 		"annotations": []
