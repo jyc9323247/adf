@@ -5,9 +5,14 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Script init",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -20,7 +25,7 @@
 					"source": {
 						"type": "AzurePostgreSqlSource",
 						"query": {
-							"value": "SELECT t.target_id, t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n       t.landing_path_tpl,\n       'FULL_REFRESH' AS incr_method,\n       '1=1'          AS incr_where,         \n       load_type,\n       incr_column_nm,\n       pending_yn\nFROM   \"META\".ctl_ingest_target_master t\nWHERE  t.is_active  = 'Y'\nAND    t.data_class = '@{variables('v_data_class')}'\nAND    t.src_db_nm  = '@{variables('v_src_db_name')}'\n-- (:p_exec_group 파라미터도 ADF 변수를 뜻하는 것이라면 아래와 같이 처리)\nAND    ('@{variables('v_exec_group')}' = '' OR t.exec_group = '@{variables('v_exec_group')}')\nAND    CASE\n         WHEN '@{variables('v_run_mode')}' = 'PENDING'\n              THEN (t.pending_yn = 'Y')                          -- 초기적재: load_type 무관\n         ELSE (t.load_type = 'full' AND t.pending_yn = 'N')      -- 주기 full refresh: 정규 반복\n       END\nORDER  BY t.src_db_nm, t.target_id;    -- DB별로 묶어 ingest 파이프라인 호출\n",
+							"value": "SET search_path TO \"META_ADF\", public;\n\nSELECT t.target_id,\n       t.ingest_pipeline_id, \n       t.ingest_type,\n       t.src_type, \n\t   t.src_db_nm, \n\t   t.src_schema_nm, \n\t   t.src_table_nm,\n       t.landing_path,   \n       t.extract_query\nFROM   ctl_ingest_pipeline_run t\nWHERE  master_run_id = '@{pipeline().RunId}'\nAND    t.src_db_nm  = '@{variables('v_src_db_name')}'\nAND    status = 'PENDING'\nORDER  BY t.target_id;    \n\n          ",
 							"type": "Expression"
 						},
 						"partitionOption": "None",
@@ -177,37 +182,6 @@
 				}
 			},
 			{
-				"name": "Script2",
-				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
-					"type": "LinkedServiceReference"
-				},
-				"typeProperties": {
-					"scripts": [
-						{
-							"type": "Query",
-							"text": {
-								"value": "INSERT INTO \"META\".ctl_master_run_status (\n    pipeline_nm,\n    master_run_id,\n    trigger_nm,\n    ingest_type,\n    start_dt,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode\n) VALUES (\n    '@{pipeline().Pipeline}',                     \n    '@{pipeline().RunId}',                         \n    '@{pipeline().TriggerName}',                   \n    'INIT_FULL' , \n    CURRENT_TIMESTAMP,                             \n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    0,                                             -- 초기화\n    'PENDING',                                     -- 초기 상태\n    CASE \n        WHEN '@{pipeline().TriggerType}' = 'Manual' THEN 'MANUAL' \n        ELSE 'SCHEDULE' \n    END                                            \n);",
-								"type": "Expression"
-							}
-						}
-					],
-					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
 				"name": "Script2_copy1",
 				"type": "Script",
 				"state": "Inactive",
@@ -250,14 +224,7 @@
 				"type": "Script",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Script2",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -355,8 +322,6 @@
 			{
 				"name": "Script init",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -399,7 +364,8 @@
 				"defaultValue": "INCR"
 			},
 			"v_start_dt": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "20261210"
 			},
 			"v_landing_path": {
 				"type": "String",
@@ -408,6 +374,10 @@
 			"v_data_class": {
 				"type": "String",
 				"defaultValue": "RAW"
+			},
+			"v_src_db_name": {
+				"type": "String",
+				"defaultValue": "xmeta"
 			}
 		},
 		"annotations": []
