@@ -1,6 +1,325 @@
 {
-	"name": "pipeline1",
+	"name": "pipeline1_child",
 	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.ingest_list",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 2,
+					"activities": [
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@if( equals(pipeline().parameters.P_IS_INIT_FULL,'Y' ), true, false  )",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Script1_copy1",
+										"type": "Script",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "AzurePostgreSql1",
+											"type": "LinkedServiceReference"
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "Query",
+													"text": {
+														"value": "update\n    \"META\".ctl_ingest_target_master\nset pending_yn = 'N'\nwhere\n    target_id = @{item().target_id} ;",
+														"type": "Expression"
+													}
+												}
+											],
+											"scriptBlockExecutionTimeout": "02:00:00"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "If Condition  incr hwmark",
+							"type": "IfCondition",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(equals( item().load_type,'incr' ), equals( item().pending_yn,'Y' ))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Lookup2",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "Db2Source",
+												"query": {
+													"value": "select max(@{item().incr_column_nm}) as \"hwmark_value\" from @{item().src_schema_nm}.@{item().src_table_nm} ; \n",
+													"type": "Expression"
+												}
+											},
+											"dataset": {
+												"referenceName": "SHIR_Db2_Table",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "Script1",
+										"type": "Script",
+										"dependsOn": [
+											{
+												"activity": "Lookup2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "AzurePostgreSql1",
+											"type": "LinkedServiceReference"
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "Query",
+													"text": {
+														"value": "update\n    \"META\".ctl_ingest_target_master\nset incr_column_hw_val= '@{activity('Lookup2').output.firstRow.hwmark_value}'\nwhere\n    target_id = @{item().target_id} ;",
+														"type": "Expression"
+													}
+												}
+											],
+											"scriptBlockExecutionTimeout": "02:00:00"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Script2",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "SET search_path TO \"META_ADF\", public;\n\nUPDATE ctl_ingest_pipeline_run t\nSET start_dt = CURRENT_TIMESTAMP,\n    status = 'RUNNING',\n    attempt_no = COALESCE(attempt_no, 0) + 1,\n    file_name = '@{concat(item().src_db_nm, '.', item().src_schema_nm, '.', item().src_table_nm, '.')}' \n                || to_char(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISS') \n                || '.parquet',\n     update_by='ADF',\n     update_dt=CURRENT_TIMESTAMP\nWHERE t.ingest_pipeline_id = '@{item().ingest_pipeline_id}' \n  AND t.master_run_id = '@{pipeline().parameters.master_run_id}'\nRETURNING file_name;",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "success",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy_data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "SET search_path TO \"META_ADF\", public;\n\nUPDATE ctl_ingest_pipeline_run t\nSET ingest_pipeline_run_id = '@{pipeline().RunId}',\n    start_dt = CURRENT_TIMESTAMP,\n    status = 'SUCCEEDED',\n    extract_cnt=@{activity('Copy_data').output.rowsRead},\n    save_cnt=@{activity('Copy_data').output.rowsCopied},\n    file_size_mb=ROUND(@{activity('Copy_data').output.dataWritten}::numeric / 1048576.0, 1),\n    end_dt=CURRENT_TIMESTAMP,\n     update_by='ADF',\n     update_dt=CURRENT_TIMESTAMP\nWHERE t.ingest_pipeline_id = '@{item().ingest_pipeline_id}' \n  AND t.master_run_id = '@{pipeline().parameters.master_run_id}' ;",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "fail",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy_data",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "SET search_path TO \"META_ADF\", public;\n\nUPDATE ctl_ingest_pipeline_run t\nSET ingest_pipeline_run_id = '@{pipeline().RunId}',\n    start_dt = CURRENT_TIMESTAMP,\n    status = 'FAILED',\n    attempt_no = COALESCE(attempt_no, 0) + 1,\n    error_log = '@{replace(activity('Copy_Data').output.errors[0].Message, '''', '''''')}',\n    end_dt=CURRENT_TIMESTAMP,\n     update_by='ADF',\n     update_dt=CURRENT_TIMESTAMP\nWHERE t.ingest_pipeline_id = '@{item().ingest_pipeline_id}' \n  AND t.master_run_id = '@{pipeline().parameters.master_run_id}';",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Copy_data",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Script2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "Db2Source",
+									"query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SHIR_Db2_Table",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SHIR_ADLS_GEN2_Parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"p1": {
+											"value": "@item().landing_path",
+											"type": "Expression"
+										},
+										"p2": {
+											"value": "@{activity('Script2').output.resultSets[0].rows[0].file_name}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ingest_list": {
+				"type": "array"
+			},
+			"master_run_id": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
