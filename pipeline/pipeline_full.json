@@ -143,7 +143,14 @@
 			{
 				"name": "Script init",
 				"type": "Script",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "tri",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -238,7 +245,13 @@
 				"name": "tri",
 				"type": "IfCondition",
 				"dependsOn": [],
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(\r\n  equals(toUpper(trim(coalesce(pipeline().globalParameters.G_SKIP_YN, 'N'))), 'Y'),\r\n  equals(toUpper(trim(coalesce(pipeline().parameters.P_SKIP_YN,      'N'))), 'Y')\r\n)",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
