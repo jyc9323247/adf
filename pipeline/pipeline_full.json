@@ -3,42 +3,6 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Lookup1",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Script init",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": {
-							"value": "SET search_path TO \"META_ADF\", public;\n\nSELECT t.target_id,\n       t.ingest_pipeline_id, \n       t.ingest_type,\n       t.src_type, \n\t   t.src_db_nm, \n\t   t.src_schema_nm, \n\t   t.src_table_nm,\n       t.landing_path,   \n       t.extract_query\nFROM   ctl_ingest_pipeline_run t\nWHERE  master_run_id = '@{pipeline().RunId}'\nAND    status = 'PENDING'\nORDER  BY t.target_id;    \n\n          ",
-							"type": "Expression"
-						},
-						"partitionOption": "None",
-						"queryTimeout": "02:00:00"
-					},
-					"dataset": {
-						"referenceName": "AzurePostgreSqlTable1",
-						"type": "DatasetReference"
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
 				"name": "Script2_copy1",
 				"type": "Script",
 				"state": "Inactive",
@@ -208,8 +172,6 @@
 			{
 				"name": "Script3",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "pipeline1_child",
@@ -244,38 +206,11 @@
 				}
 			},
 			{
-				"name": "Filter1",
-				"type": "Filter",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Lookup1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Lookup1').output.value",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().src_db_nm, 'xmeta')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "pipeline1_child",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Filter1",
+						"activity": "Script init",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -292,10 +227,6 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"ingest_list": {
-							"value": "@activity('Filter1').output.value",
-							"type": "Expression"
-						},
 						"master_run_id": {
 							"value": "@pipeline().RunId",
 							"type": "Expression"
@@ -304,31 +235,18 @@
 				}
 			},
 			{
-				"name": "Filter1_copy1",
-				"type": "Filter",
-				"dependsOn": [
-					{
-						"activity": "Lookup1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Lookup1').output.value",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().src_db_nm, 'mydb')",
-						"type": "Expression"
-					}
-				}
+				"name": "tri",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": []
 			}
 		],
 		"parameters": {
 			"P_INIT_WAIT_YN": {
+				"type": "string",
+				"defaultValue": "N"
+			},
+			"P_SKIP_YN": {
 				"type": "string",
 				"defaultValue": "N"
 			}
