@@ -43,7 +43,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "pipeline1_child",
+						"activity": "pl_raw_ingest_db2_MLCRP",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -75,7 +75,7 @@
 				}
 			},
 			{
-				"name": "pipeline1_child",
+				"name": "pl_raw_ingest_db2_MLCRP",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
