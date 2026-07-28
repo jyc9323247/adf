@@ -10,6 +10,10 @@
 					"p_id": "db2inst1",
 					"p_pwd_keyvalt": "db2"
 				}
+			},
+			"G_SKIP_YN": {
+				"type": "string",
+				"value": "N"
 			}
 		}
 	},
