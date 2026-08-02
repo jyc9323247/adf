@@ -7,7 +7,10 @@
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
-					"timeout": "0.12:00:00",
+					"timeout": {
+						"value": "@if(empty(variables('v_time_out')), '0.02:00:00', variables('v_time_out'))",
+						"type": "Expression"
+					},
 					"retry": 0,
 					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
