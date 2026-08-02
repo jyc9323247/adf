@@ -8,7 +8,7 @@
 				"dependsOn": [],
 				"policy": {
 					"timeout": {
-						"value": "@if(empty(variables('v_time_out')), '0.02:00:00', variables('v_time_out'))",
+						"value": "0.12:00:00",
 						"type": "Expression"
 					},
 					"retry": 0,
