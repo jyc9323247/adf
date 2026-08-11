@@ -5,7 +5,16 @@
 		"factoryName": {
 			"value": "new-met-adf"
 		},
+		"AzureDataLakeStorage2_accountKey": {
+			"value": ""
+		},
+		"AzurePostgreSql1_password": {
+			"value": ""
+		},
 		"Db21_connectionString": {
+			"value": ""
+		},
+		"FileServer1_password": {
 			"value": ""
 		},
 		"Odbc1_connectionString": {
@@ -17,8 +26,47 @@
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"value": "https://ab3.blob.core.windows.net/"
 		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://ab3.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"value": "https://ab3.dfs.core.windows.net/"
+		},
+		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+			"value": "0804-045030-enb3byxx"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"value": "https://met-adf-234231.vault.azure.net/"
+		},
+		"AzurePostgreSql1_properties_typeProperties_server": {
+			"value": "dfafdbewdarfdf.postgres.database.azure.com"
+		},
+		"AzurePostgreSql1_properties_typeProperties_database": {
+			"value": "postgres"
+		},
+		"AzurePostgreSql1_properties_typeProperties_username": {
+			"value": "pgadmin"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_server": {
+			"value": "@{linkedService().domain_name}"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_database": {
+			"value": "@{linkedService().db_name}"
+		},
+		"FileServer1_properties_typeProperties_host": {
+			"value": "\\\\LAPTOP-039OO7L2\\share"
+		},
+		"FileServer1_properties_typeProperties_userId": {
+			"value": ".\\jyc32"
+		},
 		"Odbc1_properties_typeProperties_userName": {
 			"value": "db2inst1"
+		},
+		"linkedService1_properties_typeProperties_server": {
+			"value": "dfafdbewdarfdf.database.windows.net"
+		},
+		"linkedService1_properties_typeProperties_database": {
+			"value": "free-sql-db-2022585"
 		},
 		"containerUri": {
 			"value": ""

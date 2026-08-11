@@ -1,6 +1,15 @@
 {
-	"p1": {
+	"db2_test": {
+		"type": "object",
+		"value": {
+			"p_server_name": "192.168.10.100:50000",
+			"p_db_name": "xmeta",
+			"p_id": "db2inst1",
+			"p_pwd_keyvalt": "db2"
+		}
+	},
+	"G_SKIP_YN": {
 		"type": "string",
-		"value": "dafd"
+		"value": "N"
 	}
 }

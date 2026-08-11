@@ -7,9 +7,21 @@
 			"metadata": "Data Factory 이름",
 			"defaultValue": "new-met-adf"
 		},
+		"AzureDataLakeStorage2_accountKey": {
+			"type": "secureString",
+			"metadata": "'AzureDataLakeStorage2'의 'accountKey'에 대한 보안 문자열"
+		},
+		"AzurePostgreSql1_password": {
+			"type": "secureString",
+			"metadata": "'AzurePostgreSql1'의 'password'에 대한 보안 문자열"
+		},
 		"Db21_connectionString": {
 			"type": "secureString",
 			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
+		},
+		"FileServer1_password": {
+			"type": "secureString",
+			"metadata": "'FileServer1'의 'password'에 대한 보안 문자열"
 		},
 		"Odbc1_connectionString": {
 			"type": "secureString",
@@ -23,9 +35,61 @@
 			"type": "string",
 			"defaultValue": "https://ab3.blob.core.windows.net/"
 		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ab3.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ab3.dfs.core.windows.net/"
+		},
+		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0804-045030-enb3byxx"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://met-adf-234231.vault.azure.net/"
+		},
+		"AzurePostgreSql1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "dfafdbewdarfdf.postgres.database.azure.com"
+		},
+		"AzurePostgreSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"AzurePostgreSql1_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "pgadmin"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().domain_name}"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().db_name}"
+		},
+		"FileServer1_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "\\\\LAPTOP-039OO7L2\\share"
+		},
+		"FileServer1_properties_typeProperties_userId": {
+			"type": "string",
+			"defaultValue": ".\\jyc32"
+		},
 		"Odbc1_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "db2inst1"
+		},
+		"linkedService1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "dfafdbewdarfdf.database.windows.net"
+		},
+		"linkedService1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "free-sql-db-2022585"
 		},
 		"containerUri": {
 			"type": "string",
@@ -54,8 +118,17 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
+					"AzureDataLakeStorage2_accountKey": {
+						"value": "[parameters('AzureDataLakeStorage2_accountKey')]"
+					},
+					"AzurePostgreSql1_password": {
+						"value": "[parameters('AzurePostgreSql1_password')]"
+					},
 					"Db21_connectionString": {
 						"value": "[parameters('Db21_connectionString')]"
+					},
+					"FileServer1_password": {
+						"value": "[parameters('FileServer1_password')]"
 					},
 					"Odbc1_connectionString": {
 						"value": "[parameters('Odbc1_connectionString')]"
@@ -66,12 +139,71 @@
 					"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 						"value": "[parameters('AzureBlobStorage1_properties_typeProperties_serviceEndpoint')]"
 					},
+					"AzureDataLakeStorage2_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage2_properties_typeProperties_url')]"
+					},
+					"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('AzureDatabricks1_properties_typeProperties_existingClusterId')]"
+					},
+					"AzureKeyVault1_properties_typeProperties_baseUrl": {
+						"value": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]"
+					},
+					"AzurePostgreSql1_properties_typeProperties_server": {
+						"value": "[parameters('AzurePostgreSql1_properties_typeProperties_server')]"
+					},
+					"AzurePostgreSql1_properties_typeProperties_database": {
+						"value": "[parameters('AzurePostgreSql1_properties_typeProperties_database')]"
+					},
+					"AzurePostgreSql1_properties_typeProperties_username": {
+						"value": "[parameters('AzurePostgreSql1_properties_typeProperties_username')]"
+					},
+					"linkedService1_properties_typeProperties_server": {
+						"value": "[parameters('linkedService1_properties_typeProperties_server')]"
+					},
+					"linkedService1_properties_typeProperties_database": {
+						"value": "[parameters('linkedService1_properties_typeProperties_database')]"
+					},
+					"AzureDataLakeStorage1_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"AzureSqlDatabase1_properties_typeProperties_server": {
+						"value": "[parameters('AzureSqlDatabase1_properties_typeProperties_server')]"
+					},
+					"AzureSqlDatabase1_properties_typeProperties_database": {
+						"value": "[parameters('AzureSqlDatabase1_properties_typeProperties_database')]"
+					},
+					"FileServer1_properties_typeProperties_host": {
+						"value": "[parameters('FileServer1_properties_typeProperties_host')]"
+					},
+					"FileServer1_properties_typeProperties_userId": {
+						"value": "[parameters('FileServer1_properties_typeProperties_userId')]"
+					},
 					"Odbc1_properties_typeProperties_userName": {
 						"value": "[parameters('Odbc1_properties_typeProperties_userName')]"
 					}
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "new-met-adf_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'new-met-adf_ArmTemplate_0')]"
+			]
 		}
 	]
 }
