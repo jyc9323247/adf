@@ -135,10 +135,6 @@
 													"value": "select max(@{item().incr_column_nm}) as \"hwmark_value\" from @{item().src_schema_nm}.@{item().src_table_nm} ; \n",
 													"type": "Expression"
 												}
-											},
-											"dataset": {
-												"referenceName": "SHIR_Db2_Table",
-												"type": "DatasetReference"
 											}
 										}
 									},
@@ -330,20 +326,16 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "SHIR_Db2_Table",
+									"referenceName": "Db2Table1",
 									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
 								{
-									"referenceName": "SHIR_ADLS_GEN2_Parquet",
+									"referenceName": "Parquet4",
 									"type": "DatasetReference",
 									"parameters": {
-										"p1": {
-											"value": "@item().landing_path",
-											"type": "Expression"
-										},
-										"p2": "ㅇㅇ"
+										"p_filename": "daad"
 									}
 								}
 							]
