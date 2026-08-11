@@ -1,0 +1,101 @@
+{
+	"name": "Parquet4",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_filename": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().p_filename",
+					"type": "Expression"
+				},
+				"fileSystem": "ingest"
+			},
+			"compressionCodec": "none"
+		},
+		"schema": [
+			{
+				"name": "L_ORDERKEY",
+				"type": "INT32"
+			},
+			{
+				"name": "L_PARTKEY",
+				"type": "INT32"
+			},
+			{
+				"name": "L_SUPPKEY",
+				"type": "INT32"
+			},
+			{
+				"name": "L_LINENUMBER",
+				"type": "INT32"
+			},
+			{
+				"name": "L_QUANTITY",
+				"type": "DECIMAL",
+				"precision": 38,
+				"scale": 18
+			},
+			{
+				"name": "L_EXTENDEDPRICE",
+				"type": "DECIMAL",
+				"precision": 38,
+				"scale": 18
+			},
+			{
+				"name": "L_DISCOUNT",
+				"type": "DECIMAL",
+				"precision": 38,
+				"scale": 18
+			},
+			{
+				"name": "L_TAX",
+				"type": "DECIMAL",
+				"precision": 38,
+				"scale": 18
+			},
+			{
+				"name": "L_RETURNFLAG",
+				"type": "UTF8"
+			},
+			{
+				"name": "L_LINESTATUS",
+				"type": "UTF8"
+			},
+			{
+				"name": "L_SHIPDATE",
+				"type": "INT96"
+			},
+			{
+				"name": "L_COMMITDATE",
+				"type": "INT96"
+			},
+			{
+				"name": "L_RECEIPTDATE",
+				"type": "INT96"
+			},
+			{
+				"name": "L_SHIPINSTRUCT",
+				"type": "UTF8"
+			},
+			{
+				"name": "L_SHIPMODE",
+				"type": "UTF8"
+			},
+			{
+				"name": "L_COMMENT",
+				"type": "UTF8"
+			}
+		]
+	}
+}
