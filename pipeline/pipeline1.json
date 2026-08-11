@@ -52,7 +52,8 @@
 							"blockSizeInMB": 100
 						},
 						"formatSettings": {
-							"type": "ParquetWriteSettings"
+							"type": "ParquetWriteSettings",
+							"maxRowsPerFile": 10000
 						}
 					},
 					"enableStaging": false,
