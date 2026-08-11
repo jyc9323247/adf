@@ -47,13 +47,11 @@
 					"sink": {
 						"type": "ParquetSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings",
+							"type": "FileServerWriteSettings",
 							"maxConcurrentConnections": 4
 						},
 						"formatSettings": {
-							"type": "ParquetWriteSettings",
-							"maxRowsPerFile": 100000,
-							"fileNamePrefix": "lineitem_"
+							"type": "ParquetWriteSettings"
 						}
 					},
 					"enableStaging": false,
@@ -76,11 +74,8 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "SHIR_ADLS_GEN2_Parquet",
-						"type": "DatasetReference",
-						"parameters": {
-							"p1": "test"
-						}
+						"referenceName": "Parquet3",
+						"type": "DatasetReference"
 					}
 				]
 			}
