@@ -44,25 +44,7 @@
 				"inputs": [
 					{
 						"referenceName": "SHIR_Db2_Table",
-						"type": "DatasetReference",
-						"parameters": {
-							"p_server_name": {
-								"value": "@pipeline().parameters.p_server_conn.p_server_name",
-								"type": "Expression"
-							},
-							"p_db_name": {
-								"value": "@pipeline().parameters.p_server_conn.p_db_name",
-								"type": "Expression"
-							},
-							"p_id": {
-								"value": "@pipeline().parameters.p_server_conn.p_id",
-								"type": "Expression"
-							},
-							"p_pwd_keyvalt": {
-								"value": "@pipeline().parameters.p_server_conn.p_pwd_keyvalt",
-								"type": "Expression"
-							}
-						}
+						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
