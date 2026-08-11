@@ -48,8 +48,7 @@
 						"type": "ParquetSink",
 						"storeSettings": {
 							"type": "AzureBlobFSWriteSettings",
-							"maxConcurrentConnections": 4,
-							"blockSizeInMB": 100
+							"maxConcurrentConnections": 4
 						},
 						"formatSettings": {
 							"type": "ParquetWriteSettings",
