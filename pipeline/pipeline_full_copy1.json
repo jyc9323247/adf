@@ -342,7 +342,8 @@
 										"p1": {
 											"value": "@item().landing_path",
 											"type": "Expression"
-										}
+										},
+										"p2": "ㅇㅇ"
 									}
 								}
 							]
