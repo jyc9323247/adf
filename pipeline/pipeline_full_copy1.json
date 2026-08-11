@@ -31,10 +31,6 @@
 						"partitionOption": "None",
 						"queryTimeout": "02:00:00"
 					},
-					"dataset": {
-						"referenceName": "AzurePostgreSqlTable1",
-						"type": "DatasetReference"
-					},
 					"firstRowOnly": false
 				}
 			},
