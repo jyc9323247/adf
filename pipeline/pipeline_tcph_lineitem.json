@@ -63,8 +63,7 @@
 						"referenceName": "SHIR_ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
-							"p1": "test",
-							"p2": "dafds.parquet"
+							"p1": "test"
 						}
 					}
 				]

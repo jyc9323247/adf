@@ -342,10 +342,6 @@
 										"p1": {
 											"value": "@item().landing_path",
 											"type": "Expression"
-										},
-										"p2": {
-											"value": "@{activity('Script2').output.resultSets[0].rows[0].file_name}",
-											"type": "Expression"
 										}
 									}
 								}

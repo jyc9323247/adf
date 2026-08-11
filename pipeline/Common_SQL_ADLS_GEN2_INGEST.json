@@ -67,10 +67,6 @@
 							"p1": {
 								"value": "@pipeline().parameters.p_folder",
 								"type": "Expression"
-							},
-							"p2": {
-								"value": "@pipeline().parameters.p_filename",
-								"type": "Expression"
 							}
 						}
 					}
