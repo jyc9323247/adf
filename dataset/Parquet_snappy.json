@@ -1,5 +1,5 @@
 {
-	"name": "Parquet2",
+	"name": "Parquet_snappy",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage2",
