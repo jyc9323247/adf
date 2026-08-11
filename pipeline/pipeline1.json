@@ -158,8 +158,7 @@
 					"sink": {
 						"type": "ParquetSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings",
-							"maxConcurrentConnections": 4
+							"type": "AzureBlobFSWriteSettings"
 						},
 						"formatSettings": {
 							"type": "ParquetWriteSettings"
