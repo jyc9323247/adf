@@ -5,12 +5,20 @@
 			"referenceName": "AzureDataLakeStorage1",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"p_file_name": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "Binary",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "lineitem_test.parquet",
+				"fileName": {
+					"value": "@dataset().p_file_name",
+					"type": "Expression"
+				},
 				"fileSystem": "ingest"
 			}
 		}
