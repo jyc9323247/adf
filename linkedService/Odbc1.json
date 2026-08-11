@@ -5,13 +5,10 @@
 		"annotations": [],
 		"type": "Odbc",
 		"typeProperties": {
-			"connectionString": {
-				"type": "SecureString",
-				"value": "**********"
-			},
+			"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
 			"authenticationType": "Basic",
 			"userName": "db2inst1",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIyNDBhOWQ0Ny0xNzJiLTQzMzYtODk1OC0wNDU2NjljNjRhOGMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJkMDk0NDRlNi1iZTkwLTQ0MjMtOGRhMS02ZTgwNGRiNjg2ODYiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
