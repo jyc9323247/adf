@@ -198,10 +198,11 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet4",
+						"referenceName": "Parquet_snappy",
 						"type": "DatasetReference",
 						"parameters": {
-							"p_filename": "lineitem.parquet"
+							"p2": "test",
+							"p3": "line.parquet"
 						}
 					}
 				]
