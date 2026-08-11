@@ -63,7 +63,8 @@
 						"referenceName": "SHIR_ADLS_GEN2_Parquet",
 						"type": "DatasetReference",
 						"parameters": {
-							"p1": "test"
+							"p1": "test",
+							"p2": "ㅇㅇ"
 						}
 					}
 				]
