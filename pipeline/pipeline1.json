@@ -3,31 +3,6 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Job1",
-				"type": "DatabricksJob",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"jobId": {
-						"value": "1093064548533367",
-						"type": "Expression"
-					}
-				},
-				"linkedServiceName": {
-					"referenceName": "AzureDatabricks1",
-					"type": "LinkedServiceReference"
-				}
-			},
-			{
 				"name": "Copy data file share to azure",
 				"type": "Copy",
 				"state": "Inactive",
