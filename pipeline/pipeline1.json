@@ -111,12 +111,14 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "Db2Source"
+						"type": "Db2Source",
+						"query": "select * from db2inst1.lineitem with ur;"
 					},
 					"sink": {
 						"type": "ParquetSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+							"type": "AzureBlobFSWriteSettings",
+							"maxConcurrentConnections": 4
 						},
 						"formatSettings": {
 							"type": "ParquetWriteSettings"
@@ -142,10 +144,11 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet4",
+						"referenceName": "Parquet_snappy",
 						"type": "DatasetReference",
 						"parameters": {
-							"p_filename": "lineitem.parquet"
+							"p2": "test",
+							"p3": "dfad.saa"
 						}
 					}
 				]
