@@ -2,13 +2,14 @@
 	"name": "Odbc1",
 	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
+		"description": "Driver={IBM DB2 ODBC DRIVER - DB2COPY1};\nDatabase=실제DB명;\nHostname=DB2서버호스트명;\nPort=50000;\nProtocol=TCPIP;\nFET_BUF_SIZE=8192K;",
 		"annotations": [],
 		"type": "Odbc",
 		"typeProperties": {
-			"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
+			"connectionString": "Driver={IBM DB2 ODBC DRIVER - C_IBM_db2_cli_driver_special_79671_v11.5.9_ntx64_odbc_cli_clidriver};\nDatabase=xmeta;\nHostname=192.168.10.100;\nPort=50000;\nProtocol=TCPIP;\nFET_BUF_SIZE=8192K;",
 			"authenticationType": "Basic",
 			"userName": "db2inst1",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJkMDk0NDRlNi1iZTkwLTQ0MjMtOGRhMS02ZTgwNGRiNjg2ODYiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIyNjliODFkMC0yYmQ1LTQ3YzgtOGUxMy1iOWU4MDNlZWNlODMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
