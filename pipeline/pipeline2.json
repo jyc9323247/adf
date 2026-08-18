@@ -18,7 +18,7 @@
 					"waitOnCompletion": true,
 					"parameters": {
 						"p_master_run_id": {
-							"value": "a686d220-f547-4b87-8525-fd3f75e90869",
+							"value": "@pipeline().RunId",
 							"type": "Expression"
 						},
 						"p_master_pipeline_nm": {
@@ -38,7 +38,7 @@
 						"p_init_yn": "N",
 						"p_status": "PENDING",
 						"p_runmode": "MANUAL",
-						"p_type": "MASTER_INIT"
+						"p_type": "START"
 					}
 				}
 			},
@@ -112,7 +112,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_run_id,\n    ingest_pipeline_nm,\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    incr_start_val,\n    init_wait_yn,\n    extract_query,\n    landing_path,\n    file_name,\n    file_size_mb,\n    start_dt,\n    end_dt,\n    extract_cnt,\n    save_cnt,\n    attempt_no,\n    status,\n    error_log,\n    created_by,\n    created_dt\n)\nSELECT\n    '@{pipeline().RunId}',\n    '@{pipeline().Pipeline}',\n    '-',\n    'PL_INGEST_COMMON',\n    m.data_class,\n    m.ingest_type,\n    m.src_type,\n    m.target_id,\n    m.src_db_nm,\n    m.src_schema_nm,\n    m.src_table_nm,\n    m.cdc_tgt_db_nm,\n    m.cdc_tgt_schema_nm,\n    m.exec_group,\n    m.condition_type,\n    m.condition_frequency,\n    m.condition_interval,\n    m.incr_column_nm,\n    m.incr_column_type,\n    m.incr_column_hw_val,\n    m.incr_column_hw_val,\n    m.init_wait_yn,\n    CASE\n        WHEN UPPER(m.src_type) = 'DB2' THEN 'SELECT * FROM ' || COALESCE(NULLIF(m.cdc_tgt_schema_nm, ''), m.src_schema_nm) || '.' || m.src_table_nm || ' WITH UR ;'\n        WHEN UPPER(m.src_type) = 'MSSQL' THEN 'SELECT * FROM ' || m.src_schema_nm || '.' || m.src_table_nm || ' WITH (NOLOCK) ;'\n        ELSE 'SELECT * FROM ' || m.src_schema_nm || '.' || m.src_table_nm\n    END,\n    /* landing_path */\n    'ingest/'\n    || m.data_class\n    || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),1,8)}'\n    || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n    || '/pipeline_name=@{pipeline().Pipeline}/',\n    /* file_name */\n    CASE\n        WHEN NULLIF(m.cdc_tgt_schema_nm, '') IS NOT NULL THEN\n            m.cdc_tgt_db_nm\n            || '.'\n            || m.cdc_tgt_schema_nm\n            || '.'\n            || m.src_table_nm\n        ELSE\n            m.src_db_nm\n            || '.'\n            || m.src_schema_nm\n            || '.'\n            || m.src_table_nm\n    END\n    || '.@{variables('v_yyyyMMddHHmmss')}'\n    || '.parquet',\n    0,\n    NOW(),\n    NULL,\n    0,\n    0,\n    1,\n    'PENDING',\n    NULL,\n    'ADF',\n    NOW()\nFROM \"ADFADM\".ctl_ingest_target_master m\nWHERE m.data_class = 'RAW'\n  AND m.ingest_type = 'FULL'\n  AND m.init_wait_yn = 'N'\n  AND m.delete_yn = 'N';\n\n\n\n\n  ",
+								"value": "INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_run_id,\n    ingest_pipeline_nm,\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    incr_start_val,\n    init_wait_yn,\n    extract_query,\n    landing_path,\n    file_name,\n    file_size_mb,\n    start_dt,\n    end_dt,\n    extract_cnt,\n    save_cnt,\n    attempt_no,\n    status,\n    error_log,\n    created_by,\n    created_dt\n)\nSELECT\n    '@{pipeline().RunId}',\n    '@{pipeline().Pipeline}',\n    '-',\n    'PL_INGEST_COMMON',\n    m.data_class,\n    m.ingest_type,\n    m.src_type,\n    m.target_id,\n    m.src_db_nm,\n    m.src_schema_nm,\n    m.src_table_nm,\n    m.cdc_tgt_db_nm,\n    m.cdc_tgt_schema_nm,\n    m.exec_group,\n    m.condition_type,\n    m.condition_frequency,\n    m.condition_interval,\n    m.incr_column_nm,\n    m.incr_column_type,\n    m.incr_column_hw_val,\n    m.incr_column_hw_val,\n    m.init_wait_yn,\n    CASE\n        WHEN UPPER(m.src_type) = 'DB2' THEN 'SELECT * FROM ' || COALESCE(NULLIF(m.cdc_tgt_schema_nm, ''), m.src_schema_nm) || '.' || m.src_table_nm || ' WITH UR ;'\n        WHEN UPPER(m.src_type) = 'MSSQL' THEN 'SELECT * FROM ' || m.src_schema_nm || '.' || m.src_table_nm || ' WITH (NOLOCK) ;'\n        ELSE 'SELECT * FROM ' || m.src_schema_nm || '.' || m.src_table_nm\n    END,\n    /* landing_path */\n    'ingest/'\n    || m.data_class\n    || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),0,8)}'\n    || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n    || '/pipeline_name=@{pipeline().Pipeline}/',\n    /* file_name */\n    CASE\n        WHEN NULLIF(m.cdc_tgt_schema_nm, '') IS NOT NULL THEN\n            m.cdc_tgt_db_nm\n            || '.'\n            || m.cdc_tgt_schema_nm\n            || '.'\n            || m.src_table_nm\n        ELSE\n            m.src_db_nm\n            || '.'\n            || m.src_schema_nm\n            || '.'\n            || m.src_table_nm\n    END\n    || '.@{variables('v_yyyyMMddHHmmss')}'\n    || '.parquet',\n    0,\n    NOW(),\n    NULL,\n    0,\n    0,\n    1,\n    'PENDING',\n    NULL,\n    'ADF',\n    NOW()\nFROM \"ADFADM\".ctl_ingest_target_master m\nWHERE m.data_class = '@{variables('v_data_class')}'\n  AND m.ingest_type = '@{variables('v_ingest_type')}'\n  AND m.init_wait_yn = '@{variables('v_init_wait_yn')}'\n  AND m.delete_yn = 'N';\n\n\n\nselect * from \n\"ADFADM\".ctl_ingest_pipeline_run m\nwhere m.master_run_id='@{pipeline().RunId}';\n\n  ",
 								"type": "Expression"
 							}
 						}
@@ -139,15 +139,58 @@
 				"typeProperties": {
 					"variableName": "v_yyyyMMddHHmmss",
 					"value": {
-						"value": "@utcNow()",
+						"value": "@formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')",
 						"type": "Expression"
 					}
+				}
+			},
+			{
+				"name": "Start_ingest_pipeline_Script_copy1",
+				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "WITH ins AS\n(\n    INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_run_id,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        condition_type,\n        condition_frequency,\n        condition_interval,\n        incr_column_nm,\n        incr_column_type,\n        incr_column_hw_val,\n        incr_start_val,\n        init_wait_yn,\n        extract_query,\n        landing_path,\n        file_name,\n        file_size_mb,\n        start_dt,\n        end_dt,\n        extract_cnt,\n        save_cnt,\n        attempt_no,\n        status,\n        error_log,\n        created_by,\n        created_dt\n    )\n    SELECT\n        '@{pipeline().RunId}',\n        '@{pipeline().Pipeline}',\n        '-',\n        'PL_INGEST_COMMON',\n        m.data_class,\n        m.ingest_type,\n        m.src_type,\n        m.target_id,\n        m.src_db_nm,\n        m.src_schema_nm,\n        m.src_table_nm,\n        m.cdc_tgt_db_nm,\n        m.cdc_tgt_schema_nm,\n        m.exec_group,\n        m.condition_type,\n        m.condition_frequency,\n        m.condition_interval,\n        m.incr_column_nm,\n        m.incr_column_type,\n        m.incr_column_hw_val,\n        m.incr_column_hw_val,\n        m.init_wait_yn,\n\n        CASE\n            WHEN UPPER(m.src_type) = 'DB2'\n                THEN 'SELECT * FROM '\n                     || COALESCE(NULLIF(m.cdc_tgt_schema_nm, ''), m.src_schema_nm)\n                     || '.'\n                     || m.src_table_nm\n                     || ' WITH UR ;'\n\n            WHEN UPPER(m.src_type) = 'MSSQL'\n                THEN 'SELECT * FROM '\n                     || m.src_schema_nm\n                     || '.'\n                     || m.src_table_nm\n                     || ' WITH (NOLOCK) ;'\n\n            ELSE 'SELECT * FROM '\n                 || m.src_schema_nm\n                 || '.'\n                 || m.src_table_nm\n        END,\n\n        'ingest/'\n        || m.data_class\n        || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),0,8)}'\n        || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n        || '/pipeline_name=@{pipeline().Pipeline}/',\n\n        CASE\n            WHEN NULLIF(m.cdc_tgt_schema_nm, '') IS NOT NULL\n                THEN m.cdc_tgt_db_nm\n                     || '.'\n                     || m.cdc_tgt_schema_nm\n                     || '.'\n                     || m.src_table_nm\n            ELSE m.src_db_nm\n                 || '.'\n                 || m.src_schema_nm\n                 || '.'\n                 || m.src_table_nm\n        END\n        || '.@{variables('v_yyyyMMddHHmmss')}'\n        || '.parquet',\n\n        0,\n        NOW(),\n        NULL,\n        0,\n        0,\n        1,\n        'PENDING',\n        NULL,\n        'ADF',\n        NOW()\n\n    FROM \"ADFADM\".ctl_ingest_target_master m\n\n    WHERE m.data_class = 'RAW'\n      AND m.ingest_type = 'FULL'\n      AND m.init_wait_yn = 'N'\n      AND m.delete_yn = 'N'\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        extract_query,\n        landing_path,\n        file_name,\n        attempt_no,\n        status\n)\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_nm,\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    exec_group,\n    extract_query,\n    landing_path,\n    file_name,\n    attempt_no,\n    status\nFROM ins\nORDER BY target_id;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],
 		"variables": {
 			"v_yyyyMMddHHmmss": {
 				"type": "String"
+			},
+			"v_data_class": {
+				"type": "String",
+				"defaultValue": "RAW"
+			},
+			"v_ingest_type": {
+				"type": "String",
+				"defaultValue": "FULL"
+			},
+			"v_init_wait_yn": {
+				"type": "String",
+				"defaultValue": "N"
 			}
 		},
 		"annotations": []
