@@ -1,0 +1,32 @@
+{
+	"name": "set_master_pipeline_function",
+	"properties": {
+		"parameters": {
+			"p_master_run_id": {
+				"type": "string"
+			},
+			"p_master_pipeline_nm": {
+				"type": "string"
+			},
+			"p_trigger_id": {
+				"type": "string"
+			},
+			"p_trigger_nm": {
+				"type": "string"
+			},
+			"p_data_class": {
+				"type": "string"
+			},
+			"p_ingest_type": {
+				"type": "string"
+			},
+			"p_init_yn": {
+				"type": "string"
+			},
+			"p_status": {
+				"type": "string"
+			}
+		},
+		"annotations": []
+	}
+}
