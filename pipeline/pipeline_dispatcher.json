@@ -19,6 +19,8 @@
 								{
 									"name": "pl_raw_db2_xmeta",
 									"type": "ExecutePipeline",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [],
 									"policy": {
 										"secureInput": false
