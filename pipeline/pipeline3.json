@@ -1,0 +1,59 @@
+{
+	"name": "pipeline3",
+	"properties": {
+		"activities": [
+			{
+				"name": "Switch1",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.p_child_pipeline_nm",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "pl_raw_db2_xmeta"
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "pl_raw_db2_xmeta",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_raw_db2_xmeta",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_child_pipeline_nm": {
+				"type": "string"
+			},
+			"p_master_run_id": {
+				"type": "string"
+			},
+			"p_ingest_pipeline_id": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_yyyyMMddHHmmss": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
