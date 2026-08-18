@@ -1,0 +1,103 @@
+{
+	"name": "pl_raw_db2_xmeta",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Script1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "Db2Table1",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    file_name              = REPLACE(\n                                file_name,\n                                '{file_timestamp}',\n                                '@{variables('v_yyyyMMddHHmmss')}'\n                             ),\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}';\n\n\nSELECT\n    landing_path,\n    file_name,\n    extract_query\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_yyyyMMddHHmmss",
+					"value": "@formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')"
+				}
+			}
+		],
+		"parameters": {
+			"p_master_run_id": {
+				"type": "string"
+			},
+			"p_ingest_pipeline_id": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_yyyyMMddHHmmss": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
