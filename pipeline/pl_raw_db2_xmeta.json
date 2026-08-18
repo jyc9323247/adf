@@ -73,23 +73,63 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "Db2Source"
+						"type": "Db2Source",
+						"query": {
+							"value": "@pipeline().parameters.p_extract_query",
+							"type": "Expression"
+						}
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "Db2Table1",
 						"type": "DatasetReference"
 					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Parquet4",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_filename": {
+								"value": "@pipeline().parameters.p_file_name",
+								"type": "Expression"
+							},
+							"p_landing_path": {
+								"value": "@pipeline().parameters.p_landing_path",
+								"type": "Expression"
+							}
+						}
+					}
 				]
 			}
 		],
 		"parameters": {
-			"p_m": {
+			"p_landing_path": {
 				"type": "string"
 			},
-			"p_ingest_pipeline_id": {
+			"p_file_name": {
+				"type": "string"
+			},
+			"p_extract_query": {
 				"type": "string"
 			}
 		},
