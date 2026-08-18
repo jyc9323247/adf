@@ -1,0 +1,90 @@
+{
+	"name": "pipeline2",
+	"properties": {
+		"activities": [
+			{
+				"name": "START_set_master_pipeline_function",
+				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "set_master_pipeline_function",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_master_run_id": {
+							"value": "a686d220-f547-4b87-8525-fd3f75e90869",
+							"type": "Expression"
+						},
+						"p_master_pipeline_nm": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"p_trigger_id": {
+							"value": "@pipeline().TriggerId",
+							"type": "Expression"
+						},
+						"p_trigger_nm": {
+							"value": "@pipeline().TriggerName",
+							"type": "Expression"
+						},
+						"p_data_class": "RAW",
+						"p_ingest_type": "FULL",
+						"p_init_yn": "N",
+						"p_status": "PENDING",
+						"p_runmode": "MANUAL",
+						"p_type": "MASTER_INIT"
+					}
+				}
+			},
+			{
+				"name": "UPDATE_set_master_pipeline_function",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "set_master_pipeline_function",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_master_run_id": {
+							"value": "a686d220-f547-4b87-8525-fd3f75e90869",
+							"type": "Expression"
+						},
+						"p_master_pipeline_nm": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"p_trigger_id": {
+							"value": "@pipeline().TriggerId",
+							"type": "Expression"
+						},
+						"p_trigger_nm": {
+							"value": "@pipeline().TriggerName",
+							"type": "Expression"
+						},
+						"p_data_class": "RAW",
+						"p_ingest_type": "FULL",
+						"p_init_yn": "N",
+						"p_status": "RUNNING",
+						"p_runmode": "MANUAL",
+						"p_type": "UPDATE"
+					}
+				}
+			}
+		],
+		"annotations": []
+	}
+}
