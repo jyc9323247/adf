@@ -1,6 +1,37 @@
 {
 	"name": "set_master_pipeline_function",
 	"properties": {
+		"activities": [
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO \"ADFADM\".ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_id,\n    trigger_nm,\n    data_class,\n    ingest_type,\n    init_yn,\n    start_dt,\n    end_dt,\n    exec_group,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_data_class}',\n    '@{pipeline().parameters.p_ingest_type}',\n    '@{pipeline().parameters.p_init_yn}'::bpchar,\n    NOW(),\n    NULL,\n    NULL,\n    0,\n    0,\n    0,\n    '@{pipeline().parameters.p_status}',\n    '@{pipeline().parameters.p_runmode}',\n    'ADF',\n    NOW()\n);",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
 		"parameters": {
 			"p_master_run_id": {
 				"type": "string"
@@ -24,6 +55,12 @@
 				"type": "string"
 			},
 			"p_status": {
+				"type": "string"
+			},
+			"p_runmode": {
+				"type": "string"
+			},
+			"p_type": {
 				"type": "string"
 			}
 		},
