@@ -14,24 +14,50 @@
 					},
 					"cases": [
 						{
-							"value": "pl_raw_db2_xmeta"
+							"value": "pl_raw_db2_xmeta",
+							"activities": [
+								{
+									"name": "pl_raw_db2_xmeta",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_raw_db2_xmeta",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_landing_path": {
+												"value": "@pipeline().parameters.p_landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@pipeline().parameters.p_file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@pipeline().parameters.p_extract_query",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
 						}
 					],
 					"defaultActivities": [
 						{
-							"name": "pl_raw_db2_xmeta",
-							"type": "ExecutePipeline",
+							"name": "Fail1",
+							"type": "Fail",
 							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
 							"userProperties": [],
 							"typeProperties": {
-								"pipeline": {
-									"referenceName": "pl_raw_db2_xmeta",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true
+								"message": "Faile dispacher",
+								"errorCode": "-1"
 							}
 						}
 					]
@@ -42,10 +68,13 @@
 			"p_child_pipeline_nm": {
 				"type": "string"
 			},
-			"p_master_run_id": {
+			"p_landing_path": {
 				"type": "string"
 			},
-			"p_ingest_pipeline_id": {
+			"p_file_name": {
+				"type": "string"
+			},
+			"p_extract_query": {
 				"type": "string"
 			}
 		},
