@@ -9,7 +9,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"on": {
-						"value": "@pipeline().parameters.p_child_pipeline_nm",
+						"value": "@toLower(pipeline().parameters.p_child_pipeline_nm)",
 						"type": "Expression"
 					},
 					"cases": [
