@@ -105,7 +105,7 @@
 				"typeProperties": {
 					"variableName": "v_yyyyMMddHHmmss",
 					"value": {
-						"value": "@formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')",
+						"value": "@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}",
 						"type": "Expression"
 					}
 				}
@@ -144,6 +144,54 @@
 						}
 					],
 					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"activities": [
+						{
+							"name": "Script1",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    file_name              = REPLACE(\n                                file_name,\n                                '{file_timestamp}',\n                                '@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}'\n                             ),\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{item().p_master_run_id}'\n  AND ingest_pipeline_id  = '@{item().p_ingest_pipeline_id}';\n\n\nSELECT\n    landing_path,\n    file_name,\n    extract_query\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE master_run_id      = '@{item().p_master_run_id}'\n  AND ingest_pipeline_id = '@{item().p_ingest_pipeline_id}';",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
 				}
 			}
 		],
