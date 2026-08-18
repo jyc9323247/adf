@@ -56,7 +56,7 @@
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
-								"message": "Faile dispacher",
+								"message": "Failed dispacher",
 								"errorCode": "-1"
 							}
 						}
