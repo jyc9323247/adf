@@ -241,10 +241,21 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@empty(item().total_file_size_mb)",
+									"value": "@greater(item().total_file_size_mb,variables('v_succeededTotalSizeMb'))",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
+									{
+										"name": "Wait3",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								],
+								"ifTrueActivities": [
 									{
 										"name": "dbx_rest_api_call_copy1_copy1_copy1",
 										"type": "ExecutePipeline",
@@ -259,17 +270,6 @@
 												"type": "PipelineReference"
 											},
 											"waitOnCompletion": true
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "Wait2",
-										"type": "Wait",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"waitTimeInSeconds": 1
 										}
 									}
 								]
@@ -297,7 +297,10 @@
 							"typeProperties": {
 								"source": {
 									"type": "AzurePostgreSqlSource",
-									"query": "SELECT \n    master_run_id,\n    SUM(file_size_mb) AS total_file_size_mb\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE status = 'SUCCEEDED'\nand master_run_id='@{item().master_run_id}'\nGROUP BY master_run_id\nHAVING SUM(file_size_mb) >=  @{variables('v_succeededTotalSizeMb')}  -- 특정 용량(MB) 조건 지정\n;\n\n",
+									"query": {
+										"value": "SELECT \n    master_run_id,\n    SUM(file_size_mb) AS total_file_size_mb\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE status = 'SUCCEEDED'\nand master_run_id='@{item().master_run_id}'\nGROUP BY master_run_id ;\n\n",
+										"type": "Expression"
+									},
 									"partitionOption": "None",
 									"queryTimeout": "02:00:00"
 								},
