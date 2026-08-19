@@ -190,7 +190,8 @@
 						"value": "@activity('Filter Not Skipped').output.value",
 						"type": "Expression"
 					},
-					"isSequential": true,
+					"isSequential": false,
+					"batchCount": 2,
 					"activities": [
 						{
 							"name": "pipeline_dispatcher_copy1",
@@ -533,7 +534,7 @@
 			},
 			"v_data_class": {
 				"type": "String",
-				"defaultValue": "META"
+				"defaultValue": "RAW"
 			},
 			"v_ingest_type": {
 				"type": "String",
