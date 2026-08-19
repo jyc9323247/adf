@@ -1,0 +1,57 @@
+{
+	"name": "PL_tri_history",
+	"properties": {
+		"activities": [
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO \"ADFADM\".ctl_trigger_history\n(\n    trigger_id,\n    trigger_nm,\n    master_run_id,\n    master_pipeline_nm,\n    skip_yn,\n    skip_reason,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_skip_yn}',\n\n    NULLIF(\n        '@{replace(\n            pipeline().parameters.p_skip_reason,\n            '''',\n            ''''''\n        )}',\n        ''\n    ),\n\n    'ADF',\n    NOW(),\n    NULL,\n    NULL\n);",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"p_trigger_id": {
+				"type": "string"
+			},
+			"p_trigger_nm": {
+				"type": "string"
+			},
+			"p_master_run_id": {
+				"type": "string"
+			},
+			"p_master_pipeline_nm": {
+				"type": "string"
+			},
+			"p_skip_yn": {
+				"type": "string"
+			},
+			"p_skip_reason": {
+				"type": "string"
+			}
+		},
+		"annotations": []
+	}
+}
