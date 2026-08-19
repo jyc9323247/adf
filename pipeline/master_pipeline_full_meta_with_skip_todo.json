@@ -385,6 +385,22 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "Wait_skip",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Filter1_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
 			}
 		],
 		"variables": {
