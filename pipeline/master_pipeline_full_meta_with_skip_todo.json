@@ -168,7 +168,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Start_ingest_pipeline_Script",
+						"activity": "Filter1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -177,7 +177,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"value": "@activity('Filter1').output.value",
 						"type": "Expression"
 					},
 					"isSequential": true,
@@ -338,6 +338,52 @@
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Filter1",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().status, 'PENDING')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Filter1_copy1",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().status, 'SKIPPED')",
+						"type": "Expression"
+					}
 				}
 			}
 		],
