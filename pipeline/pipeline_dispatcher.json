@@ -14,7 +14,25 @@
 					},
 					"cases": [
 						{
-							"value": "pl_raw_db2_xmeta"
+							"value": "pl_raw_db2_xmeta",
+							"activities": [
+								{
+									"name": "pl_raw_db2_xmeta",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_raw_db2_xmeta",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true
+									}
+								}
+							]
 						}
 					],
 					"defaultActivities": [
