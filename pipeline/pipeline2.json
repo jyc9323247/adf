@@ -1,0 +1,52 @@
+{
+	"name": "pipeline2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source",
+						"query": "WITH DISTINCT_PARTITION AS\n(\n    SELECT DISTINCT\n        @{pipeline().parameters.p_partition_info.partition_column} AS PARTITION_VAL\n    FROM\n        @{pipeline().parameters.p_src_schema}.@{pipeline().parameters.p_src_table}\n),\n\nVALID_PARTITION AS\n(\n    SELECT\n        PARTITION_VAL\n    FROM DISTINCT_PARTITION\n    WHERE\n        PARTITION_VAL IS NOT NULL\n\n        AND REGEXP_LIKE(\n            PARTITION_VAL,\n            '^[0-9]{6}$'\n        )\n\n        AND SUBSTR(\n            PARTITION_VAL,\n            5,\n            2\n        ) BETWEEN '01' AND '12'\n\n        AND\n        (\n            '@{pipeline().parameters.p_partition_info.p_partition_from}' = ''\n            OR PARTITION_VAL >= '@{pipeline().parameters.p_partition_info.p_partition_from}'\n        )\n\n        AND\n        (\n            '@{pipeline().parameters.p_partition_info.p_partition_to}' = ''\n            OR PARTITION_VAL <= '@{pipeline().parameters.p_partition_info.p_partition_to}'\n        )\n),\n\nINVALID_EXISTS AS\n(\n    SELECT\n        CASE\n            WHEN EXISTS\n            (\n                SELECT 1\n                FROM DISTINCT_PARTITION\n                WHERE\n                       PARTITION_VAL IS NULL\n\n                    OR NOT REGEXP_LIKE(\n                        PARTITION_VAL,\n                        '^[0-9]{6}$'\n                    )\n\n                    OR SUBSTR(\n                        PARTITION_VAL,\n                        5,\n                        2\n                    ) NOT BETWEEN '01' AND '12'\n            )\n            THEN 1\n            ELSE 0\n        END AS INVALID_YN\n\n    FROM SYSIBM.SYSDUMMY1\n)\n\nSELECT\n    PARTITION_VAL AS \"partition_id\",\n\n    '@{pipeline().parameters.p_partition_info.partition_column}'\n        AS \"partition_column\",\n\n    '@{pipeline().parameters.p_partition_info.partition_range}'\n        AS \"partition_range\",\n\n    '@{pipeline().parameters.p_partition_info.data_type}'\n        AS \"data_type\",\n\n    'VALUE'\n        AS \"partition_type\",\n\n    PARTITION_VAL\n        AS \"start_val\"\n\nFROM VALID_PARTITION\n\n\nUNION ALL\n\n\nSELECT\n    'INVALID'\n        AS \"partition_id\",\n\n    '@{pipeline().parameters.p_partition_info.partition_column}'\n        AS \"partition_column\",\n\n    '@{pipeline().parameters.p_partition_info.partition_range}'\n        AS \"partition_range\",\n\n    '@{pipeline().parameters.p_partition_info.data_type}'\n        AS \"data_type\",\n\n    'INVALID'\n        AS \"partition_type\",\n\n    CAST(NULL AS VARCHAR(100))\n        AS \"start_val\"\n\nFROM SYSIBM.SYSDUMMY1\n\nWHERE\n    (\n        SELECT INVALID_YN\n        FROM INVALID_EXISTS\n    ) = 1\n\nORDER BY 1\n\nWITH UR"
+					},
+					"dataset": {
+						"referenceName": "Db2Table1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"parameters": {
+			"p_partition_info": {
+				"type": "object",
+				"defaultValue": {
+					"partition_column": "clym",
+					"partition_range": "MONTHLY",
+					"data_type": "STRING",
+					"p_partition_from": "202612",
+					"p_partition_to": ""
+				}
+			},
+			"p_src_schema": {
+				"type": "string",
+				"defaultValue": "db2inst1"
+			},
+			"p_src_table": {
+				"type": "string",
+				"defaultValue": "test_clym"
+			}
+		},
+		"annotations": []
+	}
+}
