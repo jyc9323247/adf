@@ -46,7 +46,10 @@
 							"value": "@if(\n    pipeline().globalParameters.g_skip_yn,\n    'SKIPPED',\n    'PENDING'\n)",
 							"type": "Expression"
 						},
-						"p_runmode": "@if(\n    equals(toUpper(pipeline().TriggerName), 'SAND BOX'),\n    'MANUAL',\n    'SCHEDULE'\n)",
+						"p_runmode": {
+							"value": "@if(\n    equals(pipeline().TriggerName, 'Sandbox'),\n    'MANUAL',\n    'SCHEDULE'\n)",
+							"type": "Expression"
+						},
 						"p_type": "START"
 					}
 				}
@@ -367,7 +370,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@or(\n    pipeline().globalParameters.G_SKIP_YN,\n    greater(length(activity('Filter1').output.value), 0)\n)",
+						"value": "@pipeline().globalParameters.G_SKIP_YN",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -412,7 +415,7 @@
 									},
 									"p_init_yn": "N",
 									"p_status": {
-										"value": "@activity('Start_ingest_pipeline_Script').output",
+										"value": "SUCCEEDED",
 										"type": "Expression"
 									},
 									"p_type": "UPDATE"
