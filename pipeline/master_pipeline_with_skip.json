@@ -316,6 +316,29 @@
 						"p_type": "UPDATE"
 					}
 				}
+			},
+			{
+				"name": "dbx_rest_api_call",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "UPDATE_set_master_pipeline_function",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "dbx_rest_api_call",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
 			}
 		],
 		"variables": {
