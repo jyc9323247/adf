@@ -29,7 +29,29 @@
 											"referenceName": "pl_raw_db2_xmeta",
 											"type": "PipelineReference"
 										},
-										"waitOnCompletion": true
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_landing_path": {
+												"value": "@pipeline().parameters.p_landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@pipeline().parameters.p_file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@pipeline().parameters.p_extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@pipeline().parameters.p_ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@pipeline().parameters.p_master_run_id",
+												"type": "Expression"
+											}
+										}
 									}
 								}
 							]
