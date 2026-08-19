@@ -106,6 +106,23 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Fail2",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "Switch1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "dispatcher_failed",
+					"errorCode": "-1"
+				}
 			}
 		],
 		"parameters": {
