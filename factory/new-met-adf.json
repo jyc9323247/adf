@@ -13,7 +13,7 @@
 			},
 			"G_SKIP_YN": {
 				"type": "bool",
-				"value": true
+				"value": false
 			}
 		}
 	},
