@@ -7,7 +7,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Succeeded_UPDATE",
+						"activity": "Running_UPDATE",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -72,7 +72,7 @@
 				]
 			},
 			{
-				"name": "Succeeded_UPDATE",
+				"name": "Running_UPDATE",
 				"type": "Script",
 				"dependsOn": [],
 				"policy": {
