@@ -474,7 +474,7 @@
 			},
 			"v_succeededTotalSizeMb": {
 				"type": "Integer",
-				"defaultValue": 1
+				"defaultValue": "0.1"
 			}
 		},
 		"annotations": []
