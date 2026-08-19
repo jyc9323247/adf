@@ -56,6 +56,8 @@
 								{
 									"name": "Succeeded_UPDATE",
 									"type": "Script",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [
 										{
 											"activity": "pl_raw_db2_xmeta",
@@ -92,6 +94,8 @@
 								{
 									"name": "Failed_UPDATE",
 									"type": "Script",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [
 										{
 											"activity": "pl_raw_db2_xmeta",
@@ -152,6 +156,35 @@
 											}
 										],
 										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_raw_db2_xmeta",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "pipelineReturnValue",
+										"value": [
+											{
+												"key": "aa",
+												"value": {
+													"type": "Array"
+												}
+											}
+										],
+										"setSystemVariable": true
 									}
 								}
 							]
