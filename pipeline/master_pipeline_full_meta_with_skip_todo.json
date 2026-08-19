@@ -546,7 +546,7 @@
 			},
 			"v_succeededTotalSizeMb": {
 				"type": "Integer",
-				"defaultValue": 1
+				"defaultValue": 2
 			},
 			"v_dbx_api_call_yn": {
 				"type": "Boolean",
