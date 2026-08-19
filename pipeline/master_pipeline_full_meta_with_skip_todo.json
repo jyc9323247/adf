@@ -5,7 +5,14 @@
 			{
 				"name": "START_set_master_pipeline_function",
 				"type": "ExecutePipeline",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "PL_tri_history",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
 				"policy": {
 					"secureInput": false
 				},
@@ -475,6 +482,48 @@
 				"userProperties": [],
 				"typeProperties": {
 					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "PL_tri_history",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_tri_history",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_trigger_id": {
+							"value": "@pipeline().TriggerId",
+							"type": "Expression"
+						},
+						"p_trigger_nm": {
+							"value": "@pipeline().TriggerName",
+							"type": "Expression"
+						},
+						"p_master_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"p_master_pipeline_nm": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"p_skip_yn": {
+							"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'Y',\n    'N'\n)",
+							"type": "Expression"
+						},
+						"p_skip_reason": {
+							"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'GLOBAL SKIP',\n    ''\n)",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],
