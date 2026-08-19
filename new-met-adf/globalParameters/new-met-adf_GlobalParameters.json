@@ -9,7 +9,7 @@
 		}
 	},
 	"G_SKIP_YN": {
-		"type": "string",
-		"value": "N"
+		"type": "bool",
+		"value": false
 	}
 }

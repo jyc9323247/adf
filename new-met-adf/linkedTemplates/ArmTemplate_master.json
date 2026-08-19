@@ -23,10 +23,6 @@
 			"type": "secureString",
 			"metadata": "'FileServer1'의 'password'에 대한 보안 문자열"
 		},
-		"Odbc1_connectionString": {
-			"type": "secureString",
-			"metadata": "'Odbc1'의 'connectionString'에 대한 보안 문자열"
-		},
 		"Odbc1_password": {
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
@@ -53,7 +49,7 @@
 		},
 		"AzurePostgreSql1_properties_typeProperties_server": {
 			"type": "string",
-			"defaultValue": "dfafdbewdarfdf.postgres.database.azure.com"
+			"defaultValue": "fdffdsfds.postgres.database.azure.com"
 		},
 		"AzurePostgreSql1_properties_typeProperties_database": {
 			"type": "string",
@@ -61,7 +57,7 @@
 		},
 		"AzurePostgreSql1_properties_typeProperties_username": {
 			"type": "string",
-			"defaultValue": "pgadmin"
+			"defaultValue": "adfadm"
 		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"type": "string",
@@ -129,9 +125,6 @@
 					},
 					"FileServer1_password": {
 						"value": "[parameters('FileServer1_password')]"
-					},
-					"Odbc1_connectionString": {
-						"value": "[parameters('Odbc1_connectionString')]"
 					},
 					"Odbc1_password": {
 						"value": "[parameters('Odbc1_password')]"

@@ -23,10 +23,6 @@
 			"type": "secureString",
 			"metadata": "'FileServer1'의 'password'에 대한 보안 문자열"
 		},
-		"Odbc1_connectionString": {
-			"type": "secureString",
-			"metadata": "'Odbc1'의 'connectionString'에 대한 보안 문자열"
-		},
 		"Odbc1_password": {
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
@@ -49,7 +45,7 @@
 		},
 		"AzurePostgreSql1_properties_typeProperties_server": {
 			"type": "string",
-			"defaultValue": "dfafdbewdarfdf.postgres.database.azure.com"
+			"defaultValue": "fdffdsfds.postgres.database.azure.com"
 		},
 		"AzurePostgreSql1_properties_typeProperties_database": {
 			"type": "string",
@@ -57,7 +53,7 @@
 		},
 		"AzurePostgreSql1_properties_typeProperties_username": {
 			"type": "string",
-			"defaultValue": "pgadmin"
+			"defaultValue": "adfadm"
 		},
 		"linkedService1_properties_typeProperties_server": {
 			"type": "string",
@@ -96,6 +92,34 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/dbx_rest_api_call')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_master_run_id": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -224,6 +248,148 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/set_master_pipeline_function')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Switch1",
+						"type": "Switch",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"on": {
+								"value": "@pipeline().parameters.p_type",
+								"type": "Expression"
+							},
+							"cases": [
+								{
+									"value": "START",
+									"activities": [
+										{
+											"name": "START_Script",
+											"type": "Script",
+											"dependsOn": [],
+											"policy": {
+												"timeout": "0.12:00:00",
+												"retry": 0,
+												"retryIntervalInSeconds": 30,
+												"secureOutput": false,
+												"secureInput": false
+											},
+											"userProperties": [],
+											"linkedServiceName": {
+												"referenceName": "AzurePostgreSql1",
+												"type": "LinkedServiceReference"
+											},
+											"typeProperties": {
+												"scripts": [
+													{
+														"type": "Query",
+														"text": {
+															"value": "INSERT INTO \"ADFADM\".ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_id,\n    trigger_nm,\n    data_class,\n    ingest_type,\n    init_yn,\n    start_dt,\n    end_dt,\n    exec_group,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_data_class}',\n    '@{pipeline().parameters.p_ingest_type}',\n    '@{pipeline().parameters.p_init_yn}'::bpchar,\n    NOW(),\n    NULL,\n    NULL,\n    (select count(1)\nFROM \"ADFADM\".ctl_ingest_target_master m\n    WHERE m.data_class = '@{pipeline().parameters.p_data_class}'\n     AND m.ingest_type = '@{pipeline().parameters.p_ingest_type}'\n     AND m.init_wait_yn = '@{pipeline().parameters.p_init_yn}'::bpchar\n     AND m.delete_yn = 'N'),\n    0,\n    0,\n    '@{pipeline().parameters.p_status}',\n    '@{pipeline().parameters.p_runmode}',\n    'ADF',\n    NOW()\n);",
+															"type": "Expression"
+														}
+													}
+												],
+												"scriptBlockExecutionTimeout": "02:00:00"
+											}
+										}
+									]
+								},
+								{
+									"value": "UPDATE",
+									"activities": [
+										{
+											"name": "UPDATE_Script",
+											"type": "Script",
+											"dependsOn": [],
+											"policy": {
+												"timeout": "0.12:00:00",
+												"retry": 0,
+												"retryIntervalInSeconds": 30,
+												"secureOutput": false,
+												"secureInput": false
+											},
+											"userProperties": [],
+											"linkedServiceName": {
+												"referenceName": "AzurePostgreSql1",
+												"type": "LinkedServiceReference"
+											},
+											"typeProperties": {
+												"scripts": [
+													{
+														"type": "Query",
+														"text": {
+															"value": "UPDATE \"ADFADM\".ctl_master_pipeline_run m\nSET\n    child_total_cnt = s.child_total_cnt,\n    child_succ_cnt  = s.child_succ_cnt,\n    child_fail_cnt  = s.child_fail_cnt,\n    end_dt          = NOW(),\n    status           = '@{pipeline().parameters.p_status}',\n    update_by        = 'ADF',\n    update_dt        = NOW()\nFROM\n(\n    SELECT\n        COUNT(*)::int4 AS child_total_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'SUCCEEDED'\n        )::int4 AS child_succ_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'FAILED'\n        )::int4 AS child_fail_cnt\n    FROM \"ADFADM\".ctl_ingest_pipeline_run\n    WHERE master_run_id = '@{pipeline().parameters.p_master_run_id}'\n) s\nWHERE m.master_run_id = '@{pipeline().parameters.p_master_run_id}';",
+															"type": "Expression"
+														}
+													}
+												],
+												"scriptBlockExecutionTimeout": "02:00:00"
+											}
+										}
+									]
+								}
+							],
+							"defaultActivities": [
+								{
+									"name": "Fail1",
+									"type": "Fail",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "fail",
+										"errorCode": "-1"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_master_run_id": {
+						"type": "string"
+					},
+					"p_master_pipeline_nm": {
+						"type": "string"
+					},
+					"p_trigger_id": {
+						"type": "string"
+					},
+					"p_trigger_nm": {
+						"type": "string"
+					},
+					"p_data_class": {
+						"type": "string"
+					},
+					"p_ingest_type": {
+						"type": "string"
+					},
+					"p_init_yn": {
+						"type": "string"
+					},
+					"p_status": {
+						"type": "string"
+					},
+					"p_runmode": {
+						"type": "string"
+					},
+					"p_type": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/DelimitedText1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -252,7 +418,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Parquet2')]",
+			"name": "[concat(parameters('factoryName'), '/Parquet_snappy')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -263,6 +429,9 @@
 				"parameters": {
 					"p2": {
 						"type": "string"
+					},
+					"p3": {
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -270,6 +439,10 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p3",
+							"type": "Expression"
+						},
 						"folderPath": {
 							"value": "@dataset().p2",
 							"type": "Expression"
@@ -384,13 +557,11 @@
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"description": "Driver={IBM DB2 ODBC DRIVER - DB2COPY1};\nDatabase=실제DB명;\nHostname=DB2서버호스트명;\nPort=50000;\nProtocol=TCPIP;\nFET_BUF_SIZE=8192K;",
 				"annotations": [],
 				"type": "Odbc",
 				"typeProperties": {
-					"connectionString": {
-						"type": "SecureString",
-						"value": "[parameters('Odbc1_connectionString')]"
-					},
+					"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
 					"authenticationType": "Basic",
 					"userName": "[parameters('Odbc1_properties_typeProperties_userName')]",
 					"password": {
@@ -466,55 +637,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/FileServer1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Db2Table1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Db21",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Db2Table",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/Db21')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/OdbcTable1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Odbc1",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"schema": {
-						"type": "string"
-					},
-					"tablename": {
-						"type": "string"
-					}
-				},
-				"annotations": [],
-				"type": "OdbcTable",
-				"schema": [],
-				"typeProperties": {
-					"tableName": {
-						"value": "@concat(dataset().schema,'.',dataset().tablename)",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/Odbc1')]"
 			]
 		}
 	]

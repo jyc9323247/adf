@@ -17,9 +17,6 @@
 		"FileServer1_password": {
 			"value": ""
 		},
-		"Odbc1_connectionString": {
-			"value": ""
-		},
 		"Odbc1_password": {
 			"value": ""
 		},
@@ -39,13 +36,13 @@
 			"value": "https://met-adf-234231.vault.azure.net/"
 		},
 		"AzurePostgreSql1_properties_typeProperties_server": {
-			"value": "dfafdbewdarfdf.postgres.database.azure.com"
+			"value": "fdffdsfds.postgres.database.azure.com"
 		},
 		"AzurePostgreSql1_properties_typeProperties_database": {
 			"value": "postgres"
 		},
 		"AzurePostgreSql1_properties_typeProperties_username": {
-			"value": "pgadmin"
+			"value": "adfadm"
 		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"value": "@{linkedService().domain_name}"
