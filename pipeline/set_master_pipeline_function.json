@@ -71,7 +71,7 @@
 											{
 												"type": "Query",
 												"text": {
-													"value": "UPDATE \"ADFADM\".ctl_master_pipeline_run m\nSET\n    child_total_cnt = s.child_total_cnt,\n    child_succ_cnt  = s.child_succ_cnt,\n    child_fail_cnt  = s.child_fail_cnt,\n    status           = '@{pipeline().parameters.p_status}',\n    update_by        = 'ADF',\n    update_dt        = NOW()\nFROM\n(\n    SELECT\n        COUNT(*)::int4 AS child_total_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'SUCCEEDED'\n        )::int4 AS child_succ_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'FAILED'\n        )::int4 AS child_fail_cnt\n    FROM \"ADFADM\".ctl_ingest_pipeline_run\n    WHERE master_run_id = '@{pipeline().parameters.p_master_run_id}'\n) s\nWHERE m.master_run_id = '@{pipeline().parameters.p_master_run_id}';",
+													"value": "UPDATE \"ADFADM\".ctl_master_pipeline_run m\nSET\n    child_total_cnt = s.child_total_cnt,\n    child_succ_cnt  = s.child_succ_cnt,\n    child_fail_cnt  = s.child_fail_cnt,\n    end_dt          = NOW(),\n    status           = '@{pipeline().parameters.p_status}',\n    update_by        = 'ADF',\n    update_dt        = NOW()\nFROM\n(\n    SELECT\n        COUNT(*)::int4 AS child_total_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'SUCCEEDED'\n        )::int4 AS child_succ_cnt,\n        COUNT(*) FILTER (\n            WHERE status = 'FAILED'\n        )::int4 AS child_fail_cnt\n    FROM \"ADFADM\".ctl_ingest_pipeline_run\n    WHERE master_run_id = '@{pipeline().parameters.p_master_run_id}'\n) s\nWHERE m.master_run_id = '@{pipeline().parameters.p_master_run_id}';",
 													"type": "Expression"
 												}
 											}
