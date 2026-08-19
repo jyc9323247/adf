@@ -13,6 +13,63 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Binary1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_file_name",
+							"type": "Expression"
+						},
+						"fileSystem": "ingest"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Binary2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "FileServer1",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "FileServerLocation",
+						"fileName": {
+							"value": "@dataset().p_file_name",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Db2Table1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -431,6 +488,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/Parquet3')]",
+				"[concat(variables('factoryId'), '/datasets/Binary2')]",
+				"[concat(variables('factoryId'), '/datasets/Binary1')]",
 				"[concat(variables('factoryId'), '/datasets/Db2Table1')]",
 				"[concat(variables('factoryId'), '/datasets/OdbcTable2')]"
 			]
@@ -1762,7 +1821,14 @@
 					{
 						"name": "START_set_master_pipeline_function",
 						"type": "ExecutePipeline",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "PL_tri_history",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
 						"policy": {
 							"secureInput": false
 						},
@@ -1804,7 +1870,7 @@
 									"type": "Expression"
 								},
 								"p_runmode": {
-									"value": "@if(\n    equals(toUpper(pipeline().TriggerName), 'SAND BOX'),\n    'MANUAL',\n    'SCHEDULE'\n)",
+									"value": "@if(\n    equals(pipeline().TriggerName, 'Sandbox'),\n    'MANUAL',\n    'SCHEDULE'\n)",
 									"type": "Expression"
 								},
 								"p_type": "START"
@@ -1812,7 +1878,7 @@
 						}
 					},
 					{
-						"name": "Set variable1",
+						"name": "Set variable cur dt",
 						"type": "SetVariable",
 						"dependsOn": [
 							{
@@ -1840,7 +1906,7 @@
 						"type": "Script",
 						"dependsOn": [
 							{
-								"activity": "Set variable1",
+								"activity": "Set variable cur dt",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1876,7 +1942,7 @@
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "ForEach1",
+								"activity": "ForEach Child Ingest",
 								"dependencyConditions": [
 									"Failed"
 								]
@@ -1924,11 +1990,11 @@
 						}
 					},
 					{
-						"name": "ForEach1",
+						"name": "ForEach Child Ingest",
 						"type": "ForEach",
 						"dependsOn": [
 							{
-								"activity": "Filter1",
+								"activity": "Filter Not Skipped",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1937,53 +2003,16 @@
 						"userProperties": [],
 						"typeProperties": {
 							"items": {
-								"value": "@activity('Filter1').output.value",
+								"value": "@activity('Filter Not Skipped').output.value",
 								"type": "Expression"
 							},
-							"isSequential": true,
+							"isSequential": false,
+							"batchCount": 2,
 							"activities": [
-								{
-									"name": "Script1_copy1",
-									"type": "Script",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"linkedServiceName": {
-										"referenceName": "AzurePostgreSql1",
-										"type": "LinkedServiceReference"
-									},
-									"typeProperties": {
-										"scripts": [
-											{
-												"type": "Query",
-												"text": {
-													"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{item().master_run_id}'\n  AND ingest_pipeline_id  = '@{item().ingest_pipeline_id}';\n\n\n",
-													"type": "Expression"
-												}
-											}
-										],
-										"scriptBlockExecutionTimeout": "02:00:00"
-									}
-								},
 								{
 									"name": "pipeline_dispatcher_copy1",
 									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "Script1_copy1",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
+									"dependsOn": [],
 									"policy": {
 										"secureInput": false
 									},
@@ -2021,12 +2050,119 @@
 											}
 										}
 									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Check_file_size_Lookup",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(activity('Check_file_size_Lookup').output.firstRow.total_size_mb, variables('v_succeededTotalSizeMb') )\n)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "Wait3",
+												"type": "Wait",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"waitTimeInSeconds": 1
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "dbx_rest_api_call_copy1_copy1_copy1",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "dbx_rest_api_call",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {}
+												}
+											},
+											{
+												"name": "Set variable1",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "dbx_rest_api_call_copy1_copy1_copy1",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "v_dbx_api_call_yn",
+													"value": true
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "Check_file_size_Lookup",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "pipeline_dispatcher_copy1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzurePostgreSqlSource",
+											"query": {
+												"value": "SELECT \n    master_run_id,\n    SUM(file_size_mb) AS total_size_mb\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE master_run_id = '@{pipeline().RunId}' \n  AND status = 'SUCCEEDED'\nGROUP BY master_run_id;",
+												"type": "Expression"
+											},
+											"partitionOption": "None",
+											"queryTimeout": "02:00:00"
+										},
+										"dataset": {
+											"referenceName": "AzurePostgreSqlTable1",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": true
+									}
 								}
 							]
 						}
 					},
 					{
-						"name": "Filter1",
+						"name": "Filter Not Skipped",
 						"type": "Filter",
 						"dependsOn": [
 							{
@@ -2049,77 +2185,11 @@
 						}
 					},
 					{
-						"name": "UPDATE_set_master_pipeline_function",
-						"type": "ExecutePipeline",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "set_master_pipeline_function",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"p_master_run_id": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"p_master_pipeline_nm": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"p_trigger_id": {
-									"value": "@pipeline().TriggerId",
-									"type": "Expression"
-								},
-								"p_trigger_nm": {
-									"value": "@pipeline().TriggerName",
-									"type": "Expression"
-								},
-								"p_data_class": {
-									"value": "@variables('v_data_class')",
-									"type": "Expression"
-								},
-								"p_ingest_type": {
-									"value": "@variables('v_ingest_type')",
-									"type": "Expression"
-								},
-								"p_init_yn": "N",
-								"p_status": "SUCCEEDED",
-								"p_type": "UPDATE"
-							}
-						}
-					},
-					{
-						"name": "dbx_rest_api_call_copy1",
-						"type": "ExecutePipeline",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "dbx_rest_api_call",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "If Condition1",
+						"name": "successd",
 						"type": "IfCondition",
 						"dependsOn": [
 							{
-								"activity": "ForEach1",
+								"activity": "ForEach Child Ingest",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2128,7 +2198,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"expression": {
-								"value": "@or(\n    pipeline().globalParameters.G_SKIP_YN,\n    greater(length(activity('Filter1').output.value), 0)\n)",
+								"value": "@pipeline().globalParameters.G_SKIP_YN",
 								"type": "Expression"
 							},
 							"ifFalseActivities": [
@@ -2173,7 +2243,7 @@
 											},
 											"p_init_yn": "N",
 											"p_status": {
-												"value": "@activity('Start_ingest_pipeline_Script').output",
+												"value": "SUCCEEDED",
 												"type": "Expression"
 											},
 											"p_type": "UPDATE"
@@ -2223,7 +2293,7 @@
 						"type": "Wait",
 						"dependsOn": [
 							{
-								"activity": "If Condition1",
+								"activity": "successd",
 								"dependencyConditions": [
 									"Completed"
 								]
@@ -2232,6 +2302,48 @@
 						"userProperties": [],
 						"typeProperties": {
 							"waitTimeInSeconds": 1
+						}
+					},
+					{
+						"name": "PL_tri_history",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_tri_history",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_trigger_id": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@pipeline().TriggerName",
+									"type": "Expression"
+								},
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_skip_yn": {
+									"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'Y',\n    'N'\n)",
+									"type": "Expression"
+								},
+								"p_skip_reason": {
+									"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'GLOBAL SKIP',\n    ''\n)",
+									"type": "Expression"
+								}
+							}
 						}
 					}
 				],
@@ -2244,7 +2356,7 @@
 					},
 					"v_data_class": {
 						"type": "String",
-						"defaultValue": "META"
+						"defaultValue": "RAW"
 					},
 					"v_ingest_type": {
 						"type": "String",
@@ -2254,8 +2366,13 @@
 						"type": "String",
 						"defaultValue": "N"
 					},
-					"v_list": {
-						"type": "Array"
+					"v_succeededTotalSizeMb": {
+						"type": "Integer",
+						"defaultValue": 2
+					},
+					"v_dbx_api_call_yn": {
+						"type": "Boolean",
+						"defaultValue": false
 					}
 				},
 				"annotations": []
