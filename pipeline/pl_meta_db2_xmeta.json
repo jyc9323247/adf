@@ -1,0 +1,220 @@
+{
+	"name": "pl_meta_db2_xmeta",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Running_UPDATE",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source",
+						"query": {
+							"value": "@pipeline().parameters.p_extract_query",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Db2Table1",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Parquet4",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_filename": {
+								"value": "@pipeline().parameters.p_file_name",
+								"type": "Expression"
+							},
+							"p_landing_path": {
+								"value": "@pipeline().parameters.p_landing_path",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Running_UPDATE",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "\tUPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}';\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Failed_UPDATE",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Copy data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    ingest_pipeline_run_id  ='@{pipeline().RunId}',\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.errors[0].Message,'''','''''')}',\n        ''\n    ),\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "SUCCEEDED_UPDATE",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Copy data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'SUCCEEDED',\n    extract_cnt  = @{activity('Copy data').output.rowsRead},\n    save_cnt     = @{activity('Copy data').output.rowsCopied},\n    file_size_mb = @{div(activity('Copy data').output.dataWritten,1048576)},\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Fail1",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "Failed_UPDATE",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@activity('Copy data').output",
+						"type": "Expression"
+					},
+					"errorCode": "-1"
+				}
+			}
+		],
+		"parameters": {
+			"p_landing_path": {
+				"type": "string"
+			},
+			"p_file_name": {
+				"type": "string"
+			},
+			"p_extract_query": {
+				"type": "string"
+			},
+			"p_ingest_pipeline_id": {
+				"type": "string"
+			},
+			"p_master_run_id": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_yyyyMMddHHmmss": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
