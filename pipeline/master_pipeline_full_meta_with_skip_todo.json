@@ -266,16 +266,34 @@
 				}
 			},
 			{
-				"name": "UPDATE_set_master_pipeline_function",
-				"type": "ExecutePipeline",
+				"name": "Filter1",
+				"type": "Filter",
 				"dependsOn": [
 					{
-						"activity": "ForEach1",
+						"activity": "Start_ingest_pipeline_Script",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					}
 				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().status, 'PENDING')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "UPDATE_set_master_pipeline_function",
+				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
 				"policy": {
 					"secureInput": false
 				},
@@ -318,16 +336,11 @@
 				}
 			},
 			{
-				"name": "dbx_rest_api_call",
+				"name": "dbx_rest_api_call_copy1",
 				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "UPDATE_set_master_pipeline_function",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
 				"policy": {
 					"secureInput": false
 				},
@@ -341,11 +354,11 @@
 				}
 			},
 			{
-				"name": "Filter1",
-				"type": "Filter",
+				"name": "If Condition1",
+				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Start_ingest_pipeline_Script",
+						"activity": "ForEach1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -353,14 +366,94 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"items": {
-						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+					"expression": {
+						"value": "@or(\n    pipeline().globalParameters.G_SKIP_YN,\n    greater(length(activity('Filter1').output.value), 0)\n)",
 						"type": "Expression"
 					},
-					"condition": {
-						"value": "@equals(item().status, 'PENDING')",
-						"type": "Expression"
-					}
+					"ifFalseActivities": [
+						{
+							"name": "UPDATE_set_master_pipeline_function_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "set_master_pipeline_function",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_master_run_id": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"p_master_pipeline_nm": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"p_trigger_id": {
+										"value": "@pipeline().TriggerId",
+										"type": "Expression"
+									},
+									"p_trigger_nm": {
+										"value": "@pipeline().TriggerName",
+										"type": "Expression"
+									},
+									"p_data_class": {
+										"value": "@variables('v_data_class')",
+										"type": "Expression"
+									},
+									"p_ingest_type": {
+										"value": "@variables('v_ingest_type')",
+										"type": "Expression"
+									},
+									"p_init_yn": "N",
+									"p_status": {
+										"value": "@activity('Start_ingest_pipeline_Script').output",
+										"type": "Expression"
+									},
+									"p_type": "UPDATE"
+								}
+							}
+						},
+						{
+							"name": "dbx_rest_api_call_copy1_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "UPDATE_set_master_pipeline_function_copy1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "dbx_rest_api_call",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
 				}
 			}
 		],
