@@ -103,8 +103,6 @@
 			{
 				"name": "Failed_UPDATE",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data",
@@ -130,7 +128,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    ingest_pipeline_run_id  ='@{activity('pl_raw_db2_xmeta').output.pipelineRunId}',\n    error_log = \t NULLIF(\n        '@{replace(activity('pl_raw_db2_xmeta').output.pipelineReturnValue.error.message,'''','''''')}',\n        ''\n    ),\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    ingest_pipeline_run_id  ='@{activity('Copy data').output.pipelineRunId}',\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.error.message,'''','''''')}',\n        ''\n    ),\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
 								"type": "Expression"
 							}
 						}
