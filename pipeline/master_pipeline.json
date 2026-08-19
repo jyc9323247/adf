@@ -168,7 +168,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Start_ingest_pipeline_Script",
+						"activity": "Filter_not_skip",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -314,6 +314,52 @@
 						"p_init_yn": "N",
 						"p_status": "SUCCEEDED",
 						"p_type": "UPDATE"
+					}
+				}
+			},
+			{
+				"name": "Filter_not_skip",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@createArray(\n    json(\n        concat(\n            '{\"pipelineName\": \"', pipeline().Pipeline, \n            '\", \"isSkip\": ', if(pipeline().globalParameters.G_SKIP_YN, 'true', 'false'), '}'\n        )\n    )\n)",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@and(equals(item().pipelineName, pipeline().Pipeline), equals(item().isSkip, false))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Filter_skip",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@createArray(\n    json(\n        concat(\n            '{\"pipelineName\": \"', pipeline().Pipeline, \n            '\", \"isSkip\": ', if(pipeline().globalParameters.G_SKIP_YN, 'true', 'false'), '}'\n        )\n    )\n)",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@and(equals(item().pipelineName, pipeline().Pipeline), equals(item().isSkip, true))",
+						"type": "Expression"
 					}
 				}
 			}
