@@ -188,7 +188,8 @@
 					"message": {
 						"value": "@activity('Copy data').output",
 						"type": "Expression"
-					}
+					},
+					"errorCode": "-1"
 				}
 			}
 		],
