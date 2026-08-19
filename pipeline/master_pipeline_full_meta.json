@@ -1,5 +1,5 @@
 {
-	"name": "master_pipeline",
+	"name": "master_pipeline_full_meta",
 	"properties": {
 		"activities": [
 			{
