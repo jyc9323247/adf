@@ -12,6 +12,11 @@
 				}
 			}
 		],
+		"parameters": {
+			"p_master_run_id": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
