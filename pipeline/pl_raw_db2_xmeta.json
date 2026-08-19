@@ -137,35 +137,6 @@
 				}
 			},
 			{
-				"name": "Running_Update_Script",
-				"type": "Script",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
-					"type": "LinkedServiceReference"
-				},
-				"typeProperties": {
-					"scripts": [
-						{
-							"type": "Query",
-							"text": {
-								"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}';\n\n\n",
-								"type": "Expression"
-							}
-						}
-					],
-					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
 				"name": "SUCCEEDED_UPDATE",
 				"type": "Script",
 				"dependsOn": [
