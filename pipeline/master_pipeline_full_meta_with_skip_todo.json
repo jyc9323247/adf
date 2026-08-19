@@ -55,7 +55,7 @@
 				}
 			},
 			{
-				"name": "Set variable1",
+				"name": "Set variable cur dt",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
@@ -83,7 +83,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "Set variable1",
+						"activity": "Set variable cur dt",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -119,7 +119,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "ForEach1",
+						"activity": "ForEach Child Ingest",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -167,11 +167,11 @@
 				}
 			},
 			{
-				"name": "ForEach1",
+				"name": "ForEach Child Ingest",
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Filter1",
+						"activity": "Filter Not Skipped",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -180,7 +180,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Filter1').output.value",
+						"value": "@activity('Filter Not Skipped').output.value",
 						"type": "Expression"
 					},
 					"isSequential": true,
@@ -269,7 +269,7 @@
 				}
 			},
 			{
-				"name": "Filter1",
+				"name": "Filter Not Skipped",
 				"type": "Filter",
 				"dependsOn": [
 					{
@@ -292,76 +292,11 @@
 				}
 			},
 			{
-				"name": "UPDATE_set_master_pipeline_function",
-				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"p_master_run_id": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						},
-						"p_master_pipeline_nm": {
-							"value": "@pipeline().Pipeline",
-							"type": "Expression"
-						},
-						"p_trigger_id": {
-							"value": "@pipeline().TriggerId",
-							"type": "Expression"
-						},
-						"p_trigger_nm": {
-							"value": "@pipeline().TriggerName",
-							"type": "Expression"
-						},
-						"p_data_class": {
-							"value": "@variables('v_data_class')",
-							"type": "Expression"
-						},
-						"p_ingest_type": {
-							"value": "@variables('v_ingest_type')",
-							"type": "Expression"
-						},
-						"p_init_yn": "N",
-						"p_status": "SUCCEEDED",
-						"p_type": "UPDATE"
-					}
-				}
-			},
-			{
-				"name": "dbx_rest_api_call_copy1",
-				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "dbx_rest_api_call",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true
-				}
-			},
-			{
-				"name": "If Condition1",
+				"name": "successd",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "ForEach1",
+						"activity": "ForEach Child Ingest",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -464,7 +399,7 @@
 				"type": "Wait",
 				"dependsOn": [
 					{
-						"activity": "If Condition1",
+						"activity": "successd",
 						"dependencyConditions": [
 							"Completed"
 						]
