@@ -241,7 +241,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(activity('Check_file_size_Lookup').output.firstRow.total_size_mb, variables('v_succeededTotalSizeMb')))\n)",
+									"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(activity('Check_file_size_Lookup').output.firstRow.total_size_mb, variables('v_succeededTotalSizeMb') )\n)",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -328,7 +328,8 @@
 								"dataset": {
 									"referenceName": "AzurePostgreSqlTable1",
 									"type": "DatasetReference"
-								}
+								},
+								"firstRowOnly": true
 							}
 						}
 					]
