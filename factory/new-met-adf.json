@@ -12,12 +12,8 @@
 				}
 			},
 			"G_SKIP_YN": {
-				"type": "array",
-				"value": [
-					{
-						"skip_yn": "Y"
-					}
-				]
+				"type": "bool",
+				"value": false
 			}
 		}
 	},
