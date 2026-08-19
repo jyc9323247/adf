@@ -30,7 +30,7 @@
 							"type": "Expression"
 						},
 						"p_trigger_nm": {
-							"value": "@pipeline().TriggerName",
+							"value": "@pipeline().TriggerName\n ",
 							"type": "Expression"
 						},
 						"p_data_class": {
@@ -42,8 +42,11 @@
 							"type": "Expression"
 						},
 						"p_init_yn": "N",
-						"p_status": "PENDING",
-						"p_runmode": "MANUAL",
+						"p_status": {
+							"value": "@if(\r\n    equals(pipeline().globalParameters.g_skip_yn, 'Y'),\r\n    'SKIPPED',\r\n    'PENDING'\r\n)",
+							"type": "Expression"
+						},
+						"p_runmode": "@if(\n    equals(toUpper(pipeline().TriggerName), 'SAND BOX'),\n    'MANUAL',\n    'SCHEDULE'\n)",
 						"p_type": "START"
 					}
 				}
@@ -321,7 +324,7 @@
 			},
 			"v_data_class": {
 				"type": "String",
-				"defaultValue": "META"
+				"defaultValue": "RAW"
 			},
 			"v_ingest_type": {
 				"type": "String",
