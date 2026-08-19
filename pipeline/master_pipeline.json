@@ -33,8 +33,14 @@
 							"value": "@pipeline().TriggerName",
 							"type": "Expression"
 						},
-						"p_data_class": "RAW",
-						"p_ingest_type": "FULL",
+						"p_data_class": {
+							"value": "@variables('v_data_class')",
+							"type": "Expression"
+						},
+						"p_ingest_type": {
+							"value": "@variables('v_ingest_type')",
+							"type": "Expression"
+						},
 						"p_init_yn": "N",
 						"p_status": "PENDING",
 						"p_runmode": "MANUAL",
@@ -80,8 +86,14 @@
 							"value": "@pipeline().TriggerName",
 							"type": "Expression"
 						},
-						"p_data_class": "RAW",
-						"p_ingest_type": "FULL",
+						"p_data_class": {
+							"value": "@variables('v_data_class')",
+							"type": "Expression"
+						},
+						"p_ingest_type": {
+							"value": "@variables('v_ingest_type')",
+							"type": "Expression"
+						},
 						"p_init_yn": "N",
 						"p_status": "FAILED",
 						"p_type": "UPDATE"
@@ -288,8 +300,14 @@
 							"value": "@pipeline().TriggerName",
 							"type": "Expression"
 						},
-						"p_data_class": "RAW",
-						"p_ingest_type": "FULL",
+						"p_data_class": {
+							"value": "@variables('v_data_class')",
+							"type": "Expression"
+						},
+						"p_ingest_type": {
+							"value": "@variables('v_ingest_type')",
+							"type": "Expression"
+						},
 						"p_init_yn": "N",
 						"p_status": "SUCCEEDED",
 						"p_type": "UPDATE"
