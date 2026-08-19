@@ -1,5 +1,5 @@
 {
-	"name": "master_pipeline_with_skip",
+	"name": "master_pipeline_with_skip_todo",
 	"properties": {
 		"activities": [
 			{
