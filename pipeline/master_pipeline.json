@@ -246,50 +246,6 @@
 									}
 								}
 							}
-						},
-						{
-							"name": "pipeline_dispatcher_copy2",
-							"type": "ExecutePipeline",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
-							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"pipeline": {
-									"referenceName": "pipeline_dispatcher",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true,
-								"parameters": {
-									"p_child_pipeline_nm": {
-										"value": "@item().ingest_pipeline_nm",
-										"type": "Expression"
-									},
-									"p_landing_path": {
-										"value": "@item().landing_path",
-										"type": "Expression"
-									},
-									"p_file_name": {
-										"value": "@item().file_name",
-										"type": "Expression"
-									},
-									"p_extract_query": {
-										"value": "@item().extract_query",
-										"type": "Expression"
-									},
-									"p_ingest_pipeline_id": {
-										"value": "@item().ingest_pipeline_id",
-										"type": "Expression"
-									},
-									"p_master_run_id": {
-										"value": "@item().master_run_id",
-										"type": "Expression"
-									}
-								}
-							}
 						}
 					]
 				}
