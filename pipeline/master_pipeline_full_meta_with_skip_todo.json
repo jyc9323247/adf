@@ -362,45 +362,6 @@
 						"type": "Expression"
 					}
 				}
-			},
-			{
-				"name": "Filter1_copy1",
-				"type": "Filter",
-				"dependsOn": [
-					{
-						"activity": "Start_ingest_pipeline_Script",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().status, 'SKIPPED')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Wait_skip",
-				"type": "Wait",
-				"dependsOn": [
-					{
-						"activity": "Filter1_copy1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"waitTimeInSeconds": 1
-				}
 			}
 		],
 		"variables": {
