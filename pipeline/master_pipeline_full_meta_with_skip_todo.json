@@ -232,7 +232,7 @@
 							"type": "IfCondition",
 							"dependsOn": [
 								{
-									"activity": "Lookup2",
+									"activity": "Check_file_size_Lookup",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -241,7 +241,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(item().total_size_mb, variables('v_succeededTotalSizeMb'))\n)",
+									"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(activity('Check_file_size_Lookup').output.firstRow.total_size_mb, variables('v_succeededTotalSizeMb')))\n)",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -297,7 +297,7 @@
 							}
 						},
 						{
-							"name": "Lookup2",
+							"name": "Check_file_size_Lookup",
 							"type": "Lookup",
 							"dependsOn": [
 								{
