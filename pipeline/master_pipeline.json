@@ -5,14 +5,7 @@
 			{
 				"name": "START_set_master_pipeline_function",
 				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "Filter1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"secureInput": false
 				},
@@ -50,7 +43,7 @@
 						},
 						"p_init_yn": "N",
 						"p_status": {
-							"value": "PENDING",
+							"value": "@if(\n    pipeline().globalParameters.g_skip_yn,\n    'SKIPPED',\n    'PENDING'\n)",
 							"type": "Expression"
 						},
 						"p_runmode": "@if(\n    equals(toUpper(pipeline().TriggerName), 'SAND BOX'),\n    'MANUAL',\n    'SCHEDULE'\n)",
@@ -162,7 +155,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "WITH ins AS\n(\n    INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_run_id,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        condition_type,\n        condition_frequency,\n        condition_interval,\n        incr_column_nm,\n        incr_column_type,\n        incr_column_hw_val,\n        incr_start_val,\n        init_wait_yn,\n        extract_query,\n        landing_path,\n        file_name,\n        file_size_mb,\n        start_dt,\n        end_dt,\n        extract_cnt,\n        save_cnt,\n        attempt_no,\n        status,\n        error_log,\n        created_by,\n        created_dt\n    )\n    SELECT\n        '@{pipeline().RunId}',\n        '@{pipeline().Pipeline}',\n        '-',\n        'PL_' || m.data_class || '_' || m.src_type || '_' || CASE WHEN NULLIF(m.cdc_tgt_db_nm, '') IS NOT NULL THEN m.cdc_tgt_db_nm ELSE m.src_db_nm END,\n        m.data_class,\n        m.ingest_type,\n        m.src_type,\n        m.target_id,\n        m.src_db_nm,\n        m.src_schema_nm,\n        m.src_table_nm,\n        m.cdc_tgt_db_nm,\n        m.cdc_tgt_schema_nm,\n        m.exec_group,\n        m.condition_type,\n        m.condition_frequency,\n        m.condition_interval,\n        m.incr_column_nm,\n        m.incr_column_type,\n        m.incr_column_hw_val,\n        m.incr_column_hw_val,\n        m.init_wait_yn,\n\n        CASE\n            WHEN UPPER(m.src_type) = 'DB2'\n                THEN 'SELECT * FROM '\n                     || COALESCE(NULLIF(m.cdc_tgt_schema_nm, ''), m.src_schema_nm)\n                     || '.'\n                     || m.src_table_nm\n                     || ' limit 10000 WITH UR ;'\n\n            WHEN UPPER(m.src_type) = 'MSSQL'\n                THEN 'SELECT * FROM '\n                     || m.src_schema_nm\n                     || '.'\n                     || m.src_table_nm\n                     || ' WITH (NOLOCK) ;'\n\n            ELSE 'SELECT * FROM '\n                 || m.src_schema_nm\n                 || '.'\n                 || m.src_table_nm\n        END,\n\n        'ingest/'\n        || m.data_class\n        || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),0,8)}'\n        || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n        || '/pipeline_name=@{pipeline().Pipeline}/',\n     \n        m.src_db_nm\n        || '.'\n        || m.src_schema_nm\n        || '.'\n        || m.src_table_nm\n        || '.@{variables('v_yyyyMMddHHmmss')}'\n        || '.parquet',\n\n        0,\n        NOW(),\n        NULL,\n        0,\n        0,\n        0,\n       'PENDING',\n        NULL,\n        'ADF',\n        NOW()\n\n    FROM \"ADFADM\".ctl_ingest_target_master m\n\n    WHERE m.data_class = '@{variables('v_data_class')}'\n     AND m.ingest_type = '@{variables('v_ingest_type')}'\n     AND m.init_wait_yn = 'N'\n     AND m.delete_yn = 'N'\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        extract_query,\n        landing_path,\n        file_name,\n        attempt_no,\n        status\n)\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_nm,\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    exec_group,\n    extract_query,\n    landing_path,\n    file_name,\n    attempt_no,\n    status\nFROM ins\nORDER BY target_id;",
+								"value": "WITH ins AS\n(\n    INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_run_id,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        condition_type,\n        condition_frequency,\n        condition_interval,\n        incr_column_nm,\n        incr_column_type,\n        incr_column_hw_val,\n        incr_start_val,\n        init_wait_yn,\n        extract_query,\n        landing_path,\n        file_name,\n        file_size_mb,\n        start_dt,\n        end_dt,\n        extract_cnt,\n        save_cnt,\n        attempt_no,\n        status,\n        error_log,\n        created_by,\n        created_dt\n    )\n    SELECT\n        '@{pipeline().RunId}',\n        '@{pipeline().Pipeline}',\n        '-',\n        'PL_' || m.data_class || '_' || m.src_type || '_' || CASE WHEN NULLIF(m.cdc_tgt_db_nm, '') IS NOT NULL THEN m.cdc_tgt_db_nm ELSE m.src_db_nm END,\n        m.data_class,\n        m.ingest_type,\n        m.src_type,\n        m.target_id,\n        m.src_db_nm,\n        m.src_schema_nm,\n        m.src_table_nm,\n        m.cdc_tgt_db_nm,\n        m.cdc_tgt_schema_nm,\n        m.exec_group,\n        m.condition_type,\n        m.condition_frequency,\n        m.condition_interval,\n        m.incr_column_nm,\n        m.incr_column_type,\n        m.incr_column_hw_val,\n        m.incr_column_hw_val,\n        m.init_wait_yn,\n\n        CASE\n            WHEN UPPER(m.src_type) = 'DB2'\n                THEN 'SELECT * FROM '\n                     || COALESCE(NULLIF(m.cdc_tgt_schema_nm, ''), m.src_schema_nm)\n                     || '.'\n                     || m.src_table_nm\n                     || ' limit 10000 WITH UR ;'\n\n            WHEN UPPER(m.src_type) = 'MSSQL'\n                THEN 'SELECT * FROM '\n                     || m.src_schema_nm\n                     || '.'\n                     || m.src_table_nm\n                     || ' WITH (NOLOCK) ;'\n\n            ELSE 'SELECT * FROM '\n                 || m.src_schema_nm\n                 || '.'\n                 || m.src_table_nm\n        END,\n\n        'ingest/'\n        || m.data_class\n        || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),0,8)}'\n        || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n        || '/pipeline_name=@{pipeline().Pipeline}/',\n     \n        m.src_db_nm\n        || '.'\n        || m.src_schema_nm\n        || '.'\n        || m.src_table_nm\n        || '.@{variables('v_yyyyMMddHHmmss')}'\n        || '.parquet',\n\n        0,\n        NOW(),\n        NULL,\n        0,\n        0,\n        0,\n       @{if(\n        pipeline().globalParameters.g_skip_yn,\n        'SKIPPED',\n        'PENDING'\n        )},\n        NULL,\n        'ADF',\n        NOW()\n\n    FROM \"ADFADM\".ctl_ingest_target_master m\n\n    WHERE m.data_class = '@{variables('v_data_class')}'\n     AND m.ingest_type = '@{variables('v_ingest_type')}'\n     AND m.init_wait_yn = 'N'\n     AND m.delete_yn = 'N'\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_nm,\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        exec_group,\n        extract_query,\n        landing_path,\n        file_name,\n        attempt_no,\n        status\n)\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_nm,\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    exec_group,\n    extract_query,\n    landing_path,\n    file_name,\n    attempt_no,\n    status\nFROM ins\nORDER BY target_id;",
 								"type": "Expression"
 							}
 						}
@@ -175,7 +168,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Start_ingest_pipeline_Script",
+						"activity": "Filter_Pending",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -184,7 +177,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"value": "@activity('Filter_Pending').output.value",
 						"type": "Expression"
 					},
 					"isSequential": true,
@@ -325,90 +318,48 @@
 				}
 			},
 			{
-				"name": "Filter1",
+				"name": "Filter_Pending",
 				"type": "Filter",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@pipeline().globalParameters.G_SKIP_YN",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().skip_yn, 'N')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Filter1_copy1",
-				"type": "Filter",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@pipeline().globalParameters.G_SKIP_YN",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().skip_yn, 'Y')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "START_set_master_pipeline_function_copy1",
-				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Filter1_copy1",
+						"activity": "Start_ingest_pipeline_Script",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					}
 				],
-				"policy": {
-					"secureInput": false
-				},
 				"userProperties": [],
 				"typeProperties": {
-					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
-						"type": "PipelineReference"
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
 					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"p_master_run_id": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						},
-						"p_master_pipeline_nm": {
-							"value": "@pipeline().Pipeline",
-							"type": "Expression"
-						},
-						"p_trigger_id": {
-							"value": "@pipeline().TriggerId",
-							"type": "Expression"
-						},
-						"p_trigger_nm": {
-							"value": "@pipeline().TriggerName\n ",
-							"type": "Expression"
-						},
-						"p_data_class": {
-							"value": "@variables('v_data_class')",
-							"type": "Expression"
-						},
-						"p_ingest_type": {
-							"value": "@variables('v_ingest_type')",
-							"type": "Expression"
-						},
-						"p_init_yn": "N",
-						"p_status": {
-							"value": "PENDING",
-							"type": "Expression"
-						},
-						"p_runmode": "@if(\n    equals(toUpper(pipeline().TriggerName), 'SAND BOX'),\n    'MANUAL',\n    'SCHEDULE'\n)",
-						"p_type": "START"
+					"condition": {
+						"value": "@equals(item().status, 'PENDING')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Filter_Skip",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().status, 'SKIPPED')",
+						"type": "Expression"
 					}
 				}
 			}
