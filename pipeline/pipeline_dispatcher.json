@@ -98,6 +98,34 @@
 									}
 								}
 							]
+						},
+						{
+							"value": "pl_raw_db2_mliwp",
+							"activities": [
+								{
+									"name": "pl_raw_db2_mliwp",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_raw_db2_mliwp",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_landing_path": "@pipeline().parameters.p_landing_path",
+											"p_file_name": "@pipeline().parameters.p_file_name",
+											"p_extract_query": "@pipeline().parameters.p_extract_query",
+											"p_ingest_pipeline_id": "@pipeline().parameters.p_ingest_pipeline_id",
+											"p_master_run_id": "@pipeline().parameters.p_master_run_id"
+										}
+									}
+								}
+							]
 						}
 					],
 					"defaultActivities": [
