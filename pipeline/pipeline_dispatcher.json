@@ -61,7 +61,14 @@
 						{
 							"name": "Fail1",
 							"type": "Fail",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Failed_UPDATE",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
 							"userProperties": [],
 							"typeProperties": {
 								"message": "Failed dispacher",
@@ -71,14 +78,7 @@
 						{
 							"name": "Failed_UPDATE",
 							"type": "Script",
-							"dependsOn": [
-								{
-									"activity": "Fail1",
-									"dependencyConditions": [
-										"Completed"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
