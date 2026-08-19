@@ -232,7 +232,7 @@
 							"type": "IfCondition",
 							"dependsOn": [
 								{
-									"activity": "Lookup1",
+									"activity": "Lookup2",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -241,7 +241,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@greater(item().total_file_size_mb,variables('v_succeededTotalSizeMb'))",
+									"value": "@and(\n    not(variables('v_dbx_api_call_yn')),\n    greater(item().total_size_mb, variables('v_succeededTotalSizeMb'))\n)",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -271,12 +271,33 @@
 											},
 											"waitOnCompletion": true
 										}
+									},
+									{
+										"name": "Set variable1",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "dbx_rest_api_call_copy1_copy1_copy1",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "v_dbx_api_call_yn",
+											"value": true
+										}
 									}
 								]
 							}
 						},
 						{
-							"name": "Lookup1",
+							"name": "Lookup2",
 							"type": "Lookup",
 							"dependsOn": [
 								{
@@ -298,7 +319,7 @@
 								"source": {
 									"type": "AzurePostgreSqlSource",
 									"query": {
-										"value": "SELECT \n    master_run_id,\n    SUM(file_size_mb) AS total_file_size_mb\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE status = 'SUCCEEDED'\nand master_run_id='@{item().master_run_id}'\nGROUP BY master_run_id ;\n\n",
+										"value": "SELECT \n    master_run_id,\n    SUM(file_size_mb) AS total_size_mb\nFROM \"ADFADM\".ctl_ingest_pipeline_run\nWHERE master_run_id = '@{pipeline().RunId}' \n  AND status = 'SUCCEEDED'\nGROUP BY master_run_id;",
 										"type": "Expression"
 									},
 									"partitionOption": "None",
@@ -474,7 +495,11 @@
 			},
 			"v_succeededTotalSizeMb": {
 				"type": "Integer",
-				"defaultValue": "0.1"
+				"defaultValue": 1
+			},
+			"v_dbx_api_call_yn": {
+				"type": "Boolean",
+				"defaultValue": false
 			}
 		},
 		"annotations": []
