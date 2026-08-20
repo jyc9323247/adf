@@ -203,7 +203,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "pl_ingest_dispatcher_db_to_gen2",
+									"referenceName": "pl_dispatcher_ingest",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
