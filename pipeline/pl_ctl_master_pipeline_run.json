@@ -1,9 +1,9 @@
 {
-	"name": "set_master_pipeline_function",
+	"name": "pl_ctl_master_pipeline_run",
 	"properties": {
 		"activities": [
 			{
-				"name": "Switch1",
+				"name": "pl_ctl_master_pipeline_run",
 				"type": "Switch",
 				"dependsOn": [],
 				"userProperties": [],
@@ -17,7 +17,7 @@
 							"value": "START",
 							"activities": [
 								{
-									"name": "Normal_START_Script",
+									"name": "START_ctl_master_pipeline_run_script",
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
@@ -51,11 +51,11 @@
 							"value": "UPDATE",
 							"activities": [
 								{
-									"name": "UPDATE_Script",
+									"name": "UPDATE_ctl_master_pipeline_run_script",
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
-										"timeout": "0.00:100:00",
+										"timeout": "0.00:10:00",
 										"retry": 2,
 										"retryIntervalInSeconds": 30,
 										"secureOutput": false,
@@ -85,7 +85,7 @@
 							"value": "INIT_START",
 							"activities": [
 								{
-									"name": "Init_START_Scrip",
+									"name": "INIT_START_ctl_master_pipeline_run_script",
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
@@ -118,7 +118,7 @@
 					],
 					"defaultActivities": [
 						{
-							"name": "Fail1",
+							"name": "Failed pl_ctl_master_pipeline_run_script",
 							"type": "Fail",
 							"dependsOn": [],
 							"userProperties": [],
