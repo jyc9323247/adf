@@ -232,7 +232,7 @@
 			}
 		},
 		"variables": {
-			"v_yyyyMMddHHmmss": {
+			"pv_yyyyMMddHHmmss": {
 				"type": "String"
 			}
 		},
