@@ -1,0 +1,12 @@
+{
+	"name": "ds_src_postgres_table_MLKUDPD",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_egress_postgres_MLKUDPD",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": []
+	}
+}
