@@ -1,0 +1,92 @@
+{
+	"name": "pipeline2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup_Partition",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "Db2Source",
+						"query": {
+							"value": "WITH DISTINCT_PARTITION AS\n(\n    SELECT DISTINCT\n        @{pipeline().parameters.p_partition_column} AS PARTITION_VAL\n    FROM\n        @{pipeline().parameters.p_src_schema}.@{pipeline().parameters.p_src_table}\n),\n\nVALID_PARTITION AS\n(\n    SELECT\n        PARTITION_VAL\n    FROM DISTINCT_PARTITION\n    WHERE\n        PARTITION_VAL IS NOT NULL\n        AND REGEXP_LIKE(\n            PARTITION_VAL,\n            '^[0-9]{6}$'\n        )\n        AND SUBSTR(\n            PARTITION_VAL,\n            5,\n            2\n        ) BETWEEN '01' AND '12'\n        AND\n        (\n            '@{pipeline().parameters.p_partition_from}' = ''\n            OR PARTITION_VAL >= '@{pipeline().parameters.p_partition_from}'\n        )\n        AND\n        (\n            '@{pipeline().parameters.p_partition_to}' = ''\n            OR PARTITION_VAL <= '@{pipeline().parameters.p_partition_to}'\n        )\n),\n\nINVALID_EXISTS AS\n(\n    SELECT\n        CASE\n            WHEN EXISTS\n            (\n                SELECT 1\n                FROM DISTINCT_PARTITION\n                WHERE\n                        PARTITION_VAL IS NULL\n                    OR NOT REGEXP_LIKE(\n                        PARTITION_VAL,\n                        '^[0-9]{6}$'\n                    )\n                    OR SUBSTR(\n                        PARTITION_VAL,\n                        5,\n                        2\n                    ) NOT BETWEEN '01' AND '12'\n            )\n            THEN 1\n            ELSE 0\n        END AS INVALID_YN\n    FROM SYSIBM.SYSDUMMY1\n)\n\nSELECT \n    LISTAGG(\n        '\"' || PARTITION_ID || '\"',\n        ','\n    ) WITHIN GROUP (ORDER BY PARTITION_ID) AS partition_list  \nFROM (  \n    SELECT\n        PARTITION_VAL AS PARTITION_ID\n    FROM VALID_PARTITION\n\n    UNION ALL\n\n    SELECT\n        'INVALID' AS PARTITION_ID\n    FROM SYSIBM.SYSDUMMY1\n    WHERE\n        (\n            SELECT INVALID_YN\n            FROM INVALID_EXISTS\n        ) = 1\n) RT\nWITH UR;",
+							"type": "Expression"
+						}
+					},
+					"dataset": {
+						"referenceName": "Db2Table1",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Partition",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "part",
+					"value": {
+						"value": "@concat(\n    '{',\n    '\"partition_column\":\"',\n    pipeline().parameters.p_partition_column,\n    '\",',\n    '\"partition_range\":\"',\n    pipeline().parameters.p_partition_range,\n    '\",',\n    '\"data_type\":\"',\n    pipeline().parameters.p_data_type,\n    '\",',\n    '\"partition_val\":[',\n    activity('Lookup_Partition').output.firstRow.PARTITION_LIST,\n    ']',\n    '}'\n)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"p_partition_column": {
+				"type": "string",
+				"defaultValue": "clym"
+			},
+			"p_src_schema": {
+				"type": "string",
+				"defaultValue": "db2inst1"
+			},
+			"p_src_table": {
+				"type": "string",
+				"defaultValue": "test_clym"
+			},
+			"p_partition_from": {
+				"type": "string"
+			},
+			"p_partition_to": {
+				"type": "string",
+				"defaultValue": "202601"
+			},
+			"p_partition_range": {
+				"type": "string",
+				"defaultValue": "MONTHLY"
+			},
+			"p_data_type": {
+				"type": "string",
+				"defaultValue": "STRING"
+			}
+		},
+		"variables": {
+			"part": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
