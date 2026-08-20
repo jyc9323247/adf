@@ -237,7 +237,7 @@
 			}
 		},
 		"folder": {
-			"name": "raw/ingestion"
+			"name": "util/sop"
 		},
 		"annotations": []
 	}
