@@ -40,14 +40,6 @@
 							"value": "@pipeline().TriggerName\n ",
 							"type": "Expression"
 						},
-						"p_data_class": {
-							"value": "@variables('v_data_class')",
-							"type": "Expression"
-						},
-						"p_ingest_type": {
-							"value": "@variables('v_ingest_type')",
-							"type": "Expression"
-						},
 						"p_status": {
 							"value": "@if(\n    pipeline().globalParameters.g_skip_yn,\n    'SKIPPED',\n    'PENDING'\n)",
 							"type": "Expression"
