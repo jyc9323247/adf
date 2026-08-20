@@ -9,7 +9,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"on": {
-						"value": "@pipeline().parameters.p_type",
+						"value": "@pipeline().parameters.p_call_type",
 						"type": "Expression"
 					},
 					"cases": [
@@ -156,7 +156,7 @@
 			"p_runmode": {
 				"type": "string"
 			},
-			"p_type": {
+			"p_call_type": {
 				"type": "string"
 			}
 		},
