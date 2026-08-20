@@ -6,7 +6,7 @@
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "sinks"
+			"name": "sinks/postgres"
 		},
 		"annotations": [],
 		"type": "AzurePostgreSqlTable",
