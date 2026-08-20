@@ -5,6 +5,9 @@
 			"referenceName": "ls_egress_postgres_MLKUDPD",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "sinks"
+		},
 		"annotations": [],
 		"type": "AzurePostgreSqlTable",
 		"schema": []
