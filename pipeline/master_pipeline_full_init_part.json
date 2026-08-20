@@ -261,7 +261,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "UPDATE \"ADFADM\".ctl_ingest_target_master\nSET\n    init_wait_yn = 'Y'::bpchar,\n    update_by    = 'ADF',\n    update_dt    = NOW()\nWHERE target_id = @{item().target_id}::bigint;",
+											"value": "UPDATE \"ADFADM\".ctl_ingest_target_master\nSET\n    init_wait_yn = 'Y'::bpchar,\n    last_success_dt = NOW(),\n    update_by    = 'ADF',\n    update_dt    = NOW()\nWHERE target_id = @{item().target_id}::bigint;",
 											"type": "Expression"
 										}
 									}
