@@ -1,0 +1,15 @@
+{
+	"name": "ds_src_odbc_table_MLIWT",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Odbc1",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "sources/db2"
+		},
+		"annotations": [],
+		"type": "OdbcTable",
+		"schema": []
+	}
+}
