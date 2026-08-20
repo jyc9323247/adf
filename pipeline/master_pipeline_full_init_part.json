@@ -56,7 +56,7 @@
 							"value": "@if(\n    equals(pipeline().TriggerName, 'Sandbox'),\n    'MANUAL',\n    'SCHEDULE'\n)",
 							"type": "Expression"
 						},
-						"p_type": "INIT_START"
+						"p_call_type": "INIT_START"
 					}
 				}
 			},
@@ -424,6 +424,9 @@
 				"type": "String",
 				"defaultValue": "FULL"
 			}
+		},
+		"folder": {
+			"name": "raw/orchestration"
 		},
 		"annotations": []
 	}

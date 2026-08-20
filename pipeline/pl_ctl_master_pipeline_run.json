@@ -160,6 +160,9 @@
 				"type": "string"
 			}
 		},
+		"folder": {
+			"name": "util/sop"
+		},
 		"annotations": []
 	}
 }
