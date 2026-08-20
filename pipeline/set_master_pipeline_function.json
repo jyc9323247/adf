@@ -150,9 +150,6 @@
 			"p_ingest_type": {
 				"type": "string"
 			},
-			"p_init_yn": {
-				"type": "string"
-			},
 			"p_status": {
 				"type": "string"
 			},
