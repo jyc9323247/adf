@@ -50,7 +50,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Db2Table1",
+						"referenceName": "ds_src_db2_table_MLIWT",
 						"type": "DatasetReference"
 					}
 				],
