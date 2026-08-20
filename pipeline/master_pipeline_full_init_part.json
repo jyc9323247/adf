@@ -7,7 +7,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "PL_tri_history",
+						"activity": "pl_ctl_trigger_history",
 						"dependencyConditions": [
 							"Completed"
 						]
@@ -276,7 +276,7 @@
 				}
 			},
 			{
-				"name": "PL_tri_history",
+				"name": "pl_ctl_trigger_history",
 				"type": "ExecutePipeline",
 				"dependsOn": [],
 				"policy": {
