@@ -19,7 +19,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -138,7 +138,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -203,7 +203,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "pipeline_dispatcher",
+									"referenceName": "pl_ingest_dispatcher_db_to_gen2",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
@@ -394,7 +394,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "set_master_pipeline_function",
+									"referenceName": "pl_ctl_master_pipeline_run",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
@@ -500,12 +500,30 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"p_trigger_id": "@pipeline().TriggerId",
-						"p_trigger_nm": "@pipeline().TriggerName",
-						"p_master_run_id": "@pipeline().RunId",
-						"p_master_pipeline_nm": "@pipeline().Pipeline",
-						"p_skip_yn": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'Y',\n    'N'\n)",
-						"p_skip_reason": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'GLOBAL SKIP',\n    ''\n)"
+						"p_trigger_id": {
+							"value": "@pipeline().TriggerId",
+							"type": "Expression"
+						},
+						"p_trigger_nm": {
+							"value": "@pipeline().TriggerName",
+							"type": "Expression"
+						},
+						"p_master_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"p_master_pipeline_nm": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"p_skip_yn": {
+							"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'Y',\n    'N'\n)",
+							"type": "Expression"
+						},
+						"p_skip_reason": {
+							"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'GLOBAL SKIP',\n    ''\n)",
+							"type": "Expression"
+						}
 					}
 				}
 			}
