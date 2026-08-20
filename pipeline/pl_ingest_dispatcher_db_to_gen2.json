@@ -1,9 +1,9 @@
 {
-	"name": "pl_ingest_dispatcher",
+	"name": "pl_ingest_dispatcher_db_to_gen2",
 	"properties": {
 		"activities": [
 			{
-				"name": "Switch_pl_ingest_dispatcher",
+				"name": "Switch_pl_ingest_dispatcher_db_to_gen2",
 				"type": "Switch",
 				"dependsOn": [],
 				"userProperties": [],
@@ -194,11 +194,11 @@
 				}
 			},
 			{
-				"name": "Fail_pl_ingest_dispatcher",
+				"name": "Fail_pl_ingest_dispatcher_db_to_gen2",
 				"type": "Fail",
 				"dependsOn": [
 					{
-						"activity": "Switch_pl_ingest_dispatcher",
+						"activity": "Switch_pl_ingest_dispatcher_db_to_gen2",
 						"dependencyConditions": [
 							"Failed"
 						]
