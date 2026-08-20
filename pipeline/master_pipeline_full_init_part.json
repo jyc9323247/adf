@@ -5,8 +5,6 @@
 			{
 				"name": "START_set_master_pipeline_function",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "PL_tri_history",
@@ -50,7 +48,6 @@
 							"value": "@variables('v_ingest_type')",
 							"type": "Expression"
 						},
-						"p_init_yn": "N",
 						"p_status": {
 							"value": "@if(\n    pipeline().globalParameters.g_skip_yn,\n    'SKIPPED',\n    'PENDING'\n)",
 							"type": "Expression"
@@ -59,7 +56,7 @@
 							"value": "@if(\n    equals(pipeline().TriggerName, 'Sandbox'),\n    'MANUAL',\n    'SCHEDULE'\n)",
 							"type": "Expression"
 						},
-						"p_type": "START"
+						"p_type": "INIT_START"
 					}
 				}
 			},
@@ -282,8 +279,6 @@
 			{
 				"name": "PL_tri_history",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"secureInput": false
