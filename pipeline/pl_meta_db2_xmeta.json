@@ -23,11 +23,9 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "Db2Source",
-						"query": {
-							"value": "@pipeline().parameters.p_extract_query",
-							"type": "Expression"
-						}
+						"type": "OdbcSource",
+						"query": "@pipeline().parameters.p_extract_query",
+						"queryTimeout": "02:00:00"
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -50,7 +48,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "ds_src_db2_table_MLIWT",
+						"referenceName": "ds_src_odbc_table_MLIWT",
 						"type": "DatasetReference"
 					}
 				],
@@ -84,7 +82,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
+					"referenceName": "ls_egress_postgres_MLKUDPD",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
@@ -120,7 +118,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
+					"referenceName": "ls_egress_postgres_MLKUDPD",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
@@ -156,7 +154,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
+					"referenceName": "ls_egress_postgres_MLKUDPD",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
