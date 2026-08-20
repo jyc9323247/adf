@@ -1,14 +1,14 @@
 {
-	"name": "PL_tri_history",
+	"name": "pl_ctl_trigger_history",
 	"properties": {
 		"activities": [
 			{
-				"name": "Script1",
+				"name": "pl_ctl_trigger_history",
 				"type": "Script",
 				"dependsOn": [],
 				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
+					"timeout": "0.00:10:00",
+					"retry": 1,
 					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
 					"secureInput": false
