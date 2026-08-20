@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "START_set_master_pipeline_function",
+				"name": "Init_ctl_master_pipeline_run_script",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
@@ -19,7 +19,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -65,7 +65,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "START_set_master_pipeline_function",
+						"activity": "Init_ctl_master_pipeline_run_script",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -85,7 +85,7 @@
 				}
 			},
 			{
-				"name": "Start_ingest_pipeline_Script",
+				"name": "Init_ctl_ingest_pipeline_run",
 				"type": "Script",
 				"dependsOn": [
 					{
@@ -121,11 +121,11 @@
 				}
 			},
 			{
-				"name": "UPDATE_set_master_pipeline_function_fail",
+				"name": "Failed_ctl_ingest_pipeline_run",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "ForEach Child Ingest",
+						"activity": "ForEach ingest_pipeline_run",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -137,7 +137,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -172,7 +172,7 @@
 				}
 			},
 			{
-				"name": "ForEach Child Ingest",
+				"name": "ForEach ingest_pipeline_run",
 				"type": "ForEach",
 				"dependsOn": [
 					{
@@ -241,7 +241,7 @@
 				"type": "Filter",
 				"dependsOn": [
 					{
-						"activity": "Start_ingest_pipeline_Script",
+						"activity": "Init_ctl_ingest_pipeline_run",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -264,7 +264,7 @@
 				"type": "Wait",
 				"dependsOn": [
 					{
-						"activity": "UPDATE_set_master_pipeline_function_copy1_copy1",
+						"activity": "Succeeded_ctl_ingest_pipeline_run",
 						"dependencyConditions": [
 							"Completed"
 						]
@@ -318,11 +318,11 @@
 				}
 			},
 			{
-				"name": "UPDATE_set_master_pipeline_function_copy1_copy1",
+				"name": "Succeeded_ctl_ingest_pipeline_run",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "ForEach Child Ingest",
+						"activity": "ForEach ingest_pipeline_run",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -334,7 +334,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
