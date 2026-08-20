@@ -14,7 +14,7 @@
 					},
 					"cases": [
 						{
-							"value": "NORMAL_START",
+							"value": "START",
 							"activities": [
 								{
 									"name": "Normal_START_Script",
