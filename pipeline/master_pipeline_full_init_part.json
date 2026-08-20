@@ -378,25 +378,9 @@
 			"v_yyyyMMddHHmmss": {
 				"type": "String"
 			},
-			"v_data_class": {
-				"type": "String",
-				"defaultValue": "RAW"
-			},
-			"v_ingest_type": {
-				"type": "String",
-				"defaultValue": "FULL"
-			},
 			"v_init_wait_yn": {
 				"type": "String",
 				"defaultValue": "N"
-			},
-			"v_succeededTotalSizeMb": {
-				"type": "Integer",
-				"defaultValue": 2
-			},
-			"v_dbx_api_call_yn": {
-				"type": "Boolean",
-				"defaultValue": false
 			},
 			"pv_exec_group": {
 				"type": "String",
