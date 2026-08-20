@@ -278,7 +278,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "PL_tri_history",
+						"referenceName": "pl_ctl_trigger_history",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
