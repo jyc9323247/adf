@@ -21,15 +21,15 @@
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
+										"timeout": "0.00:10:00",
+										"retry": 2,
 										"retryIntervalInSeconds": 30,
 										"secureOutput": false,
 										"secureInput": false
 									},
 									"userProperties": [],
 									"linkedServiceName": {
-										"referenceName": "AzurePostgreSql1",
+										"referenceName": "ls_egress_postgres_MLKUDPD",
 										"type": "LinkedServiceReference"
 									},
 									"typeProperties": {
@@ -55,15 +55,15 @@
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
+										"timeout": "0.00:100:00",
+										"retry": 2,
 										"retryIntervalInSeconds": 30,
 										"secureOutput": false,
 										"secureInput": false
 									},
 									"userProperties": [],
 									"linkedServiceName": {
-										"referenceName": "AzurePostgreSql1",
+										"referenceName": "ls_egress_postgres_MLKUDPD",
 										"type": "LinkedServiceReference"
 									},
 									"typeProperties": {
@@ -89,15 +89,15 @@
 									"type": "Script",
 									"dependsOn": [],
 									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
+										"timeout": "0.00:10:00",
+										"retry": 2,
 										"retryIntervalInSeconds": 30,
 										"secureOutput": false,
 										"secureInput": false
 									},
 									"userProperties": [],
 									"linkedServiceName": {
-										"referenceName": "AzurePostgreSql1",
+										"referenceName": "ls_egress_postgres_MLKUDPD",
 										"type": "LinkedServiceReference"
 									},
 									"typeProperties": {
