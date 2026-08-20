@@ -12,7 +12,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -137,7 +137,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
@@ -239,7 +239,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "pipeline_dispatcher",
+									"referenceName": "pl_ingest_dispatcher_db_to_gen2",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
@@ -291,7 +291,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "set_master_pipeline_function",
+						"referenceName": "pl_ctl_master_pipeline_run",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true,
