@@ -15,7 +15,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "AzurePostgreSql1",
+					"referenceName": "ls_egress_postgres_MLKUDPD",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
