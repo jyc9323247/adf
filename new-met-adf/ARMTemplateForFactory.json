@@ -186,6 +186,531 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/get_part_pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup_Partition",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "Db2Source",
+								"query": {
+									"value": "WITH DISTINCT_PARTITION AS\n(\n    SELECT DISTINCT\n        @{pipeline().parameters.p_partition_column} AS PARTITION_VAL\n    FROM\n        @{pipeline().parameters.p_src_schema}.@{pipeline().parameters.p_src_table}\n),\n\nVALID_PARTITION AS\n(\n    SELECT\n        PARTITION_VAL\n    FROM DISTINCT_PARTITION\n    WHERE\n        PARTITION_VAL IS NOT NULL\n        AND REGEXP_LIKE(\n            PARTITION_VAL,\n            '^[0-9]{6}$'\n        )\n        AND SUBSTR(\n            PARTITION_VAL,\n            5,\n            2\n        ) BETWEEN '01' AND '12'\n        AND\n        (\n            '@{pipeline().parameters.p_partition_from}' = ''\n            OR PARTITION_VAL >= '@{pipeline().parameters.p_partition_from}'\n        )\n        AND\n        (\n            '@{pipeline().parameters.p_partition_to}' = ''\n            OR PARTITION_VAL <= '@{pipeline().parameters.p_partition_to}'\n        )\n),\n\nINVALID_EXISTS AS\n(\n    SELECT\n        CASE\n            WHEN EXISTS\n            (\n                SELECT 1\n                FROM DISTINCT_PARTITION\n                WHERE\n                        PARTITION_VAL IS NULL\n                    OR NOT REGEXP_LIKE(\n                        PARTITION_VAL,\n                        '^[0-9]{6}$'\n                    )\n                    OR SUBSTR(\n                        PARTITION_VAL,\n                        5,\n                        2\n                    ) NOT BETWEEN '01' AND '12'\n            )\n            THEN 1\n            ELSE 0\n        END AS INVALID_YN\n    FROM SYSIBM.SYSDUMMY1\n)\n\nSELECT \n    LISTAGG(\n        '\"' || PARTITION_ID || '\"',\n        ','\n    ) WITHIN GROUP (ORDER BY PARTITION_ID) AS partition_list  \nFROM (  \n    SELECT\n        PARTITION_VAL AS PARTITION_ID\n    FROM VALID_PARTITION\n\n    UNION ALL\n\n    SELECT\n        'INVALID' AS PARTITION_ID\n    FROM SYSIBM.SYSDUMMY1\n    WHERE\n        (\n            SELECT INVALID_YN\n            FROM INVALID_EXISTS\n        ) = 1\n) RT\nWITH UR;",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "Db2Table1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Lookup_Partition",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "part",
+							"value": {
+								"value": "@concat(\n    '{',\n    '\"partition_column\":\"',\n    pipeline().parameters.p_partition_column,\n    '\",',\n    '\"partition_range\":\"',\n    pipeline().parameters.p_partition_range,\n    '\",',\n    '\"data_type\":\"',\n    pipeline().parameters.p_data_type,\n    '\",',\n    '\"partition_val\":[',\n    activity('Lookup_Partition').output.firstRow.PARTITION_LIST,\n    ']',\n    '}'\n)",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_partition_column": {
+						"type": "string",
+						"defaultValue": "clym"
+					},
+					"p_src_schema": {
+						"type": "string",
+						"defaultValue": "db2inst1"
+					},
+					"p_src_table": {
+						"type": "string",
+						"defaultValue": "test_clym"
+					},
+					"p_partition_from": {
+						"type": "string"
+					},
+					"p_partition_to": {
+						"type": "string",
+						"defaultValue": "202601"
+					},
+					"p_partition_range": {
+						"type": "string",
+						"defaultValue": "MONTHLY"
+					},
+					"p_data_type": {
+						"type": "string",
+						"defaultValue": "STRING"
+					}
+				},
+				"variables": {
+					"part": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Db2Table1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/master_pipeline_full_init_part')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "START_set_master_pipeline_function",
+						"type": "ExecutePipeline",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "PL_tri_history",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "set_master_pipeline_function",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_trigger_id": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@pipeline().TriggerName\n ",
+									"type": "Expression"
+								},
+								"p_data_class": {
+									"value": "@variables('v_data_class')",
+									"type": "Expression"
+								},
+								"p_ingest_type": {
+									"value": "@variables('v_ingest_type')",
+									"type": "Expression"
+								},
+								"p_init_yn": "N",
+								"p_status": {
+									"value": "@if(\n    pipeline().globalParameters.g_skip_yn,\n    'SKIPPED',\n    'PENDING'\n)",
+									"type": "Expression"
+								},
+								"p_runmode": {
+									"value": "@if(\n    equals(pipeline().TriggerName, 'Sandbox'),\n    'MANUAL',\n    'SCHEDULE'\n)",
+									"type": "Expression"
+								},
+								"p_type": "START"
+							}
+						}
+					},
+					{
+						"name": "Set variable cur dt",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "START_set_master_pipeline_function",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "v_yyyyMMddHHmmss",
+							"value": {
+								"value": "@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline_Script",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Set variable cur dt",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "WITH target_src AS\n(\n      SELECT\n        m.*,\n        NULLIF(m.partition_clause, '')::jsonb AS partition_json\n    FROM \"ADFADM\".ctl_ingest_target_master m\n    WHERE  m.init_wait_yn = 'Y'\n      AND m.delete_yn = 'N'\n      AND m.data_class = 'RAW'\n      AND m.exec_group = '@{variables('pv_exec_group')}'\n),\n\npartition_src AS\n(\n    SELECT\n        m.*,\n\n        m.partition_json ->> 'partition_column'\n            AS partition_column,\n\n        UPPER(m.partition_json ->> 'partition_range')\n            AS partition_range,\n\n        UPPER(m.partition_json ->> 'data_type')\n            AS partition_data_type,\n\n        p.partition_val\n\n    FROM target_src m\n\n    LEFT JOIN LATERAL\n    (\n        SELECT x AS partition_val\n        FROM jsonb_array_elements_text(\n            m.partition_json -> 'partition_val'\n        ) AS j(x)\n    ) p\n        ON TRUE\n),\n\nquery_src AS\n(\n    SELECT\n        m.*,\n\n        /*\n         * 파티션 WHERE 조건 생성\n         */\n        CASE\n\n            /* 파티션 미사용 */\n            WHEN m.partition_json IS NULL\n              OR m.partition_val IS NULL\n            THEN ''\n\n            /*\n             * INVALID\n             * STRING + MONTHLY/YEARLY(clym YYYYMM 기준)\n             */\n            WHEN m.partition_val = 'INVALID'\n             AND m.partition_data_type = 'STRING'\n            THEN\n                ' WHERE ('\n                || m.partition_column\n                || ' IS NULL'\n                || ' OR NOT REGEXP_LIKE('\n                || m.partition_column\n                || ', ''^[0-9]{6}$'')'\n                || ' OR SUBSTR('\n                || m.partition_column\n                || ', 5, 2) NOT BETWEEN ''01'' AND ''12'''\n                || ')'\n\n            /*\n             * DATE / TIMESTAMP INVALID\n             * 타입 컬럼이므로 비정상 문자열은 존재할 수 없고\n             * NULL만 INVALID 처리\n             */\n            WHEN m.partition_val = 'INVALID'\n             AND m.partition_data_type IN ('DATE', 'TIMESTAMP')\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' IS NULL'\n\n            /*\n             * STRING + MONTHLY\n             * ex) clym = '202601'\n             */\n            WHEN m.partition_data_type = 'STRING'\n             AND m.partition_range = 'MONTHLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' = '''\n                || m.partition_val\n                || ''''\n\n            /*\n             * STRING + YEARLY\n             * clym 컬럼은 YYYYMM 형태\n             *\n             * 2026\n             * => 202601 <= clym < 202701\n             */\n            WHEN m.partition_data_type = 'STRING'\n             AND m.partition_range = 'YEARLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' >= '''\n                || m.partition_val\n                || '01'''\n                || ' AND '\n                || m.partition_column\n                || ' < '''\n                || ((m.partition_val::int + 1)::text)\n                || '01'''\n\n            /*\n             * DATE + MONTHLY\n             *\n             * 202601\n             * => 2026-01-01 ~ 2026-02-01\n             */\n            WHEN m.partition_data_type = 'DATE'\n             AND m.partition_range = 'MONTHLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' >= '''\n                || TO_CHAR(\n                       TO_DATE(m.partition_val || '01', 'YYYYMMDD'),\n                       'YYYY-MM-DD'\n                   )\n                || ''''\n                || ' AND '\n                || m.partition_column\n                || ' < '''\n                || TO_CHAR(\n                       TO_DATE(m.partition_val || '01', 'YYYYMMDD')\n                       + INTERVAL '1 month',\n                       'YYYY-MM-DD'\n                   )\n                || ''''\n\n            /*\n             * DATE + YEARLY\n             */\n            WHEN m.partition_data_type = 'DATE'\n             AND m.partition_range = 'YEARLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' >= '''\n                || m.partition_val\n                || '-01-01'''\n                || ' AND '\n                || m.partition_column\n                || ' < '''\n                || ((m.partition_val::int + 1)::text)\n                || '-01-01'''\n\n            /*\n             * TIMESTAMP + MONTHLY\n             */\n            WHEN m.partition_data_type = 'TIMESTAMP'\n             AND m.partition_range = 'MONTHLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' >= TIMESTAMP '''\n                || TO_CHAR(\n                       TO_DATE(m.partition_val || '01', 'YYYYMMDD'),\n                       'YYYY-MM-DD'\n                   )\n                || ' 00:00:00'''\n                || ' AND '\n                || m.partition_column\n                || ' < TIMESTAMP '''\n                || TO_CHAR(\n                       TO_DATE(m.partition_val || '01', 'YYYYMMDD')\n                       + INTERVAL '1 month',\n                       'YYYY-MM-DD'\n                   )\n                || ' 00:00:00'''\n\n            /*\n             * TIMESTAMP + YEARLY\n             */\n            WHEN m.partition_data_type = 'TIMESTAMP'\n             AND m.partition_range = 'YEARLY'\n            THEN\n                ' WHERE '\n                || m.partition_column\n                || ' >= TIMESTAMP '''\n                || m.partition_val\n                || '-01-01 00:00:00'''\n                || ' AND '\n                || m.partition_column\n                || ' < TIMESTAMP '''\n                || ((m.partition_val::int + 1)::text)\n                || '-01-01 00:00:00'''\n\n            ELSE ''\n\n        END AS partition_where\n\n    FROM partition_src m\n),\n\nins AS\n(\n    INSERT INTO \"ADFADM\".ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_run_id,\n        ingest_pipeline_nm,\n\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n\n        exec_group,\n        condition_type,\n        condition_frequency,\n        condition_interval,\n\n        incr_column_nm,\n        incr_column_type,\n        incr_column_hw_val,\n        incr_start_val,\n\n        init_wait_yn,\n\n        extract_query,\n        landing_path,\n        file_name,\n\n        file_size_mb,\n        start_dt,\n        end_dt,\n\n        extract_cnt,\n        save_cnt,\n        attempt_no,\n\n        status,\n        error_log,\n\n        created_by,\n        created_dt\n    )\n\n    SELECT\n        '@{pipeline().RunId}',\n        '@{pipeline().Pipeline}',\n\n        '-',\n\n        'PL_'\n        || m.data_class\n        || '_'\n        || m.src_type\n        || '_'\n        || CASE\n               WHEN NULLIF(m.cdc_tgt_db_nm, '') IS NOT NULL\n               THEN m.cdc_tgt_db_nm\n               ELSE m.src_db_nm\n           END,\n\n        m.data_class,\n        m.ingest_type,\n        m.src_type,\n        m.target_id,\n\n        m.src_db_nm,\n        m.src_schema_nm,\n        m.src_table_nm,\n\n        m.cdc_tgt_db_nm,\n        m.cdc_tgt_schema_nm,\n\n        m.exec_group,\n        m.condition_type,\n        m.condition_frequency,\n        m.condition_interval,\n\n        m.incr_column_nm,\n        m.incr_column_type,\n        m.incr_column_hw_val,\n        m.incr_column_hw_val,\n\n        m.init_wait_yn,\n\n        /*\n         * extract_query\n         */\n        CASE\n            /*\n             * DB2\n             */\n            WHEN UPPER(m.src_type) = 'DB2'\n            THEN\n                'SELECT * FROM '\n                || COALESCE(\n                       NULLIF(m.cdc_tgt_schema_nm, ''),\n                       m.src_schema_nm\n                   )\n                || '.'\n                || m.src_table_nm\n                || m.partition_where\n                || ' WITH UR ;'\n\n            /*\n             * MSSQL\n             */\n            WHEN UPPER(m.src_type) = 'MSSQL'\n            THEN\n                'SELECT * FROM '\n                || m.src_schema_nm\n                || '.'\n                || m.src_table_nm\n                || ' WITH (NOLOCK)'\n                || m.partition_where\n                || ' ;'\n\n            /*\n             * PostgreSQL 및 기타\n             */\n            ELSE\n                'SELECT * FROM '\n                || m.src_schema_nm\n                || '.'\n                || m.src_table_nm\n                || m.partition_where\n                || ' ;'\n\n        END,\n\n        /*\n         * landing_path\n         *\n         * partition 있을 경우:\n         * .../clym=202601/\n         *\n         * 없으면 기존 경로\n         */\n        m.data_class\n        || '/batch_date=@{substring(variables('v_yyyyMMddHHmmss'),0,8)}'\n        || '/batch_hour=@{substring(variables('v_yyyyMMddHHmmss'),8,2)}'\n        || '/pipeline_name=@{pipeline().Pipeline}/',\n\n        /*\n         * file_name\n         *\n         * partition:\n         * DB.SCHEMA.TABLE.202601.timestamp.parquet\n         *\n         * no partition:\n         * DB.SCHEMA.TABLE.timestamp.parquet\n         */\n        m.src_db_nm\n        || '.'\n        || m.src_schema_nm\n        || '.'\n        || m.src_table_nm\n\n        || CASE\n               WHEN m.partition_val IS NOT NULL\n               THEN\n                   '.'\n                   || m.partition_val\n               ELSE ''\n           END\n\n        || '.@{variables('v_yyyyMMddHHmmss')}'\n        || '.parquet',\n\n        0,\n\n        NOW(),\n        NULL,\n\n        0,\n        0,\n        0,\n\n        'PENDING',\n\n        NULL,\n\n        'ADF',\n        NOW()\n\n    FROM query_src m\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        master_pipeline_nm,\n        ingest_pipeline_nm,\n\n        data_class,\n        ingest_type,\n        src_type,\n        target_id,\n\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n\n        exec_group,\n\n        extract_query,\n        landing_path,\n        file_name,\n\n        attempt_no,\n        status\n)\n\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    master_pipeline_nm,\n    ingest_pipeline_nm,\n\n    data_class,\n    ingest_type,\n    src_type,\n    target_id,\n\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n\n    exec_group,\n\n    extract_query,\n    landing_path,\n    file_name,\n\n    attempt_no,\n    status\n\nFROM ins\n\nORDER BY\n    target_id,\n    file_name;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "UPDATE_set_master_pipeline_function_fail",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ForEach Child Ingest",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "set_master_pipeline_function",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_trigger_id": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@pipeline().TriggerName",
+									"type": "Expression"
+								},
+								"p_data_class": {
+									"value": "@variables('v_data_class')",
+									"type": "Expression"
+								},
+								"p_ingest_type": {
+									"value": "@variables('v_ingest_type')",
+									"type": "Expression"
+								},
+								"p_init_yn": "N",
+								"p_status": "FAILED",
+								"p_type": "UPDATE"
+							}
+						}
+					},
+					{
+						"name": "ForEach Child Ingest",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter Not Skipped",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter Not Skipped').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "pipeline_dispatcher_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pipeline_dispatcher",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Filter Not Skipped",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline_Script",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().status, 'PENDING')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "END",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "UPDATE_set_master_pipeline_function_copy1_copy1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					},
+					{
+						"name": "PL_tri_history",
+						"type": "ExecutePipeline",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_tri_history",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_trigger_id": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@pipeline().TriggerName",
+									"type": "Expression"
+								},
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_skip_yn": {
+									"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'Y',\n    'N'\n)",
+									"type": "Expression"
+								},
+								"p_skip_reason": {
+									"value": "@if(\n    pipeline().globalParameters.G_SKIP_YN,\n    'GLOBAL SKIP',\n    ''\n)",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "UPDATE_set_master_pipeline_function_copy1_copy1",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ForEach Child Ingest",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "set_master_pipeline_function",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_trigger_id": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@pipeline().TriggerName",
+									"type": "Expression"
+								},
+								"p_data_class": {
+									"value": "@variables('v_data_class')",
+									"type": "Expression"
+								},
+								"p_ingest_type": {
+									"value": "@variables('v_ingest_type')",
+									"type": "Expression"
+								},
+								"p_init_yn": "N",
+								"p_status": {
+									"value": "SUCCEEDED",
+									"type": "Expression"
+								},
+								"p_type": "UPDATE"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"v_yyyyMMddHHmmss": {
+						"type": "String"
+					},
+					"v_data_class": {
+						"type": "String",
+						"defaultValue": "RAW"
+					},
+					"v_ingest_type": {
+						"type": "String",
+						"defaultValue": "FULL"
+					},
+					"v_init_wait_yn": {
+						"type": "String",
+						"defaultValue": "N"
+					},
+					"v_succeededTotalSizeMb": {
+						"type": "Integer",
+						"defaultValue": 2
+					},
+					"v_dbx_api_call_yn": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"pv_exec_group": {
+						"type": "String",
+						"defaultValue": "001"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/set_master_pipeline_function')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_tri_history')]",
+				"[concat(variables('factoryId'), '/pipelines/pipeline_dispatcher')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/master_pipeline_full_meta')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -567,7 +1092,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/master_pipeline_full_meta_with_skip_todo')]",
+			"name": "[concat(parameters('factoryName'), '/master_pipeline_full_with_skip')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -2451,6 +2976,70 @@
 				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_db2_xmeta')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_db2_mliwp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline_part_lookup_test')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "Db2Source",
+								"query": {
+									"value": "WITH DISTINCT_PARTITION AS\n(\n    SELECT DISTINCT\n        @{pipeline().parameters.p_partition_info.partition_column} AS PARTITION_VAL\n    FROM\n        @{pipeline().parameters.p_src_schema}.@{pipeline().parameters.p_src_table}\n),\n\nVALID_PARTITION AS\n(\n    SELECT\n        PARTITION_VAL\n    FROM DISTINCT_PARTITION\n    WHERE\n        PARTITION_VAL IS NOT NULL\n\n        AND REGEXP_LIKE(\n            PARTITION_VAL,\n            '^[0-9]{6}$'\n        )\n\n        AND SUBSTR(\n            PARTITION_VAL,\n            5,\n            2\n        ) BETWEEN '01' AND '12'\n\n        AND\n        (\n            '@{pipeline().parameters.p_partition_info.p_partition_from}' = ''\n            OR PARTITION_VAL >= '@{pipeline().parameters.p_partition_info.p_partition_from}'\n        )\n\n        AND\n        (\n            '@{pipeline().parameters.p_partition_info.p_partition_to}' = ''\n            OR PARTITION_VAL <= '@{pipeline().parameters.p_partition_info.p_partition_to}'\n        )\n),\n\nINVALID_EXISTS AS\n(\n    SELECT\n        CASE\n            WHEN EXISTS\n            (\n                SELECT 1\n                FROM DISTINCT_PARTITION\n                WHERE\n                       PARTITION_VAL IS NULL\n\n                    OR NOT REGEXP_LIKE(\n                        PARTITION_VAL,\n                        '^[0-9]{6}$'\n                    )\n\n                    OR SUBSTR(\n                        PARTITION_VAL,\n                        5,\n                        2\n                    ) NOT BETWEEN '01' AND '12'\n            )\n            THEN 1\n            ELSE 0\n        END AS INVALID_YN\n\n    FROM SYSIBM.SYSDUMMY1\n)\n\nSELECT\n    PARTITION_VAL AS \"partition_id\",\n\n    '@{pipeline().parameters.p_partition_info.partition_column}'\n        AS \"partition_column\",\n\n    '@{pipeline().parameters.p_partition_info.partition_range}'\n        AS \"partition_range\",\n\n    '@{pipeline().parameters.p_partition_info.data_type}'\n        AS \"data_type\",\n\n    'VALUE'\n        AS \"partition_type\",\n\n    PARTITION_VAL\n        AS \"start_val\"\n\nFROM VALID_PARTITION\n\n\nUNION ALL\n\n\nSELECT\n    'INVALID'\n        AS \"partition_id\",\n\n    '@{pipeline().parameters.p_partition_info.partition_column}'\n        AS \"partition_column\",\n\n    '@{pipeline().parameters.p_partition_info.partition_range}'\n        AS \"partition_range\",\n\n    '@{pipeline().parameters.p_partition_info.data_type}'\n        AS \"data_type\",\n\n    'INVALID'\n        AS \"partition_type\",\n\n    CAST(NULL AS VARCHAR(100))\n        AS \"start_val\"\n\nFROM SYSIBM.SYSDUMMY1\n\nWHERE\n    (\n        SELECT INVALID_YN\n        FROM INVALID_EXISTS\n    ) = 1\n\nORDER BY 1\n\nWITH UR",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "Db2Table1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_partition_info": {
+						"type": "object",
+						"defaultValue": {
+							"partition_column": "clym",
+							"partition_range": "MONTHLY",
+							"data_type": "STRING",
+							"p_partition_from": "202612",
+							"p_partition_to": ""
+						}
+					},
+					"p_src_schema": {
+						"type": "string",
+						"defaultValue": "db2inst1"
+					},
+					"p_src_table": {
+						"type": "string",
+						"defaultValue": "test_clym"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Db2Table1')]"
 			]
 		},
 		{
