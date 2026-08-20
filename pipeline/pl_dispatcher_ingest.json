@@ -145,11 +145,11 @@
 					],
 					"defaultActivities": [
 						{
-							"name": "Fail1",
+							"name": "Failed_pl_dispatcher_ingest_no_pl_ingest_pipeline",
 							"type": "Fail",
 							"dependsOn": [
 								{
-									"activity": "Failed_UPDATE",
+									"activity": "Update_ctl_ingest_pipeline_run",
 									"dependencyConditions": [
 										"Completed"
 									]
@@ -162,7 +162,7 @@
 							}
 						},
 						{
-							"name": "Failed_UPDATE",
+							"name": "Update_ctl_ingest_pipeline_run",
 							"type": "Script",
 							"dependsOn": [],
 							"policy": {
@@ -174,7 +174,7 @@
 							},
 							"userProperties": [],
 							"linkedServiceName": {
-								"referenceName": "AzurePostgreSql1",
+								"referenceName": "ls_egress_postgres_MLKUDPD",
 								"type": "LinkedServiceReference"
 							},
 							"typeProperties": {
