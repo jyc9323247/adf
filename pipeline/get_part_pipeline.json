@@ -85,6 +85,9 @@
 				"type": "String"
 			}
 		},
+		"folder": {
+			"name": "util/sop"
+		},
 		"annotations": []
 	}
 }
