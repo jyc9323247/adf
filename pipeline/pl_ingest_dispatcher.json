@@ -1,9 +1,9 @@
 {
-	"name": "pipeline_dispatcher",
+	"name": "pl_ingest_dispatcher",
 	"properties": {
 		"activities": [
 			{
-				"name": "Switch1",
+				"name": "Switch_pl_ingest_dispatcher",
 				"type": "Switch",
 				"dependsOn": [],
 				"userProperties": [],
@@ -117,11 +117,26 @@
 										},
 										"waitOnCompletion": true,
 										"parameters": {
-											"p_landing_path": "@pipeline().parameters.p_landing_path",
-											"p_file_name": "@pipeline().parameters.p_file_name",
-											"p_extract_query": "@pipeline().parameters.p_extract_query",
-											"p_ingest_pipeline_id": "@pipeline().parameters.p_ingest_pipeline_id",
-											"p_master_run_id": "@pipeline().parameters.p_master_run_id"
+											"p_landing_path": {
+												"value": "@pipeline().parameters.p_landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@pipeline().parameters.p_file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@pipeline().parameters.p_extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@pipeline().parameters.p_ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@pipeline().parameters.p_master_run_id",
+												"type": "Expression"
+											}
 										}
 									}
 								}
@@ -179,11 +194,11 @@
 				}
 			},
 			{
-				"name": "Fail2",
+				"name": "Fail_pl_ingest_dispatcher",
 				"type": "Fail",
 				"dependsOn": [
 					{
-						"activity": "Switch1",
+						"activity": "Switch_pl_ingest_dispatcher",
 						"dependencyConditions": [
 							"Failed"
 						]
