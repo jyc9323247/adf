@@ -27,6 +27,10 @@
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
 		},
+		"ls_egress_postgres_MLKUDPD_password": {
+			"type": "secureString",
+			"metadata": "'ls_egress_postgres_MLKUDPD'의 'password'에 대한 보안 문자열"
+		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"type": "string",
 			"defaultValue": "https://ab3.blob.core.windows.net/"
@@ -87,6 +91,18 @@
 			"type": "string",
 			"defaultValue": "free-sql-db-2022585"
 		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "fdffdsfds.postgres.database.azure.com"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "adfadm"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
@@ -119,6 +135,9 @@
 					},
 					"AzurePostgreSql1_password": {
 						"value": "[parameters('AzurePostgreSql1_password')]"
+					},
+					"ls_egress_postgres_MLKUDPD_password": {
+						"value": "[parameters('ls_egress_postgres_MLKUDPD_password')]"
 					},
 					"Db21_connectionString": {
 						"value": "[parameters('Db21_connectionString')]"
@@ -155,6 +174,15 @@
 					},
 					"linkedService1_properties_typeProperties_database": {
 						"value": "[parameters('linkedService1_properties_typeProperties_database')]"
+					},
+					"ls_egress_postgres_MLKUDPD_properties_typeProperties_server": {
+						"value": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_server')]"
+					},
+					"ls_egress_postgres_MLKUDPD_properties_typeProperties_database": {
+						"value": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_database')]"
+					},
+					"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
+						"value": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_username')]"
 					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"

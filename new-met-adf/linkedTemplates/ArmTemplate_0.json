@@ -15,6 +15,10 @@
 			"type": "secureString",
 			"metadata": "'AzurePostgreSql1'의 'password'에 대한 보안 문자열"
 		},
+		"ls_egress_postgres_MLKUDPD_password": {
+			"type": "secureString",
+			"metadata": "'ls_egress_postgres_MLKUDPD'의 'password'에 대한 보안 문자열"
+		},
 		"Db21_connectionString": {
 			"type": "secureString",
 			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
@@ -62,6 +66,18 @@
 		"linkedService1_properties_typeProperties_database": {
 			"type": "string",
 			"defaultValue": "free-sql-db-2022585"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "fdffdsfds.postgres.database.azure.com"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "adfadm"
 		},
 		"AzureDataLakeStorage1_properties_typeProperties_url": {
 			"type": "string",
@@ -221,17 +237,30 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"name": "[concat(parameters('factoryName'), '/ls_egress_postgres_MLKUDPD')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"type": "SelfHosted",
-				"typeProperties": {}
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"version": "2.0",
+				"typeProperties": {
+					"server": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_server')]",
+					"port": "5432",
+					"database": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_database')]",
+					"sslMode": 2,
+					"username": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('ls_egress_postgres_MLKUDPD_password')]"
+					},
+					"authenticationType": "Basic"
+				}
 			},
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/integrationRuntime2')]",
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
 			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -248,25 +277,25 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/PL_tri_history')]",
+			"name": "[concat(parameters('factoryName'), '/pl_ctl_trigger_history')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "Script1",
+						"name": "pl_ctl_trigger_history",
 						"type": "Script",
 						"dependsOn": [],
 						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
+							"timeout": "0.00:10:00",
+							"retry": 2,
 							"retryIntervalInSeconds": 30,
 							"secureOutput": false,
 							"secureInput": false
 						},
 						"userProperties": [],
 						"linkedServiceName": {
-							"referenceName": "AzurePostgreSql1",
+							"referenceName": "ls_egress_postgres_MLKUDPD",
 							"type": "LinkedServiceReference"
 						},
 						"typeProperties": {
@@ -309,17 +338,17 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]"
+				"[concat(variables('factoryId'), '/linkedServices/ls_egress_postgres_MLKUDPD')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/set_master_pipeline_function')]",
+			"name": "[concat(parameters('factoryName'), '/pl_ctl_master_pipeline_run')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "Switch1",
+						"name": "pl_ctl_master_pipeline_run",
 						"type": "Switch",
 						"dependsOn": [],
 						"userProperties": [],
@@ -333,19 +362,19 @@
 									"value": "START",
 									"activities": [
 										{
-											"name": "START_Script",
+											"name": "START_ctl_master_pipeline_run_script",
 											"type": "Script",
 											"dependsOn": [],
 											"policy": {
-												"timeout": "0.12:00:00",
-												"retry": 0,
+												"timeout": "0.00:10:00",
+												"retry": 2,
 												"retryIntervalInSeconds": 30,
 												"secureOutput": false,
 												"secureInput": false
 											},
 											"userProperties": [],
 											"linkedServiceName": {
-												"referenceName": "AzurePostgreSql1",
+												"referenceName": "ls_egress_postgres_MLKUDPD",
 												"type": "LinkedServiceReference"
 											},
 											"typeProperties": {
@@ -353,7 +382,7 @@
 													{
 														"type": "Query",
 														"text": {
-															"value": "INSERT INTO \"ADFADM\".ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_id,\n    trigger_nm,\n    data_class,\n    ingest_type,\n    init_yn,\n    start_dt,\n    end_dt,\n    exec_group,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_data_class}',\n    '@{pipeline().parameters.p_ingest_type}',\n    '@{pipeline().parameters.p_init_yn}'::bpchar,\n    NOW(),\n    NULL,\n    NULL,\n    (select count(1)\nFROM \"ADFADM\".ctl_ingest_target_master m\n    WHERE m.data_class = '@{pipeline().parameters.p_data_class}'\n     AND m.ingest_type = '@{pipeline().parameters.p_ingest_type}'\n     AND m.init_wait_yn = '@{pipeline().parameters.p_init_yn}'::bpchar\n     AND m.delete_yn = 'N'),\n    0,\n    0,\n    '@{pipeline().parameters.p_status}',\n    '@{pipeline().parameters.p_runmode}',\n    'ADF',\n    NOW()\n);",
+															"value": "INSERT INTO \"ADFADM\".ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_id,\n    trigger_nm,\n    data_class,\n    ingest_type,\n    init_yn,\n    start_dt,\n    end_dt,\n    exec_group,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_data_class}',\n    '@{pipeline().parameters.p_ingest_type}',\n    'N',\n    NOW(),\n    NULL,\n    NULL,\n    (select count(1)\nFROM \"ADFADM\".ctl_ingest_target_master m\n    WHERE m.data_class = '@{pipeline().parameters.p_data_class}'\n     AND m.ingest_type = '@{pipeline().parameters.p_ingest_type}'\n     AND m.init_wait_yn = 'N'\n     AND m.delete_yn = 'N'),\n    0,\n    0,\n    '@{pipeline().parameters.p_status}',\n    '@{pipeline().parameters.p_runmode}',\n    'ADF',\n    NOW()\n);",
 															"type": "Expression"
 														}
 													}
@@ -367,19 +396,19 @@
 									"value": "UPDATE",
 									"activities": [
 										{
-											"name": "UPDATE_Script",
+											"name": "UPDATE_ctl_master_pipeline_run_script",
 											"type": "Script",
 											"dependsOn": [],
 											"policy": {
-												"timeout": "0.12:00:00",
-												"retry": 0,
+												"timeout": "0.00:10:00",
+												"retry": 2,
 												"retryIntervalInSeconds": 30,
 												"secureOutput": false,
 												"secureInput": false
 											},
 											"userProperties": [],
 											"linkedServiceName": {
-												"referenceName": "AzurePostgreSql1",
+												"referenceName": "ls_egress_postgres_MLKUDPD",
 												"type": "LinkedServiceReference"
 											},
 											"typeProperties": {
@@ -396,11 +425,45 @@
 											}
 										}
 									]
+								},
+								{
+									"value": "INIT_START",
+									"activities": [
+										{
+											"name": "INIT_START_ctl_master_pipeline_run_script",
+											"type": "Script",
+											"dependsOn": [],
+											"policy": {
+												"timeout": "0.00:10:00",
+												"retry": 2,
+												"retryIntervalInSeconds": 30,
+												"secureOutput": false,
+												"secureInput": false
+											},
+											"userProperties": [],
+											"linkedServiceName": {
+												"referenceName": "ls_egress_postgres_MLKUDPD",
+												"type": "LinkedServiceReference"
+											},
+											"typeProperties": {
+												"scripts": [
+													{
+														"type": "Query",
+														"text": {
+															"value": "INSERT INTO \"ADFADM\".ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_id,\n    trigger_nm,\n    data_class,\n    ingest_type,\n    init_yn,\n    start_dt,\n    end_dt,\n    exec_group,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    run_mode,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().parameters.p_master_run_id}',\n    '@{pipeline().parameters.p_master_pipeline_nm}',\n    '@{pipeline().parameters.p_trigger_id}',\n    '@{pipeline().parameters.p_trigger_nm}',\n    '@{pipeline().parameters.p_data_class}',\n    '@{pipeline().parameters.p_ingest_type}',\n    'Y',\n    NOW(),\n    NULL,\n    NULL,\n\n    (\n        SELECT\n            COALESCE(\n                SUM(\n                    CASE\n                        WHEN NULLIF(TRIM(m.partition_clause), '') IS NULL\n                            THEN 1\n\n                        WHEN jsonb_typeof(\n                                 NULLIF(m.partition_clause, '')::jsonb\n                                 -> 'partition_val'\n                             ) = 'array'\n                            THEN jsonb_array_length(\n                                     NULLIF(m.partition_clause, '')::jsonb\n                                     -> 'partition_val'\n                                 )\n\n                        ELSE 1\n                    END\n                ),\n                0\n            )::int4\n\n        FROM \"ADFADM\".ctl_ingest_target_master m\n\n        WHERE  m.init_wait_yn =\n              'Y'\n\n          AND m.delete_yn = 'N'\n    ),\n\n    0,\n    0,\n    '@{pipeline().parameters.p_status}',\n    '@{pipeline().parameters.p_runmode}',\n    'ADF',\n    NOW()\n);",
+															"type": "Expression"
+														}
+													}
+												],
+												"scriptBlockExecutionTimeout": "02:00:00"
+											}
+										}
+									]
 								}
 							],
 							"defaultActivities": [
 								{
-									"name": "Fail1",
+									"name": "Failed pl_ctl_master_pipeline_run_script",
 									"type": "Fail",
 									"dependsOn": [],
 									"userProperties": [],
@@ -435,9 +498,6 @@
 					"p_ingest_type": {
 						"type": "string"
 					},
-					"p_init_yn": {
-						"type": "string"
-					},
 					"p_status": {
 						"type": "string"
 					},
@@ -451,7 +511,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]"
+				"[concat(variables('factoryId'), '/linkedServices/ls_egress_postgres_MLKUDPD')]"
 			]
 		},
 		{

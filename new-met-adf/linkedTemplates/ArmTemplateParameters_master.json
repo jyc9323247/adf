@@ -20,6 +20,9 @@
 		"Odbc1_password": {
 			"value": ""
 		},
+		"ls_egress_postgres_MLKUDPD_password": {
+			"value": ""
+		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"value": "https://ab3.blob.core.windows.net/"
 		},
@@ -64,6 +67,15 @@
 		},
 		"linkedService1_properties_typeProperties_database": {
 			"value": "free-sql-db-2022585"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_server": {
+			"value": "fdffdsfds.postgres.database.azure.com"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_database": {
+			"value": "postgres"
+		},
+		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
+			"value": "adfadm"
 		},
 		"containerUri": {
 			"value": ""
