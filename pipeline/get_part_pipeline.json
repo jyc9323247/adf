@@ -339,7 +339,7 @@
 			}
 		],
 		"parameters": {
-			"p_target_list": {
+			"p_target_json": {
 				"type": "array",
 				"defaultValue": [
 					{
