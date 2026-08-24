@@ -87,7 +87,7 @@
 												{
 													"type": "Query",
 													"text": {
-														"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    '{\n        \"partition_column\":\"@{coalesce(item().partition_column, '')}\",\n        \"partition_range\":\"@{coalesce(item().partition_range, '')}\",\n        \"data_type\":\"@{coalesce(item().partition_data_type, '')}\",\n        \"partition_val\":[@{activity('Lookup_Partition').output.firstRow.PARTITION_LIST}]\n    }',\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
+														"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    '{\n        \"partition_column\":\"@{coalesce(item().partition_column, '')}\",\n        \"partition_range\":\"@{coalesce(item().partition_range, '')}\",\n        \"data_type\":\"@{coalesce(item().partition_data_type, '')}\",\n        \"partition_val\":[@{activity('Lookup_Partition').output.firstRow.PARTITION_LIST}]\n    }',\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
 														"type": "Expression"
 													}
 												}
@@ -118,7 +118,7 @@
 												{
 													"type": "Query",
 													"text": {
-														"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
+														"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
 														"type": "Expression"
 													}
 												}
@@ -204,7 +204,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().condition_type, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().condition_frequency, '')}'),\n        ''\n    ),\n\n    NULLIF(\n    TRIM('@{coalesce(item().condition_interval, '')}'),\n    ''\n)::integer,\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_type, '')}'),\n        ''\n    ),\n\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
+											"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nVALUES\n(\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_type, '')}')),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_frequency, '')}')),\n        ''\n    ),\n\n    NULLIF(\n    TRIM('@{coalesce(item().condition_interval, '')}'),\n    ''\n)::integer,\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().incr_column_type, '')}')),\n        ''\n    ),\n\n    NULL,\n    NULL,\n\n    'N',\n    'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n    NULL,\n    NULL\n);",
 											"type": "Expression"
 										}
 									}
@@ -213,6 +213,45 @@
 							}
 						}
 					]
+				}
+			},
+			{
+				"name": "Script2",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach_FULL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "ForEach_INCR",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "INSERT INTO \"ADFADM\".ctl_ingest_target_master\n(\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    last_success_dt,\n    delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    update_by,\n    update_dt\n)\nSELECT\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n\n    NULL                        AS last_success_dt,\n    'N'                         AS delete_yn,\n    init_wait_yn,\n    created_by,\n    created_dt,\n    NULL                        AS update_by,\n    NULL                        AS update_dt\n\nFROM \"ADFADM\".ctl_ingest_target_master_staging\nWHERE pipeline_run_id = '@{pipeline().RunId}';"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],
@@ -251,27 +290,6 @@
 						"partition_from": "",
 						"partition_to": "",
 						"exec_group": "01"
-					},
-					{
-						"data_class": "RAW",
-						"ingest_type": "INCR",
-						"src_type": "DB2",
-						"src_db_nm": "mlcrt",
-						"src_schema_nm": "dfadf",
-						"src_table_nm": "test_clym",
-						"cdc_tgt_db_nm": "xmeta",
-						"cdc_tgt_schema_nm": "db2inst1",
-						"partition_column": "",
-						"partition_range": "",
-						"partition_data_type": "",
-						"partition_from": "",
-						"partition_to": "",
-						"exec_group": "",
-						"condition_type": "batch",
-						"condition_frequency": "daily",
-						"condition_interval": "-2",
-						"incr_column_nm": "ipdtm",
-						"incr_column_type": "date"
 					}
 				]
 			}
