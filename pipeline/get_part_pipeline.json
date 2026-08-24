@@ -184,32 +184,111 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Script2_copy1",
-							"type": "Script",
+							"name": "If Condition2",
+							"type": "IfCondition",
 							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
 							"userProperties": [],
-							"linkedServiceName": {
-								"referenceName": "AzurePostgreSql1",
-								"type": "LinkedServiceReference"
-							},
 							"typeProperties": {
-								"scripts": [
+								"expression": {
+									"value": "@empty(trim(coalesce(item().partition_column, '')))\n\n",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
 									{
-										"type": "Query",
-										"text": {
-											"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    pipeline_run_id,\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    init_wait_yn,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().RunId}',\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_type, '')}')),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_frequency, '')}')),\n        ''\n    ),\n\n    NULLIF(\n    TRIM('@{coalesce(item().condition_interval, '')}'),\n    ''\n)::integer,\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().incr_column_type, '')}')),\n        ''\n    ),\n\n    NULL,\n     'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n );",
-											"type": "Expression"
+										"name": "Lookup_Partition_INCR",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "OdbcSource",
+												"query": {
+													"value": "WITH RAW_PARTITION AS\n(\n    SELECT DISTINCT\n        TRIM(\n            CAST(\n                @{item().partition_column}\n                AS VARCHAR(100)\n            )\n        ) AS RAW_VAL\n    FROM\n        @{if(\n            empty(trim(coalesce(item().cdc_tgt_schema_nm, ''))),\n            item().src_schema_nm,\n            item().cdc_tgt_schema_nm\n        )}.@{item().src_table_nm}\n),\n\nDISTINCT_PARTITION AS\n(\n    SELECT\n        CASE\n\n            /* 1. STRING + MONTHLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}')) = 'string'\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'monthly'\n            THEN RAW_VAL\n\n            /* 2. STRING + YEARLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}')) = 'string'\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'yearly'\n            THEN LEFT(RAW_VAL, 4)\n\n            /* 3. DATE/TIMESTAMP + MONTHLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}'))\n                    IN ('date', 'timestamp')\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'monthly'\n            THEN REPLACE(\n                    LEFT(RAW_VAL, 7),\n                    '-',\n                    ''\n                 )\n\n            /* 4. DATE/TIMESTAMP + YEARLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}'))\n                    IN ('date', 'timestamp')\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'yearly'\n            THEN LEFT(RAW_VAL, 4)\n\n            ELSE NULL\n        END AS PARTITION_VAL,\n\n        CASE\n\n            /* STRING + MONTHLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}')) = 'string'\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'monthly'\n            THEN\n                CASE\n                    WHEN RAW_VAL IS NOT NULL\n                     AND REGEXP_LIKE(\n                            RAW_VAL,\n                            '^[0-9]{4}(0[1-9]|1[0-2])$'\n                         )\n                    THEN 1\n                    ELSE 0\n                END\n\n            /* STRING + YEARLY */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}')) = 'string'\n             AND LOWER(TRIM('@{coalesce(item().partition_range, '')}')) = 'yearly'\n            THEN\n                CASE\n                    WHEN RAW_VAL IS NOT NULL\n                     AND\n                     (\n                         REGEXP_LIKE(\n                             RAW_VAL,\n                             '^[0-9]{4}$'\n                         )\n\n                         OR\n\n                         REGEXP_LIKE(\n                             RAW_VAL,\n                             '^[0-9]{4}(0[1-9]|1[0-2])$'\n                         )\n                     )\n                    THEN 1\n                    ELSE 0\n                END\n\n            /* DATE / TIMESTAMP */\n            WHEN LOWER(TRIM('@{coalesce(item().partition_data_type, '')}'))\n                    IN ('date', 'timestamp')\n            THEN\n                CASE\n                    WHEN RAW_VAL IS NULL\n                    THEN 0\n                    ELSE 1\n                END\n\n            ELSE 0\n        END AS VALID_YN\n\n    FROM RAW_PARTITION\n),\n\nVALID_PARTITION AS\n(\n    SELECT DISTINCT\n        PARTITION_VAL\n    FROM DISTINCT_PARTITION\n    WHERE VALID_YN = 1\n\n      AND\n      (\n          TRIM('@{coalesce(item().partition_from, '')}') = ''\n\n          OR\n\n          PARTITION_VAL >=\n              CASE\n                  WHEN LOWER(\n                           TRIM('@{coalesce(item().partition_range, '')}')\n                       ) = 'yearly'\n                  THEN LEFT(\n                           TRIM('@{coalesce(item().partition_from, '')}'),\n                           4\n                       )\n                  ELSE\n                       TRIM('@{coalesce(item().partition_from, '')}')\n              END\n      )\n\n      AND\n      (\n          TRIM('@{coalesce(item().partition_to, '')}') = ''\n\n          OR\n\n          PARTITION_VAL <=\n              CASE\n                  WHEN LOWER(\n                           TRIM('@{coalesce(item().partition_range, '')}')\n                       ) = 'yearly'\n                  THEN LEFT(\n                           TRIM('@{coalesce(item().partition_to, '')}'),\n                           4\n                       )\n                  ELSE\n                       TRIM('@{coalesce(item().partition_to, '')}')\n              END\n      )\n),\n\nRESULT_PARTITION AS\n(\n    SELECT\n        PARTITION_VAL AS PARTITION_ID\n    FROM VALID_PARTITION\n\n    UNION ALL\n\n    SELECT\n        'INVALID' AS PARTITION_ID\n    FROM SYSIBM.SYSDUMMY1\n    WHERE EXISTS\n    (\n        SELECT 1\n        FROM DISTINCT_PARTITION\n        WHERE VALID_YN = 0\n    )\n)\n\nSELECT\n    LISTAGG(\n        '\"' || PARTITION_ID || '\"',\n        ','\n    )\n    WITHIN GROUP\n    (\n        ORDER BY\n            CASE\n                WHEN PARTITION_ID = 'INVALID'\n                THEN 2\n                ELSE 1\n            END,\n            PARTITION_ID\n    ) AS PARTITION_LIST\nFROM RESULT_PARTITION\nWITH UR",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00"
+											},
+											"dataset": {
+												"referenceName": "ds_src_odbc_table_MLIWT",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "Script1_copy1_copy1",
+										"type": "Script",
+										"dependsOn": [
+											{
+												"activity": "Lookup_Partition_INCR",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "AzurePostgreSql1",
+											"type": "LinkedServiceReference"
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "Query",
+													"text": {
+														"value": "\nINSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    pipeline_run_id,\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    init_wait_yn,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().RunId}',\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n   '{\n        \"partition_column\":\"@{coalesce(item().partition_column, '')}\",\n        \"partition_range\":\"@{coalesce(item().partition_range, '')}\",\n        \"data_type\":\"@{coalesce(item().partition_data_type, '')}\",\n        \"partition_val\":[@{activity('Lookup_Partition_INCR').output.firstRow.PARTITION_LIST}]\n    }',\n\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_type, '')}')),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_frequency, '')}')),\n        ''\n    ),\n\n    NULLIF(\n    TRIM('@{coalesce(item().condition_interval, '')}'),\n    ''\n)::integer,\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().incr_column_type, '')}')),\n        ''\n    ),\n\n    NULL,\n     'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n );",
+														"type": "Expression"
+													}
+												}
+											],
+											"scriptBlockExecutionTimeout": "02:00:00"
 										}
 									}
 								],
-								"scriptBlockExecutionTimeout": "02:00:00"
+								"ifTrueActivities": [
+									{
+										"name": "Script2_copy1",
+										"type": "Script",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "AzurePostgreSql1",
+											"type": "LinkedServiceReference"
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "Query",
+													"text": {
+														"value": "INSERT INTO \"ADFADM\".ctl_ingest_target_master_staging\n(\n    pipeline_run_id,\n    data_class,\n    ingest_type,\n    src_type,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n    partition_clause,\n    exec_group,\n    condition_type,\n    condition_frequency,\n    condition_interval,\n    incr_column_nm,\n    incr_column_type,\n    incr_column_hw_val,\n    init_wait_yn,\n    created_by,\n    created_dt\n)\nVALUES\n(\n    '@{pipeline().RunId}',\n    '@{item().data_class}',\n    '@{item().ingest_type}',\n    '@{item().src_type}',\n    '@{item().src_db_nm}',\n    '@{item().src_schema_nm}',\n    '@{item().src_table_nm}',\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_db_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        TRIM('@{coalesce(item().cdc_tgt_schema_nm, '')}'),\n        ''\n    ),\n\n    NULL,\n\n    NULLIF(\n        TRIM('@{coalesce(item().exec_group, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_type, '')}')),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().condition_frequency, '')}')),\n        ''\n    ),\n\n    NULLIF(\n    TRIM('@{coalesce(item().condition_interval, '')}'),\n    ''\n)::integer,\n\n    NULLIF(\n        TRIM('@{coalesce(item().incr_column_nm, '')}'),\n        ''\n    ),\n\n    NULLIF(\n        UPPER(TRIM('@{coalesce(item().incr_column_type, '')}')),\n        ''\n    ),\n\n    NULL,\n     'Y',\n    '@{pipeline().DataFactory}',\n    NOW(),\n );",
+														"type": "Expression"
+													}
+												}
+											],
+											"scriptBlockExecutionTimeout": "02:00:00"
+										}
+									}
+								]
 							}
 						}
 					]
