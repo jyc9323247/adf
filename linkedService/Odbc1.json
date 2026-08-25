@@ -9,7 +9,7 @@
 			"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
 			"authenticationType": "Basic",
 			"userName": "db2inst1",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJkMjhiYmM0Yi01ZjdhLTRiY2EtODlkMC04YjQ2ZGI0ODYxNGMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJjYmZjNThjNS04YjM2LTQ5OGItYWM3ZS00NjNlMzEwZjlhODAiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
