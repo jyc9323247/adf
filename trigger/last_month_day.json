@@ -1,0 +1,28 @@
+{
+	"name": "last_month_day",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2026-09-19T06:30:00",
+				"timeZone": "Korea Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						1
+					],
+					"monthDays": [
+						-1
+					]
+				}
+			}
+		}
+	}
+}
