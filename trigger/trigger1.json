@@ -1,0 +1,28 @@
+{
+	"name": "trigger1",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 7,
+				"startTime": "2026-09-19T13:47:00",
+				"timeZone": "Korea Standard Time",
+				"schedule": {
+					"minutes": [
+						2
+					],
+					"hours": [
+						1
+					],
+					"weekDays": [
+						"Saturday"
+					]
+				}
+			}
+		}
+	}
+}
