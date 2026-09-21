@@ -139,15 +139,6 @@
 					"ls_egress_postgres_MLKUDPD_password": {
 						"value": "[parameters('ls_egress_postgres_MLKUDPD_password')]"
 					},
-					"Db21_connectionString": {
-						"value": "[parameters('Db21_connectionString')]"
-					},
-					"FileServer1_password": {
-						"value": "[parameters('FileServer1_password')]"
-					},
-					"Odbc1_password": {
-						"value": "[parameters('Odbc1_password')]"
-					},
 					"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 						"value": "[parameters('AzureBlobStorage1_properties_typeProperties_serviceEndpoint')]"
 					},
@@ -183,6 +174,33 @@
 					},
 					"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
 						"value": "[parameters('ls_egress_postgres_MLKUDPD_properties_typeProperties_username')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "new-met-adf_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Db21_connectionString": {
+						"value": "[parameters('Db21_connectionString')]"
+					},
+					"FileServer1_password": {
+						"value": "[parameters('FileServer1_password')]"
+					},
+					"Odbc1_password": {
+						"value": "[parameters('Odbc1_password')]"
 					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
@@ -204,16 +222,18 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'new-met-adf_ArmTemplate_0')]"
+			]
 		},
 		{
-			"name": "new-met-adf_ArmTemplate_1",
+			"name": "new-met-adf_ArmTemplate_2",
 			"type": "Microsoft.Resources/deployments",
 			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
-					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_2.json', parameters('containerSasToken'))]",
 					"contentVersion": "1.0.0.0"
 				},
 				"parameters": {
@@ -223,7 +243,7 @@
 				}
 			},
 			"dependsOn": [
-				"[resourceId('Microsoft.Resources/deployments', 'new-met-adf_ArmTemplate_0')]"
+				"[resourceId('Microsoft.Resources/deployments', 'new-met-adf_ArmTemplate_1')]"
 			]
 		}
 	]
