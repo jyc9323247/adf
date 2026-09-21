@@ -1,0 +1,17 @@
+{
+	"name": "every_n_min",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 1,
+				"startTime": "2026-09-21T01:25:00",
+				"timeZone": "Korea Standard Time"
+			}
+		}
+	}
+}
