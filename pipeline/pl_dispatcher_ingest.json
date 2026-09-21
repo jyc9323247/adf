@@ -14,7 +14,7 @@
 					},
 					"cases": [
 						{
-							"value": "pl_raw_ingest_db2_XMETA",
+							"value": "pl_raw_ingest_db2_xmeta",
 							"activities": [
 								{
 									"name": "pl_raw_db2_xmeta",
