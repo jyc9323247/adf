@@ -1,0 +1,26 @@
+{
+    "name": "trg_sch_daily1_0400_kst_bizday",
+    "properties": {
+        "description": "[BIZDAY] 매일 KST 04:00 기동, 영업일 판정 공유 트리거 - 3영업일 / 3영업일+1일 / 4영업일 / 7영업일+1일",
+        "annotations": [],
+        "runtimeState": "Stopped",
+        "pipelines": [],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-09-21T01:29:00",
+                "timeZone": "Korea Standard Time",
+                "schedule": {
+                    "hours": [
+                        4
+                    ],
+                    "minutes": [
+                        0
+                    ]
+                }
+            }
+        }
+    }
+}
