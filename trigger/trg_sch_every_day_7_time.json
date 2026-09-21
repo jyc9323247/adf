@@ -1,0 +1,17 @@
+{
+	"name": "trg_sch_every_day_7_time",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 5,
+				"startTime": "2026-09-21T01:37:00",
+				"timeZone": "Korea Standard Time"
+			}
+		}
+	}
+}
