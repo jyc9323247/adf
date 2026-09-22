@@ -1,0 +1,236 @@
+{
+	"name": "master_pipeline_incr_daily_ipdtm_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_yyyyMMddHHmmss",
+					"value": {
+						"value": "@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Start_ingest_pipeline_Script",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set variable1_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "-- ============================================================================\n-- INCR 전용 수집 스크립트 : pl_raw_orch_incr > Script \"Start_ingest_pipeline Script\"\n--   흐름 : Ins_master_run(PENDING) -> Set Variable(pv_incr_from_val) -> 이 Script\n--          -> Filter Not Skipped -> ForEach -> pl_dispatcher_ingest\n--          실패 시 Fail_master_run, ForEach 완료 시 End_master_run (adf_script_v83_master_end.sql)\n--\n--   대상   : Run Group(p_run_group_nm, job_type_cd = RAW_INCR) 의 INCR 대상 (vw_ingest_exec_target)\n--            p_target_ids 로 일부만 수동 실행 가능 (예: [1001,1002])\n--   증분 조건 : 증분컬럼 >= 시작일  (시작일 = pv_incr_from_val, 모든 대상 공통)\n--     pv_incr_from_val : ADF Set Variable. 파라미터 p_incr_from_val 이 있으면 그 값, 없으면 오늘 - N 일\n--                        형식 yyyy-MM-dd 또는 yyyyMMdd\n--     증분컬럼 유형 (master.incr_column_type) · 형식 (master.incr_column_format)\n--       DATE      DB2 : col >= DATE('2026-10-01')             MSSQL : CAST('2026-10-01' AS DATE)\n--                 기타 : col >= DATE '2026-10-01'\n--       TIMESTAMP DB2 : col >= TIMESTAMP('2026-10-01 00:00:00') MSSQL : CAST('2026-10-01 00:00:00' AS DATETIME2)\n--                 기타 : col >= TIMESTAMP '2026-10-01 00:00:00'\n--       STRING  + 형식 : col >= '20261001'  (시작일을 형식대로 변환. YYYYMMDD / YYYY-MM-DD / YYYYMM ...)\n--       NUMERIC + 형식 : col >= 20261001    (숫자형 날짜. 따옴표 없음)\n--       형식은 PostgreSQL to_char 형식 (YYYY MM DD HH24 MI SS)\n--     상한 · HWM 사용 안 함 (incr_to_val = NULL)\n--\n--   DBX 전달 (GEN2)\n--     load_method_cd = master.incr_load_method_cd (UPSERT / RANGE_DELETE_INSERT ...)\n--     RANGE_DELETE_INSERT : range_column_nm = 증분컬럼, range_operator_cd = '>=',\n--                           range_value = [\"YYYYMMDD\"] (월 형식 컬럼은 [\"YYYYMM\"])\n--\n--   CDC / 경로 / 파일명 : FULL 스크립트와 동일\n--     추출 위치 = COALESCE(NULLIF(cdc_tgt_*, ''), src_*), 파일명 = src_*\n--     landing_path 없으면 incr/batch_date=YYYYMMDD/batch_hour=HH/pipeline_name={자식 파이프라인명}\n--     file_nm_template 없으면 {src_db}.{src_schema}.{src_table}.{YYYYMMDDHHMISS}.parquet\n--\n--   즉시 실패 (형변환 오류로 Script 실패 -> 실패 경로에서 Master FAILED)\n--     시작일 없음 / 형식 오류          -> INCR_FROM_VAL_INVALID:값\n--     STRING / NUMERIC 인데 형식 없음  -> INCR_COL_FORMAT_MISSING:target_id\n--     그 외 유형                       -> INCR_COL_TYPE_NOT_SUPPORTED:target_id\n--\n--   Script 재시도 = 0. ADF 동적 식은 p CTE 에만 사용\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                        AS master_run_id,\n           '@{pipeline().parameters.p_run_group_nm}'::text                     AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb          AS target_ids,\n           trim('@{variables('pv_incr_from_val')}')                            AS from_in,     -- yyyy-MM-dd / yyyyMMdd\n           '@{variables('pv_yyyyMMddHHmmss')}'::text                           AS batch_str,\n           '@{if(pipeline().globalParameters.gp_pipeline_run_skip, 'Y', 'N')}'::text AS skip_yn,\n           '@{pipeline().DataFactory}'::text                                   AS created_by\n),\n-- ⓪ 시작일 검증 · 변환\nd AS (\n    SELECT p.*,\n           CASE WHEN p.from_in ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN to_date(p.from_in, 'YYYY-MM-DD')\n                WHEN p.from_in ~ '^[0-9]{8}$'                  THEN to_date(p.from_in, 'YYYYMMDD')\n                ELSE to_date(('INCR_FROM_VAL_INVALID:' || p.from_in)::int::text, 'YYYY')\n           END AS from_dt\n      FROM p\n),\n-- ① 대상 + 추출 위치\nt0 AS (\n    SELECT e.run_group_id, e.run_rule_id, m.*,\n           COALESCE(NULLIF(trim(m.cdc_tgt_db_nm), ''),     m.src_db_nm)     AS ext_db_nm,\n           COALESCE(NULLIF(trim(m.cdc_tgt_schema_nm), ''), m.src_schema_nm) AS ext_schema_nm,\n           NULLIF(trim(m.landing_path), '')     AS landing_path_in,\n           NULLIF(trim(m.file_nm_template), '') AS file_nm_template_in\n      FROM p\n      JOIN adfadm.vw_ingest_exec_target    e ON e.run_group_nm = p.run_group_nm AND e.run_type_cd = 'INCR'\n      JOIN adfadm.ctl_ingest_target_master m ON m.target_id = e.target_id\n     WHERE p.target_ids IS NULL\n        OR e.target_id IN (SELECT jsonb_array_elements_text(p.target_ids)::bigint)\n),\n-- ② 조건 · 자식 파이프라인명 · 경로 · 파일명\nt AS (\n    SELECT t0.*, x.pl_nm,\n           -- 기록용 시작값 : 증분컬럼 형식 (DATE / TIMESTAMP 는 YYYY-MM-DD)\n           CASE WHEN upper(t0.incr_column_type) IN ('STRING','NUMERIC') AND NULLIF(trim(t0.incr_column_format), '') IS NOT NULL\n                THEN to_char(d.from_dt, t0.incr_column_format)\n                ELSE to_char(d.from_dt, 'YYYY-MM-DD') END AS from_val,\n           -- DBX 범위 값 : 월 형식(일 없음) 컬럼은 YYYYMM, 그 외 YYYYMMDD\n           CASE WHEN upper(t0.incr_column_type) IN ('STRING','NUMERIC') AND t0.incr_column_format NOT ILIKE '%DD%'\n                THEN to_char(d.from_dt, 'YYYYMM') ELSE to_char(d.from_dt, 'YYYYMMDD') END AS range_val,\n           t0.incr_column_nm || ' >= ' ||\n           CASE upper(t0.incr_column_type)\n             WHEN 'DATE' THEN\n                  CASE upper(t0.src_type)\n                    WHEN 'DB2'   THEN 'DATE('''  || to_char(d.from_dt, 'YYYY-MM-DD') || ''')'\n                    WHEN 'MSSQL' THEN 'CAST('''  || to_char(d.from_dt, 'YYYY-MM-DD') || ''' AS DATE)'\n                    ELSE              'DATE '''  || to_char(d.from_dt, 'YYYY-MM-DD') || '''' END\n             WHEN 'TIMESTAMP' THEN\n                  CASE upper(t0.src_type)\n                    WHEN 'DB2'   THEN 'TIMESTAMP(''' || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00'')'\n                    WHEN 'MSSQL' THEN 'CAST('''      || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00'' AS DATETIME2)'\n                    ELSE              'TIMESTAMP ''' || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00''' END\n             -- 문자 · 숫자형 날짜 : 형식대로 변환\n             WHEN 'STRING' THEN\n                  CASE WHEN NULLIF(trim(t0.incr_column_format), '') IS NULL\n                       THEN ('INCR_COL_FORMAT_MISSING:' || t0.target_id)::int::text\n                       ELSE '''' || to_char(d.from_dt, t0.incr_column_format) || '''' END\n             WHEN 'NUMERIC' THEN\n                  CASE WHEN NULLIF(trim(t0.incr_column_format), '') IS NULL\n                       THEN ('INCR_COL_FORMAT_MISSING:' || t0.target_id)::int::text\n                       ELSE to_char(d.from_dt, t0.incr_column_format) END\n             -- 그 외 유형 -> 형변환 오류로 Script 실패\n             ELSE ('INCR_COL_TYPE_NOT_SUPPORTED:' || t0.target_id)::int::text\n           END AS cond_sql,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.landing_path_in IS NOT NULL THEN\n                     replace(replace(replace(t0.landing_path_in,\n                        '{batch_date}',  left(d.batch_str, 8)),\n                        '{batch_hour}',  substr(d.batch_str, 9, 2)),\n                        '{pipeline_nm}', x.pl_nm)\n                ELSE 'incr'\n                     || '/batch_date='    || left(d.batch_str, 8)\n                     || '/batch_hour='    || substr(d.batch_str, 9, 2)\n                     || '/pipeline_name=' || x.pl_nm\n           END AS landing_path_out,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.file_nm_template_in IS NOT NULL THEN\n                     replace(replace(replace(replace(replace(t0.file_nm_template_in,\n                        '{src_db}', t0.src_db_nm), '{schema}', t0.src_schema_nm), '{table}', t0.src_table_nm),\n                        '{part}', ''), '{ts}', d.batch_str)\n                ELSE t0.src_db_nm || '.' || t0.src_schema_nm || '.' || t0.src_table_nm\n                     || '.' || d.batch_str || '.parquet'\n           END AS file_name_out\n      FROM t0 CROSS JOIN d\n      -- 자식 파이프라인명 : pl_{data_class}_ingest_{src_type}_{추출 DB}  예) pl_raw_ingest_db2_MLCRP\n      CROSS JOIN LATERAL (SELECT 'pl_' || lower(t0.data_class) || '_ingest_' || lower(t0.src_type)\n                                 || '_' || upper(t0.ext_db_nm) AS pl_nm) x\n),\n-- ③ Master 이력 PENDING -> RUNNING (+ 대상 건수)\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n       SET status = 'RUNNING', start_dt = now(), update_dt = now(),\n           child_total_cnt = (SELECT count(*) FROM t)\n      FROM p\n     WHERE m.master_run_id = p.master_run_id\n       AND m.status = 'PENDING'\n    RETURNING m.master_run_id\n),\n-- ④ 수집 이력 PENDING / SKIPPED 생성\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n          (master_run_id, run_group_id, run_rule_id, target_id, ingest_pipeline_nm, run_type_cd,\n           sink_type_cd, load_method_cd, range_column_nm, range_operator_cd, range_value,\n           incr_policy_id, incr_column_nm, incr_from_val, incr_to_val,\n           src_type, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm, data_class,\n           extract_query, landing_path, file_name, sink_table_full_nm, status, created_by)\n    SELECT p.master_run_id, t.run_group_id, t.run_rule_id, t.target_id, t.pl_nm, 'INCR',\n           t.sink_type_cd,\n           CASE WHEN t.sink_type_cd = 'GEN2' THEN t.incr_load_method_cd END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT' THEN t.incr_column_nm END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT' THEN '>=' END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT'\n                THEN jsonb_build_array(t.range_val) END,\n           t.incr_policy_id, t.incr_column_nm, t.from_val, NULL,\n           t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n           NULLIF(trim(t.cdc_tgt_db_nm), ''), NULLIF(trim(t.cdc_tgt_schema_nm), ''), t.data_class,\n           -- 추출쿼리 : 템플릿 우선({WHERE} -> 증분 조건), 없으면 SELECT * (추출 위치 스키마)\n           CASE WHEN NULLIF(trim(t.src_query_template), '') IS NOT NULL\n                THEN replace(t.src_query_template, '{WHERE}', t.cond_sql)\n                ELSE 'SELECT * FROM ' || t.ext_schema_nm || '.' || t.src_table_nm\n                     || CASE WHEN upper(t.src_type) = 'MSSQL' THEN ' WITH (NOLOCK)' ELSE '' END\n                     || ' WHERE ' || t.cond_sql\n                     || CASE WHEN upper(t.src_type) = 'DB2'   THEN ' WITH UR'       ELSE '' END\n           END,\n           t.landing_path_out,\n           t.file_name_out,\n           CASE WHEN t.sink_type_cd = 'TABLE' THEN concat_ws('.', t.sink_db_nm, t.sink_schema_nm, t.sink_table_nm) END,\n           CASE p.skip_yn WHEN 'Y' THEN 'SKIPPED' ELSE 'PENDING' END,\n           p.created_by\n      FROM t CROSS JOIN p\n    RETURNING ingest_pipeline_id, master_run_id, ingest_pipeline_nm, extract_query, landing_path, file_name,\n              sink_table_full_nm, target_id, src_db_nm, src_schema_nm, src_table_nm,\n              cdc_tgt_db_nm, cdc_tgt_schema_nm, sink_type_cd, load_method_cd,\n              incr_column_nm, incr_from_val, range_value, status\n)\n-- ⑤ ForEach 입력. Filter Not Skipped : @not(equals(item().status, 'SKIPPED'))\nSELECT ingest_pipeline_id,                                  -- p_ingest_pipeline_id\n       master_run_id,                                       -- p_master_run_id\n       ingest_pipeline_nm,                                  -- p_child_pipeline_nm\n       extract_query,                                       -- p_extract_query\n       COALESCE(landing_path, '')       AS landing_path,    -- p_landing_path (TABLE Sink 는 '')\n       COALESCE(file_name, '')          AS file_name,       -- p_file_name    (TABLE Sink 는 '')\n       COALESCE(sink_table_full_nm, '') AS sink_table_full_nm,\n       target_id, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm,\n       sink_type_cd, load_method_cd, incr_column_nm, incr_from_val, range_value::text AS range_value, status\n  FROM ins\n ORDER BY target_id;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Start_ingest_pipeline_Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "pipeline_dispatcher_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_dispatcher_ingest",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_child_pipeline_nm": {
+										"value": "@item().ingest_pipeline_nm",
+										"type": "Expression"
+									},
+									"p_landing_path": {
+										"value": "@item().landing_path",
+										"type": "Expression"
+									},
+									"p_file_name": {
+										"value": "@item().file_name",
+										"type": "Expression"
+									},
+									"p_extract_query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									},
+									"p_ingest_pipeline_id": {
+										"value": "@item().ingest_pipeline_id",
+										"type": "Expression"
+									},
+									"p_master_run_id": {
+										"value": "@item().master_run_id",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set variable1_copy1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_incr_from_val",
+					"value": {
+						"value": "@if(\n    empty(coalesce(pipeline().parameters.p_incr_from_val, '')),\n    formatDateTime(\n        addDays(convertFromUtc(utcNow(), 'Korea Standard Time'),\n                mul(-1, int(variables('pv_condition_interval')))),\n        'yyyy-MM-dd'),\n    pipeline().parameters.p_incr_from_val\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Start_ingest_pipeline_Script_copy1",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "-- ============================================================================\n-- pl_raw_orch_incr > Script \"Ins_master_run\" (INCR 수집 첫 활동)\n--   ctl_master_pipeline_run 에 이번 실행을 PENDING 으로 등록\n--     -> Set Variable (pv_incr_from_val)\n--     -> Start_ingest_pipeline Script (adf_script_v83_incr.sql : 수집 이력 생성 + Master RUNNING 전환)\n--     -> Filter -> ForEach -> End_master_run (SUCCEEDED / FAILED)\n--        Start_ingest_pipeline Script 실패 시 Fail_master_run (adf_script_v83_master_end.sql)\n--\n--   진입 구분 : 그룹에 스케줄이 있고 수동 실행(Manual)이 아니면 SCHEDULE, 그 외 MANUAL\n--   그룹명이 틀리거나, 비활성이거나, INCR 그룹(RAW_INCR)이 아니면 행이 만들어지지 않고 에러\n--   같은 RunId 재실행 시 무시 (ON CONFLICT)\n--   run_param : 수동 지정값 기록 (target_ids, incr_from_val = 파라미터 p_incr_from_val)\n--   선행 : ck_master_status 에 PENDING 추가 (adf_meta_alter_v83_cdc_tgt.sql)\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                  AS master_run_id,\n           '@{pipeline().Pipeline}'::text                                AS pipeline_nm,\n           '@{pipeline().parameters.p_run_group_nm}'::text               AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb    AS target_ids,\n           NULLIF(trim('@{pipeline().parameters.p_incr_from_val}'), '')  AS incr_from_val,\n           '@{pipeline().TriggerType}'::text                             AS trigger_type,   -- Manual / ScheduleTrigger / PipelineActivity ...\n           '@{pipeline().TriggerName}'::text                             AS trigger_nm,\n           '@{pipeline().DataFactory}'::text                             AS created_by\n),\ng AS (\n    SELECT p.*, g.run_group_id, g.schedule_id,\n           (g.schedule_id IS NOT NULL AND p.trigger_type <> 'Manual') AS sch_yn\n      FROM p\n      JOIN adfadm.ctl_ingest_run_group g\n        ON g.run_group_nm = p.run_group_nm\n       AND g.enabled_yn = 'Y'\n       AND g.job_type_cd = 'RAW_INCR'                       -- INCR 전용 마스터\n),\nins AS (\n    INSERT INTO adfadm.ctl_master_pipeline_run\n          (master_run_id, master_pipeline_nm, trigger_type_cd, adf_trigger_nm, schedule_id, run_group_id,\n           run_param, status, created_by)\n    SELECT g.master_run_id, g.pipeline_nm,\n           CASE WHEN g.sch_yn THEN 'SCHEDULE' ELSE 'MANUAL' END,\n           NULLIF(g.trigger_nm, ''),\n           CASE WHEN g.sch_yn THEN g.schedule_id END,\n           g.run_group_id,\n           jsonb_strip_nulls(jsonb_build_object('target_ids',    g.target_ids,\n                                                'incr_from_val', g.incr_from_val)),\n           'PENDING',\n           g.created_by\n      FROM g\n    ON CONFLICT (master_run_id) DO NOTHING\n    RETURNING master_run_id, trigger_type_cd, schedule_id, run_group_id, run_param, status\n)\nSELECT i.master_run_id, i.trigger_type_cd, i.schedule_id, i.run_group_id, i.run_param::text AS run_param, i.status,\n       -- 그룹명 오류 · 비활성 · INCR 그룹 아님 -> 형변환 오류로 활동 실패 (메시지에 그룹명 표시)\n       CASE WHEN (SELECT count(*) FROM g) = 0\n            THEN ('RUN_GROUP_NOT_FOUND_OR_NOT_INCR:' || (SELECT run_group_nm FROM p))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) d\n  LEFT JOIN ins i ON TRUE;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"p_run_group_nm": {
+				"type": "string",
+				"defaultValue": "iwp_a_incr_daily_6pm"
+			},
+			"p_target_ids": {
+				"type": "string"
+			},
+			"p_incr_from_val": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"pv_yyyyMMddHHmmss": {
+				"type": "String"
+			},
+			"v_data_class": {
+				"type": "String",
+				"defaultValue": "RAW"
+			},
+			"v_ingest_type": {
+				"type": "String",
+				"defaultValue": "INCR"
+			},
+			"v_init_wait_yn": {
+				"type": "String",
+				"defaultValue": "N"
+			},
+			"v_list": {
+				"type": "Array"
+			},
+			"v_start_value": {
+				"type": "String"
+			},
+			"v_condition_frequency": {
+				"type": "String",
+				"defaultValue": "DAILY"
+			},
+			"pv_condition_interval": {
+				"type": "Integer",
+				"defaultValue": -2
+			},
+			"pv_incr_from_val": {
+				"type": "String"
+			},
+			"pv_bizdays": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "raw/orchestration"
+		},
+		"annotations": []
+	}
+}
