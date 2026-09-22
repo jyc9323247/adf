@@ -10,7 +10,21 @@
 				"frequency": "Month",
 				"interval": 1,
 				"startTime": "2026-09-22T04:55:00",
-				"timeZone": "Korea Standard Time"
+				"timeZone": "Korea Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						1
+					],
+					"monthlyOccurrences": [
+						{
+							"day": "Saturday",
+							"occurrence": 2
+						}
+					]
+				}
 			}
 		}
 	}
