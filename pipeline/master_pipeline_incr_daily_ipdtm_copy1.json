@@ -219,7 +219,7 @@
 			},
 			"pv_condition_interval": {
 				"type": "Integer",
-				"defaultValue": -2
+				"defaultValue": 3
 			},
 			"pv_incr_from_val": {
 				"type": "String"
