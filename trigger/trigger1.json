@@ -7,15 +7,10 @@
 		"type": "ScheduleTrigger",
 		"typeProperties": {
 			"recurrence": {
-				"frequency": "Week",
+				"frequency": "Month",
 				"interval": 1,
 				"startTime": "2026-09-22T04:55:00",
-				"timeZone": "Korea Standard Time",
-				"schedule": {
-					"weekDays": [
-						"Saturday"
-					]
-				}
+				"timeZone": "Korea Standard Time"
 			}
 		}
 	}
