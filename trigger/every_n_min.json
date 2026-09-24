@@ -12,6 +12,15 @@
 				"parameters": {
 					"a": "abc"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "pipeline1",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"a": "ddd"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",
