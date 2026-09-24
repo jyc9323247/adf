@@ -1,0 +1,27 @@
+{
+	"name": "pipeline1_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Fail1",
+				"type": "Fail",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@pipeline().parameters.a",
+						"type": "Expression"
+					},
+					"errorCode": "-1"
+				}
+			}
+		],
+		"parameters": {
+			"a": {
+				"type": "string",
+				"defaultValue": "a"
+			}
+		},
+		"annotations": []
+	}
+}
