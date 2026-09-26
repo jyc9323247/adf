@@ -5428,12 +5428,58 @@
 						}
 					},
 					{
+						"name": "Upd_init_wait_yn",
+						"description": "INIT_LOAD / FULL_REFRESH 전체 수집 성공 Target -> init_wait_yn = N",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "End_master_run",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "/* Upd_init_wait_yn : INIT_LOAD / FULL_REFRESH 수집(전체 파일)이 모두 SUCCEEDED 인 Target 의 init_wait_yn 을 N 으로 변경\n   대상 : 이 실행(master_run_id)의 수집 이력 중 run_type_cd IN (INIT_LOAD, FULL_REFRESH), SKIPPED 제외\n          Target 별로 파티션 행 전체가 SUCCEEDED 일 때만 (하나라도 FAILED / RUNNING / PENDING 이면 유지 = Y)\n          PARTIAL_REFRESH 는 전체 수집이 아니므로 제외. 이미 N 인 Target(FULL_REFRESH) 은 변경 없음\n   ADF 수집(GEN2 저장) 기준. DBX 적재 결과와 무관. ADF 동적 식은 p 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text        AS master_run_id,\n           '@{pipeline().DataFactory}'::text  AS created_by\n),\nt AS (\n    SELECT i.target_id\n      FROM adfadm.ctl_ingest_pipeline_run i\n      JOIN p ON p.master_run_id = i.master_run_id\n     WHERE i.run_type_cd IN ('INIT_LOAD', 'FULL_REFRESH')\n       AND i.status <> 'SKIPPED'\n     GROUP BY i.target_id\n    HAVING count(*) = count(*) FILTER (WHERE i.status = 'SUCCEEDED')\n),\nu AS (\n    UPDATE adfadm.ctl_ingest_target_master m\n       SET init_wait_yn = 'N',\n           updated_by   = p.created_by,\n           updated_dt   = now()\n      FROM t, p\n     WHERE m.target_id = t.target_id\n       AND m.init_wait_yn = 'Y'\n       AND m.delete_yn = 'N'\n    RETURNING m.target_id\n)\nSELECT count(*)                                        AS init_done_cnt,\n       COALESCE(string_agg(target_id::text, ',' ORDER BY target_id), '') AS init_done_ids\n  FROM u;\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
 						"name": "Req_end",
 						"description": "재수집 요청 종료 / 기준값 갱신 (REQUEST · FULL_REFRESH). 앞 단계가 모두 끝난 뒤 실행",
 						"type": "Script",
 						"dependsOn": [
 							{
 								"activity": "End_master_run",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed",
+									"Skipped"
+								]
+							},
+							{
+								"activity": "Upd_init_wait_yn",
 								"dependencyConditions": [
 									"Succeeded",
 									"Failed",
@@ -5505,7 +5551,7 @@
 				"parameters": {
 					"p_init_load_group": {
 						"type": "String",
-						"defaultValue": "INIT_TEST_CLYM_YEAR"
+						"defaultValue": "INIT_TEST_IPDTM_YEAR"
 					},
 					"p_run_group_nm": {
 						"type": "String"
