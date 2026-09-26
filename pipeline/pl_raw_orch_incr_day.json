@@ -96,6 +96,7 @@
 							"value": "@pipeline().parameters.p_incr_days",
 							"type": "Expression"
 						},
+						"p_incr_months": "",
 						"p_dbx_last_run_yn": {
 							"value": "@pipeline().parameters.p_dbx_last_run_yn",
 							"type": "Expression"
@@ -503,8 +504,7 @@
 		],
 		"parameters": {
 			"p_run_group_nm": {
-				"type": "String",
-				"defaultValue": "TEST_DAILY_INCR_D3"
+				"type": "String"
 			},
 			"p_scheduled_time": {
 				"type": "String"
