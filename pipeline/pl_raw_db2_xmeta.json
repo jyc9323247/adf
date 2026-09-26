@@ -205,7 +205,7 @@
 			},
 			"p_extract_query": {
 				"type": "string",
-				"defaultValue": "select * from syscat.tables limit 1;"
+				"defaultValue": "select * from db2inst1.lineitem limit 1;"
 			},
 			"p_ingest_pipeline_id": {
 				"type": "string",
