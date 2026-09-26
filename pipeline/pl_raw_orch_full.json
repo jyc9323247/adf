@@ -139,7 +139,7 @@
 							"type": "Expression"
 						},
 						"p_trigger_id": {
-							"value": "@if(empty(pipeline().parameters.gp_pipeline_run_skip), pipeline().TriggerId, pipeline().parameters.gp_pipeline_run_skip)",
+							"value": "@if(empty(pipeline().parameters.p_trigger_id), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
 							"type": "Expression"
 						},
 						"p_run_group_nm": {
@@ -587,6 +587,9 @@
 				"type": "String"
 			},
 			"p_trigger_nm": {
+				"type": "String"
+			},
+			"p_trigger_id": {
 				"type": "String"
 			},
 			"p_bizday_n": {
