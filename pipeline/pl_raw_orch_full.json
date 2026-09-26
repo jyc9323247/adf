@@ -403,7 +403,7 @@
 				}
 			},
 			{
-				"name": "Fail1",
+				"name": "Failed_Child_Ingest_run",
 				"type": "Fail",
 				"dependsOn": [
 					{
