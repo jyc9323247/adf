@@ -325,7 +325,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Prepare_src_lookup').output.resultSets[0].rows",
+						"value": "@if(greater(length(activity('Prepare_src_lookup').output.resultSets), 0), activity('Prepare_src_lookup').output.resultSets[0].rows, json('[]'))",
 						"type": "Expression"
 					},
 					"isSequential": false,
@@ -592,7 +592,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Start_ingest_pipeline Script').output.resultSets[0].rows",
+						"value": "@if(greater(length(activity('Start_ingest_pipeline Script').output.resultSets), 0), activity('Start_ingest_pipeline Script').output.resultSets[0].rows, json('[]'))",
 						"type": "Expression"
 					},
 					"condition": {
