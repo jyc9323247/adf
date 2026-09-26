@@ -228,10 +228,6 @@
 			},
 			"p_requester": {
 				"type": "String"
-			},
-			"p_calendar_db_nm": {
-				"type": "String",
-				"defaultValue": "MLDADM"
 			}
 		},
 		"variables": {
