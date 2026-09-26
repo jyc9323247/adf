@@ -181,7 +181,7 @@
 				"typeProperties": {
 					"variableName": "pv_start_val",
 					"value": {
-						"value": "@trim(pipeline().parameters.p_start_val)",
+						"value": "@coalesce(pipeline().parameters.p_start_val, '')",
 						"type": "Expression"
 					}
 				}
@@ -206,7 +206,7 @@
 				"typeProperties": {
 					"variableName": "pv_end_val",
 					"value": {
-						"value": "@trim(pipeline().parameters.p_end_val)",
+						"value": "@coalesce(pipeline().parameters.p_end_val, '')",
 						"type": "Expression"
 					}
 				}
@@ -231,7 +231,7 @@
 				"typeProperties": {
 					"variableName": "pv_partition_val",
 					"value": {
-						"value": "@trim(pipeline().parameters.p_partition_val)",
+						"value": "@coalesce(pipeline().parameters.p_partition_val, '')",
 						"type": "Expression"
 					}
 				}
