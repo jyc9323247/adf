@@ -401,6 +401,26 @@
 					],
 					"scriptBlockExecutionTimeout": "00:10:00"
 				}
+			},
+			{
+				"name": "Fail1",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "ForEach_child_ingest",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@{pipeline().Pipeline} 파이프라인 수행 중 Child Ingest Pipeline 수행 장애발생",
+						"type": "Expression"
+					},
+					"errorCode": "-1"
+				}
 			}
 		],
 		"parameters": {
