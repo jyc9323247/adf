@@ -578,7 +578,8 @@
 		],
 		"parameters": {
 			"p_run_group_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "FULL_DAILY"
 			},
 			"p_scheduled_time": {
 				"type": "String"
