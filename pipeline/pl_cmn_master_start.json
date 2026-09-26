@@ -1,0 +1,9 @@
+{
+	"name": "pl_cmn_master_start",
+	"properties": {
+		"folder": {
+			"name": "util/sop"
+		},
+		"annotations": []
+	}
+}
