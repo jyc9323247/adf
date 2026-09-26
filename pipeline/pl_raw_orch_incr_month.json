@@ -504,7 +504,8 @@
 		],
 		"parameters": {
 			"p_run_group_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "TEST_MONTHLY_INCR_M1"
 			},
 			"p_scheduled_time": {
 				"type": "String"
