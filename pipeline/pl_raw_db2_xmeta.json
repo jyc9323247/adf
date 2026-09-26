@@ -178,9 +178,9 @@
 				"type": "Fail",
 				"dependsOn": [
 					{
-						"activity": "Failed_UPDATE",
+						"activity": "Copy data",
 						"dependencyConditions": [
-							"Completed"
+							"Failed"
 						]
 					}
 				],
