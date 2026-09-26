@@ -11,7 +11,7 @@
 					"p_pwd_keyvalt": "db2"
 				}
 			},
-			"GP_SKIP_YN": {
+			"G_SKIP_YN": {
 				"type": "bool",
 				"value": false
 			},
