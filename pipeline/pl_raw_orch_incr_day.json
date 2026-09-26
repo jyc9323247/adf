@@ -503,7 +503,8 @@
 		],
 		"parameters": {
 			"p_run_group_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "TEST_DAILY_INCR_D3"
 			},
 			"p_scheduled_time": {
 				"type": "String"
