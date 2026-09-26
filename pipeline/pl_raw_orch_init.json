@@ -835,7 +835,7 @@
 		"parameters": {
 			"p_init_load_group": {
 				"type": "String",
-				"defaultValue": "INIT_FULL_TEST"
+				"defaultValue": "INIT_TEST_CLYM_YEAR"
 			},
 			"p_run_group_nm": {
 				"type": "String"
