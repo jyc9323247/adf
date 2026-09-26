@@ -213,22 +213,28 @@
 		],
 		"parameters": {
 			"p_child_pipeline_nm": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "pl_raw_ingest_db2_xmeta"
 			},
 			"p_landing_path": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "test"
 			},
 			"p_file_name": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "test.par"
 			},
 			"p_extract_query": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "select * from db2inst1.lineitem limit 1;"
 			},
 			"p_ingest_pipeline_id": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "33"
 			},
 			"p_master_run_id": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "33"
 			}
 		},
 		"variables": {
