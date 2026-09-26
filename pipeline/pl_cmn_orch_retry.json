@@ -1,0 +1,287 @@
+{
+	"name": "pl_cmn_orch_retry",
+	"properties": {
+		"description": "재수행 (v8.3) : 이전 마스터(p_master_run_id)의 실패 수집 행만 같은 master_run_id 로 다시 수행. Start_retry -> ForEach dispatcher -> End_retry -> Upd_init_wait_yn -> Req_end",
+		"activities": [
+			{
+				"name": "Start_retry",
+				"description": "대상 Master 검증 + RUNNING 전환 + 미성공 수집 행 PENDING 초기화 (재시도 0)",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "/* pl_cmn_orch_retry > Script \"Start_retry\" (v8.3)\n   이전 마스터 실행(p_master_run_id)의 미성공 수집 행만 같은 master_run_id 로 다시 수행 (in-place 재수행)\n     같은 master_run_id 를 쓰는 이유 : 파티션 묶음 (master_run_id, target_id) 의 FULL_DELETE_INSERT 를 DBX 가 한 번에 처리하므로\n                                    성공한 파티션은 두고 실패한 파티션만 다시 수집하면 묶음이 완성됨. 경로 · 파일명 · 추출쿼리도 그대로 (실패 파일 덮어쓰기)\n   대상 : 이 Master 의 수집 이력 중 FAILED / RUNNING / PENDING (Master 가 끝난 뒤 남은 RUNNING · PENDING 은 죽은 행). p_target_ids 로 일부만 가능\n   조건 : Master 가 FAILED. RUNNING 으로 남은 Master (ADF 취소 등으로 End_master_run 이 못 돈 경우) 는 p_force_yn = Y 일 때만\n   처리 (한 문장, 실패하면 모두 취소)\n     Master  FAILED -> RUNNING, end_dt / error_log 비움, run_param.retry 배열에 이번 재수행 기록 (run_id, 요청자, 대상, 이전 상태 · 오류)\n     수집 행 -> PENDING, attempt_no + 1, 시작 · 종료 · 건수 · 크기 초기화, 이전 오류는 '[이전 시도 N] ' 로 남김\n     재수집 요청 (REQUEST 실행) : 재수행 대상 Target 의 FAILED 요청 -> RUNNING (Req_end 가 다시 판정)\n   검증 실패 (형변환 오류, 아무것도 바뀌지 않음)\n     RETRY_PARAM_MISSING / RETRY_MASTER_NOT_FOUND:id / RETRY_MASTER_STATUS:id/상태\n     TARGET_NOT_IN_RETRY:ids (지정 target 에 미성공 행 없음) / RETRY_NO_FAILED_CHILD:id (수집 이력 자체가 없음 -> 마스터 재실행)\n     RETRY_CONCURRENT:id (다른 재수행이 먼저 Master 를 RUNNING 으로 바꿈)\n   ADF 동적 식은 p CTE 에만 사용. 주석은 블록 주석만 사용. Script 재시도 = 0 */\nWITH p AS (\n    SELECT NULLIF(trim('@{pipeline().parameters.p_master_run_id}'), '')                      AS master_run_id,\n           NULLIF(trim('@{pipeline().parameters.p_target_ids}'), '')::jsonb                  AS target_ids,\n           upper(COALESCE(NULLIF(trim('@{pipeline().parameters.p_force_yn}'), ''), 'N')) = 'Y' AS force_yn,\n           NULLIF(trim('@{pipeline().parameters.p_requester}'), '')                          AS requester,\n           '@{pipeline().RunId}'::text                                                     AS retry_run_id,\n           '@{pipeline().DataFactory}'::text                                               AS created_by\n),\n/* 대상 Master */\nm AS (\n    SELECT m.master_run_id, m.status\n      FROM adfadm.ctl_master_pipeline_run m\n      JOIN p ON p.master_run_id = m.master_run_id\n),\n/* 지정 target_id */\nreq AS (\n    SELECT DISTINCT x::bigint AS target_id\n      FROM p, jsonb_array_elements_text(COALESCE(p.target_ids, '[]'::jsonb)) x\n),\n/* 재수행 대상 수집 행 : 미성공 (FAILED / 남은 RUNNING · PENDING) */\nf AS (\n    SELECT i.ingest_pipeline_id, i.target_id\n      FROM adfadm.ctl_ingest_pipeline_run i\n      JOIN p ON p.master_run_id = i.master_run_id\n     WHERE i.status IN ('FAILED', 'RUNNING', 'PENDING')\n       AND (p.target_ids IS NULL OR i.target_id IN (SELECT target_id FROM req))\n),\n/* 지정했지만 재수행할 행이 없는 target_id */\nnf AS (\n    SELECT string_agg(r.target_id::text, ',' ORDER BY r.target_id) AS ids\n      FROM req r\n     WHERE NOT EXISTS (SELECT 1 FROM f WHERE f.target_id = r.target_id)\n),\nok AS (\n    SELECT 1 AS ok\n      FROM m, p\n     WHERE (m.status = 'FAILED' OR (p.force_yn AND m.status = 'RUNNING'))\n       AND (SELECT ids FROM nf) IS NULL\n       AND EXISTS (SELECT 1 FROM f)\n),\n/* 1. Master -> RUNNING (동시 재수행 방지 : 갱신 시점 상태로 다시 확인) */\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n       SET status     = 'RUNNING',\n           end_dt     = NULL,\n           error_log  = NULL,\n           run_param  = COALESCE(m.run_param, '{}'::jsonb)\n                        || jsonb_build_object('retry',\n                               COALESCE(m.run_param -> 'retry', '[]'::jsonb)\n                               || jsonb_build_array(jsonb_strip_nulls(jsonb_build_object(\n                                      'run_id',      p.retry_run_id,\n                                      'dt',          to_char(now() AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI:SS'),\n                                      'requester',   p.requester,\n                                      'target_ids',  p.target_ids,\n                                      'child_cnt',   (SELECT count(*) FROM f),\n                                      'prev_status', m.status,\n                                      'prev_error',  left(m.error_log, 500))))),\n           updated_by = p.created_by,\n           updated_dt = now()\n      FROM p\n     WHERE m.master_run_id = p.master_run_id\n       AND EXISTS (SELECT 1 FROM ok)\n       AND (m.status = 'FAILED' OR (p.force_yn AND m.status = 'RUNNING'))\n    RETURNING m.master_run_id\n),\n/* 2. 수집 행 -> PENDING (attempt_no + 1) */\nupd AS (\n    UPDATE adfadm.ctl_ingest_pipeline_run i\n       SET status                 = 'PENDING',\n           attempt_no             = i.attempt_no + 1,\n           ingest_pipeline_run_id = NULL,\n           start_dt               = NULL,\n           end_dt                 = NULL,\n           extract_cnt            = 0,\n           save_cnt               = 0,\n           file_size_mb           = 0,\n           read_size_mb           = 0,\n           error_log              = CASE WHEN i.error_log IS NULL THEN NULL\n                                         ELSE left('[이전 시도 ' || i.attempt_no || '] ' || i.error_log, 4000) END,\n           updated_by             = p.created_by,\n           updated_dt             = now()\n      FROM f, p\n     WHERE i.ingest_pipeline_id = f.ingest_pipeline_id\n       AND EXISTS (SELECT 1 FROM mst)\n    RETURNING i.ingest_pipeline_id, i.master_run_id, i.ingest_pipeline_nm, i.extract_query, i.landing_path, i.file_name,\n              i.sink_table_full_nm, i.target_id, i.run_type_cd, i.src_db_nm, i.src_schema_nm, i.src_table_nm,\n              i.cdc_tgt_db_nm, i.cdc_tgt_schema_nm, i.sink_type_cd, i.load_method_cd, i.partition_value, i.partition_cnt,\n              i.attempt_no, i.status\n),\n/* 3. 재수집 요청 (REQUEST 실행) : 재수행 Target 의 FAILED 요청 -> RUNNING */\nrq AS (\n    UPDATE adfadm.ctl_refresh_request q\n       SET status     = 'RUNNING',\n           done_dt    = NULL,\n           error_log  = NULL,\n           updated_by = p.created_by,\n           updated_dt = now()\n      FROM p\n     WHERE q.master_run_id = p.master_run_id\n       AND q.status = 'FAILED'\n       AND q.target_id IN (SELECT target_id FROM f)\n       AND EXISTS (SELECT 1 FROM mst)\n    RETURNING q.request_id\n)\n/* ForEach 입력 (검증 실패 시 chk 형변환 오류로 문장 전체 취소) */\nSELECT u.ingest_pipeline_id,\n       u.master_run_id,\n       u.ingest_pipeline_nm,\n       u.extract_query,\n       COALESCE(u.landing_path, '')       AS landing_path,\n       COALESCE(u.file_name, '')          AS file_name,\n       COALESCE(u.sink_table_full_nm, '') AS sink_table_full_nm,\n       u.target_id, u.run_type_cd, u.src_db_nm, u.src_schema_nm, u.src_table_nm, u.cdc_tgt_db_nm, u.cdc_tgt_schema_nm,\n       u.sink_type_cd, u.load_method_cd, u.partition_value, u.partition_cnt, u.attempt_no, u.status,\n       (SELECT count(*) FROM rq) AS request_reset_cnt,\n       CASE WHEN (SELECT master_run_id FROM p) IS NULL\n            THEN ('RETRY_PARAM_MISSING:p_master_run_id' || (SELECT COALESCE(master_run_id, '') FROM p))::int\n            WHEN (SELECT count(*) FROM m) = 0\n            THEN ('RETRY_MASTER_NOT_FOUND:' || (SELECT master_run_id FROM p))::int\n            WHEN (SELECT NOT (m.status = 'FAILED' OR (p.force_yn AND m.status = 'RUNNING')) FROM m, p)\n            THEN ('RETRY_MASTER_STATUS:' || (SELECT m.master_run_id || '/' || m.status FROM m))::int\n            WHEN (SELECT ids FROM nf) IS NOT NULL\n            THEN ('TARGET_NOT_IN_RETRY:' || (SELECT ids FROM nf))::int\n            WHEN NOT EXISTS (SELECT 1 FROM f)\n            THEN ('RETRY_NO_FAILED_CHILD:' || (SELECT master_run_id FROM p))::int\n            WHEN NOT EXISTS (SELECT 1 FROM mst)\n            THEN ('RETRY_CONCURRENT:' || (SELECT master_run_id FROM p))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) d\n  LEFT JOIN upd u ON TRUE\n ORDER BY u.target_id, u.partition_value;\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "Filter_retry_rows",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Start_retry",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(greater(length(activity('Start_retry').output.resultSets), 0), activity('Start_retry').output.resultSets[0].rows, json('[]'))",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().status, 'PENDING')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ForEach_child_ingest",
+				"description": "재수행 대상 수집 행별 자식 수집 파이프라인 호출 (원래 master_run_id 로)",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Filter_retry_rows",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Filter_retry_rows').output.Value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 8,
+					"activities": [
+						{
+							"name": "pipeline_dispatcher_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_dispatcher_ingest",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_child_pipeline_nm": {
+										"value": "@item().ingest_pipeline_nm",
+										"type": "Expression"
+									},
+									"p_landing_path": {
+										"value": "@item().landing_path",
+										"type": "Expression"
+									},
+									"p_file_name": {
+										"value": "@item().file_name",
+										"type": "Expression"
+									},
+									"p_extract_query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									},
+									"p_ingest_pipeline_id": {
+										"value": "@item().ingest_pipeline_id",
+										"type": "Expression"
+									},
+									"p_master_run_id": {
+										"value": "@item().master_run_id",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "End_retry",
+				"description": "대상 Master 상태 재집계 + run_param.retry 결과 기록",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach_child_ingest",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "/* End_retry : ForEach 완료 시 (성공 / 실패 모두). 대상 Master 전체 수집 이력으로 상태 재집계 (이전 성공 행 포함)\n   종료 시점에 RUNNING / PENDING 으로 남은 수집 행은 실패로 집계. run_param.retry 마지막 항목에 결과 기록 */\nWITH c AS (\n    SELECT count(*)                                                        AS total_cnt,\n           count(*) FILTER (WHERE status = 'SUCCEEDED')                    AS succ_cnt,\n           count(*) FILTER (WHERE status IN ('FAILED','RUNNING','PENDING')) AS fail_cnt\n      FROM adfadm.ctl_ingest_pipeline_run\n     WHERE master_run_id = '@{pipeline().parameters.p_master_run_id}'\n       AND status <> 'SKIPPED'\n)\nUPDATE adfadm.ctl_master_pipeline_run m\n   SET child_total_cnt = c.total_cnt,\n       child_succ_cnt  = c.succ_cnt,\n       child_fail_cnt  = c.fail_cnt,\n       status          = CASE WHEN c.fail_cnt = 0 THEN 'SUCCEEDED' ELSE 'FAILED' END,\n       error_log       = CASE WHEN c.fail_cnt = 0 THEN m.error_log\n                              ELSE '수집 실패 ' || c.fail_cnt || '건 (ctl_ingest_pipeline_run 확인)' END,\n       end_dt          = now(),\n       run_param       = CASE WHEN m.run_param -> 'retry' IS NULL THEN m.run_param\n                              ELSE jsonb_set(m.run_param, '{retry,-1,result}',\n                                             to_jsonb(CASE WHEN c.fail_cnt = 0 THEN 'SUCCEEDED' ELSE 'FAILED' END)) END,\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n  FROM c\n WHERE m.master_run_id = '@{pipeline().parameters.p_master_run_id}'\n   AND m.status = 'RUNNING';\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "Upd_init_wait_yn",
+				"description": "INIT_LOAD / FULL_REFRESH 전체 수집 성공 Target -> init_wait_yn = N (해당 없으면 0건)",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "End_retry",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "/* Upd_init_wait_yn (재수행) : 대상 Master 기준. INIT_LOAD / FULL_REFRESH 수집(전체 파일)이 모두 SUCCEEDED 인 Target 의 init_wait_yn 을 N 으로 변경\n   대상 : 이 실행(master_run_id)의 수집 이력 중 run_type_cd IN (INIT_LOAD, FULL_REFRESH), SKIPPED 제외\n          Target 별로 파티션 행 전체가 SUCCEEDED 일 때만 (하나라도 FAILED / RUNNING / PENDING 이면 유지 = Y)\n          PARTIAL_REFRESH 는 전체 수집이 아니므로 제외. 이미 N 인 Target(FULL_REFRESH) 은 변경 없음\n   ADF 수집(GEN2 저장) 기준. DBX 적재 결과와 무관. ADF 동적 식은 p 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT '@{pipeline().parameters.p_master_run_id}'::text        AS master_run_id,\n           '@{pipeline().DataFactory}'::text  AS created_by\n),\nt AS (\n    SELECT i.target_id\n      FROM adfadm.ctl_ingest_pipeline_run i\n      JOIN p ON p.master_run_id = i.master_run_id\n     WHERE i.run_type_cd IN ('INIT_LOAD', 'FULL_REFRESH')\n       AND i.status <> 'SKIPPED'\n     GROUP BY i.target_id\n    HAVING count(*) = count(*) FILTER (WHERE i.status = 'SUCCEEDED')\n),\nu AS (\n    UPDATE adfadm.ctl_ingest_target_master m\n       SET init_wait_yn = 'N',\n           updated_by   = p.created_by,\n           updated_dt   = now()\n      FROM t, p\n     WHERE m.target_id = t.target_id\n       AND m.init_wait_yn = 'Y'\n       AND m.delete_yn = 'N'\n    RETURNING m.target_id\n)\nSELECT count(*)                                        AS init_done_cnt,\n       COALESCE(string_agg(target_id::text, ',' ORDER BY target_id), '') AS init_done_ids\n  FROM u;\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "Req_end",
+				"description": "재수집 요청 종료 / 기준값 갱신 (REQUEST · FULL_REFRESH 실행일 때만, 그 외 0건)",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "End_retry",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed",
+							"Skipped"
+						]
+					},
+					{
+						"activity": "Upd_init_wait_yn",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed",
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "/* pl_cmn_orch_retry > Script \"Req_end\" (대상 Master 기준, pl_raw_orch_init 의 Req_end 와 같은 로직) (v8.3 개정, adf_script_v83_request_end.sql)\n   End_master_run / Fail_master_run 등 앞 단계가 모두 끝난 뒤 실행. 해당 없는 실행에서는 대상 0건\n   A. REQUEST 실행 : 이 실행이 확보한 RUNNING 요청 -> DONE (Target 의 수집 이력 모두 SUCCEEDED) / FAILED. DONE 이면 요청 파티션의 기준값을 요청을 만든 체크 값으로 갱신\n   B. FULL_REFRESH 실행 : FULL_REFRESH 수집이 모두 성공한 Target -> FULL 권고(HOLD) DONE, 기준값 교체, 같은 Target 의 PENDING 부분 요청 CANCELED\n   ADF 수집(GEN2 저장) 기준. ADF 동적 식은 p 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT '@{pipeline().parameters.p_master_run_id}'::text        AS master_run_id,\n           '@{pipeline().DataFactory}'::text  AS created_by\n),\n\n/* A. REQUEST 실행 : 이 실행이 확보한 요청 */\nreq AS (\n    SELECT q.*\n      FROM adfadm.ctl_refresh_request q JOIN p ON p.master_run_id = q.master_run_id\n     WHERE q.status = 'RUNNING'\n),\n\n/* Target 별 수집 결과 */\nres AS (\n    SELECT r.target_id,\n           count(i.ingest_pipeline_id)                                       AS total_cnt,\n           count(i.ingest_pipeline_id) FILTER (WHERE i.status = 'SUCCEEDED') AS succ_cnt\n      FROM (SELECT DISTINCT target_id FROM req) r\n      CROSS JOIN p\n      LEFT JOIN adfadm.ctl_ingest_pipeline_run i\n             ON i.master_run_id = p.master_run_id AND i.target_id = r.target_id AND i.status <> 'SKIPPED'\n     GROUP BY r.target_id\n),\n\n/* 요청 상태 갱신 */\nupd AS (\n    UPDATE adfadm.ctl_refresh_request q\n       SET status     = CASE WHEN s.total_cnt > 0 AND s.succ_cnt = s.total_cnt THEN 'DONE' ELSE 'FAILED' END,\n           done_dt    = now(),\n           error_log  = CASE WHEN s.total_cnt > 0 AND s.succ_cnt = s.total_cnt THEN NULL\n                            WHEN s.total_cnt = 0 THEN '수집 이력 없음 (Start_ingest_pipeline Script 실패 확인)'\n                            ELSE '수집 실패 ' || (s.total_cnt - s.succ_cnt) || '건 / ' || s.total_cnt || '건' END,\n           updated_by = p.created_by,\n           updated_dt = now()\n      FROM res s, p\n     WHERE q.request_id IN (SELECT request_id FROM req) AND q.target_id = s.target_id\n    RETURNING q.request_id, q.target_id, q.status\n),\n\n/* 기준값 대상 : DONE 된 정합성 요청의 파티션 + 그 체크의 값 (Target, 파티션별 최신 요청 1건) */\nbase AS (\n    SELECT DISTINCT ON (q.target_id, x.pv)\n           q.target_id, x.pv, q.check_run_id, v.row_cnt, v.max_val, v.hash_val,\n           (v.row_cnt IS NOT NULL) AS exists_yn\n      FROM req q\n      JOIN res s ON s.target_id = q.target_id AND s.total_cnt > 0 AND s.succ_cnt = s.total_cnt\n      CROSS JOIN LATERAL (SELECT COALESCE(e, '(NULL)') AS pv\n                            FROM jsonb_array_elements_text(q.partition_val) e) x\n      LEFT JOIN adfadm.ctl_partition_check c\n             ON c.master_run_id = q.check_run_id AND c.target_id = q.target_id\n      LEFT JOIN LATERAL (SELECT r.row_cnt, r.max_val, r.hash_val\n                           FROM jsonb_to_recordset(c.result_json) AS r(part_key text, row_cnt bigint, max_val text, hash_val text)\n                          WHERE COALESCE(r.part_key, '(NULL)') = x.pv) v ON TRUE\n     WHERE q.request_src_cd = 'INTEGRITY' AND q.check_run_id IS NOT NULL\n     ORDER BY q.target_id, x.pv, q.requested_dt DESC, q.request_id DESC\n),\n\n/* B. FULL_REFRESH 실행 : 이 실행에서 FULL_REFRESH 수집이 모두 성공한 Target */\nfull_tgt AS (\n    SELECT i.target_id\n      FROM adfadm.ctl_ingest_pipeline_run i JOIN p ON p.master_run_id = i.master_run_id\n     WHERE i.run_type_cd = 'FULL_REFRESH' AND i.status <> 'SKIPPED'\n     GROUP BY i.target_id\n    HAVING count(*) = count(*) FILTER (WHERE i.status = 'SUCCEEDED')\n),\n\n/* 그 Target 의 FULL 권고 중 가장 최근 1건 (기준값 교체용 체크) */\nfull_hold AS (\n    SELECT DISTINCT ON (q.target_id) q.target_id, q.check_run_id, c.result_json, c.check_to_key\n      FROM adfadm.ctl_refresh_request q\n      JOIN full_tgt f ON f.target_id = q.target_id\n      JOIN adfadm.ctl_partition_check c ON c.master_run_id = q.check_run_id AND c.target_id = q.target_id\n     WHERE q.status = 'HOLD' AND q.refresh_type_cd = 'FULL_REFRESH' AND q.request_src_cd = 'INTEGRITY'\n     ORDER BY q.target_id, q.requested_dt DESC, q.request_id DESC\n),\n\n/* FULL 권고 DONE, 부분 재수집 대기 요청 CANCELED */\nfull_upd AS (\n    UPDATE adfadm.ctl_refresh_request q\n       SET status        = CASE WHEN q.status = 'HOLD' THEN 'DONE' ELSE 'CANCELED' END,\n           master_run_id = CASE WHEN q.status = 'HOLD' THEN p.master_run_id ELSE q.master_run_id END,\n           done_dt       = CASE WHEN q.status = 'HOLD' THEN now() ELSE q.done_dt END,\n           error_log     = CASE WHEN q.status = 'HOLD' THEN NULL\n                                ELSE 'FULL_REFRESH 로 대체 (' || p.master_run_id || ')' END,\n           updated_by    = p.created_by,\n           updated_dt    = now()\n      FROM p\n     WHERE q.target_id IN (SELECT target_id FROM full_tgt)\n       AND q.request_src_cd = 'INTEGRITY'\n       AND (   (q.status = 'HOLD' AND q.refresh_type_cd = 'FULL_REFRESH')\n            OR (q.status = 'PENDING' AND q.refresh_type_cd = 'PARTIAL_REFRESH'))\n    RETURNING q.request_id, q.status\n),\n\n/* FULL 기준값 : 체크 값 전체 */\nfull_cur AS (\n    SELECT h.target_id, h.check_run_id, h.check_to_key,\n           COALESCE(x.part_key, '(NULL)') AS pv, x.row_cnt, x.max_val, x.hash_val\n      FROM full_hold h\n      CROSS JOIN LATERAL jsonb_to_recordset(h.result_json) AS x(part_key text, row_cnt bigint, max_val text, hash_val text)\n),\n\n/* 기준값 반영 (A + B, Target 이 겹치지 않음) */\nbase_up AS (\n    INSERT INTO adfadm.ctl_partition_state\n          (target_id, partition_value, row_cnt, max_val, hash_val, check_run_id, collect_run_id, created_by)\n    SELECT b.target_id, b.pv, b.row_cnt, b.max_val, b.hash_val, b.check_run_id, p.master_run_id, p.created_by\n      FROM base b CROSS JOIN p\n     WHERE b.exists_yn\n    UNION ALL\n    SELECT f.target_id, f.pv, f.row_cnt, f.max_val, f.hash_val, f.check_run_id, p.master_run_id, p.created_by\n      FROM full_cur f CROSS JOIN p\n    ON CONFLICT (target_id, partition_value) DO UPDATE\n       SET row_cnt = EXCLUDED.row_cnt, max_val = EXCLUDED.max_val, hash_val = EXCLUDED.hash_val,\n           check_run_id = EXCLUDED.check_run_id, collect_run_id = EXCLUDED.collect_run_id,\n           updated_by = EXCLUDED.created_by, updated_dt = now()\n    RETURNING target_id\n),\nbase_del AS (\n    DELETE FROM adfadm.ctl_partition_state s\n     WHERE EXISTS (SELECT 1 FROM base b\n                    WHERE NOT b.exists_yn AND s.target_id = b.target_id AND s.partition_value = b.pv)\n        OR EXISTS (SELECT 1 FROM full_hold h\n                    WHERE h.target_id = s.target_id\n                      AND (   h.check_to_key IS NULL OR s.partition_value = '(NULL)'\n                           OR s.partition_value COLLATE \"C\" < h.check_to_key COLLATE \"C\")\n                      AND NOT EXISTS (SELECT 1 FROM full_cur f\n                                       WHERE f.target_id = s.target_id AND f.pv = s.partition_value))\n    RETURNING s.target_id\n)\nSELECT (SELECT count(*) FROM upd)                              AS request_cnt,\n       (SELECT count(*) FROM upd WHERE status = 'DONE')        AS done_cnt,\n       (SELECT count(*) FROM upd WHERE status = 'FAILED')      AS failed_cnt,\n       (SELECT count(*) FROM full_upd WHERE status = 'DONE')   AS full_done_cnt,\n       (SELECT count(*) FROM full_upd WHERE status = 'CANCELED') AS full_canceled_cnt,\n       (SELECT count(*) FROM base_up)                          AS state_upsert_cnt,\n       (SELECT count(*) FROM base_del)                         AS state_delete_cnt;\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "Failed_Child_Ingest_run",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "ForEach_child_ingest",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@{pipeline().Pipeline} 재수행 중 Child Ingest Pipeline 수행 장애발생 (대상 Master : @{pipeline().parameters.p_master_run_id})",
+						"type": "Expression"
+					},
+					"errorCode": "-1"
+				}
+			}
+		],
+		"parameters": {
+			"p_master_run_id": {
+				"type": "String"
+			},
+			"p_target_ids": {
+				"type": "String"
+			},
+			"p_force_yn": {
+				"type": "String"
+			},
+			"p_requester": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "util/sop"
+		},
+		"annotations": []
+	}
+}
