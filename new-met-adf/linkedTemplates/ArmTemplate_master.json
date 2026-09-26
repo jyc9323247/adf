@@ -103,6 +103,18 @@
 			"type": "string",
 			"defaultValue": "adfadm"
 		},
+		"every_mon_to_sat_properties_pipeline1_parameters_a": {
+			"type": "string",
+			"defaultValue": "dd"
+		},
+		"every_n_min_properties_pipeline1_copy1_parameters_a": {
+			"type": "string",
+			"defaultValue": "abc"
+		},
+		"every_n_min_properties_pipeline1_parameters_a": {
+			"type": "string",
+			"defaultValue": "ddd"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
@@ -219,6 +231,15 @@
 					},
 					"Odbc1_properties_typeProperties_userName": {
 						"value": "[parameters('Odbc1_properties_typeProperties_userName')]"
+					},
+					"every_mon_to_sat_properties_pipeline1_parameters_a": {
+						"value": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
+					},
+					"every_n_min_properties_pipeline1_copy1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
+					},
+					"every_n_min_properties_pipeline1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
 					}
 				}
 			},

@@ -76,6 +76,15 @@
 		},
 		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
 			"value": "adfadm"
+		},
+		"every_mon_to_sat_properties_pipeline1_parameters_a": {
+			"value": "dd"
+		},
+		"every_n_min_properties_pipeline1_copy1_parameters_a": {
+			"value": "abc"
+		},
+		"every_n_min_properties_pipeline1_parameters_a": {
+			"value": "ddd"
 		}
 	}
 }

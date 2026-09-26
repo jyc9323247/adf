@@ -11,5 +11,9 @@
 	"G_SKIP_YN": {
 		"type": "bool",
 		"value": false
+	},
+	"gp_pipeline_run_skip": {
+		"type": "bool",
+		"value": false
 	}
 }

@@ -102,6 +102,18 @@
 		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "adfadm"
+		},
+		"every_mon_to_sat_properties_pipeline1_parameters_a": {
+			"type": "string",
+			"defaultValue": "dd"
+		},
+		"every_n_min_properties_pipeline1_copy1_parameters_a": {
+			"type": "string",
+			"defaultValue": "abc"
+		},
+		"every_n_min_properties_pipeline1_parameters_a": {
+			"type": "string",
+			"defaultValue": "ddd"
 		}
 	},
 	"variables": {
@@ -1603,6 +1615,252 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/master_pipeline_full_with_skip_copy1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set variable cur dt",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline_Script_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pv_yyyyMMddHHmmss",
+							"value": {
+								"value": "@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline_Script",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Set variable cur dt",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "-- ============================================================================\n-- FULL 전용 수집 스크립트 : pl_raw_orch_full > Script \"Start_ingest_pipeline Script\"\n--   흐름 : Script -> Filter Not Skipped -> ForEach Child Ingest -> pl_dispatcher_ingest (파라미터 6개 그대로)\n--\n--   대상   : Run Group(p_run_group_nm) 중 실행유형 FULL (그룹 job_type_cd = RAW_FULL / META_FULL)\n--            p_target_ids 로 일부만 수동 실행 가능 (예: [1001,1002])\n--            삭제 · 초기적재 대기 · 비활성 그룹/규칙 Target 은 vw_ingest_exec_target 에서 제외됨\n--   파티션 : 사용 안 함 (Target 당 1행). FULL_REFRESH / PARTIAL_REFRESH 는 별도 스크립트\n--   적재방식 : GEN2 = FULL_DELETE_INSERT, TABLE Sink = NULL\n--\n--   CDC 규칙\n--     추출 위치 (쿼리 스키마, 자식 파이프라인 DB) = COALESCE(NULLIF(cdc_tgt_*, ''), src_*)\n--     GEN2 파일명                               = src_* (CDC 소스)\n--     ※ CDC 타겟 테이블명은 소스와 같다고 전제\n--\n--   GEN2 경로 · 파일명 (Target 별)\n--     master 값이 있으면 그 값 사용 (토큰 치환), 없으면(NULL / 공백) 스크립트가 조립\n--     landing_path\n--       있음 : 토큰 치환 {batch_date} {batch_hour} {pipeline_nm}\n--       없음 : {data_class 소문자}/batch_date=YYYYMMDD/batch_hour=HH/pipeline_name={자식 파이프라인명}\n--     file_nm_template\n--       있음 : 토큰 치환 {src_db} {schema} {table} {part}(FULL 은 '') {ts}\n--       없음 : {src_db}.{src_schema}.{src_table}.{YYYYMMDDHHMISS}.parquet\n--\n--   선행 조건\n--     - ctl_ingest_target_master / ctl_ingest_pipeline_run 에 cdc_tgt_db_nm, cdc_tgt_schema_nm 컬럼\n--       (adf_meta_alter_v83_cdc_tgt.sql)\n--     - ctl_master_pipeline_run 에 이번 RunId 행 (FK)\n--\n--   ADF 동적 식은 p CTE 에만 사용\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                  AS master_run_id,\n           '@{pipeline().parameters.p_run_group_nm}'::text               AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb    AS target_ids,\n           '@{variables('pv_yyyyMMddHHmmss')}'::text                     AS batch_str,\n           '@{if(pipeline().globalParameters.gp_pipeline_run_skip, 'Y', 'N')}'::text AS skip_yn,\n           '@{pipeline().DataFactory}'::text                             AS created_by\n),\n-- ① 대상 + 추출 위치\nt0 AS (\n    SELECT e.run_group_id, e.run_rule_id, m.*,\n           COALESCE(NULLIF(trim(m.cdc_tgt_db_nm), ''),     m.src_db_nm)     AS ext_db_nm,\n           COALESCE(NULLIF(trim(m.cdc_tgt_schema_nm), ''), m.src_schema_nm) AS ext_schema_nm,\n           NULLIF(trim(m.landing_path), '')     AS landing_path_in,\n           NULLIF(trim(m.file_nm_template), '') AS file_nm_template_in\n      FROM p\n      JOIN adfadm.vw_ingest_exec_target    e ON e.run_group_nm = p.run_group_nm\n      JOIN adfadm.ctl_ingest_target_master m ON m.target_id = e.target_id\n     WHERE e.run_type_cd = 'FULL'\n       AND (p.target_ids IS NULL\n            OR e.target_id IN (SELECT jsonb_array_elements_text(p.target_ids)::bigint))\n),\n-- ② 자식 파이프라인명 · 경로 · 파일명\nt AS (\n    SELECT t0.*, x.pl_nm,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.landing_path_in IS NOT NULL THEN\n                     replace(replace(replace(t0.landing_path_in,\n                        '{batch_date}',  left(p.batch_str, 8)),\n                        '{batch_hour}',  substr(p.batch_str, 9, 2)),\n                        '{pipeline_nm}', x.pl_nm)\n                ELSE lower(t0.data_class)\n                     || '/batch_date='    || left(p.batch_str, 8)\n                     || '/batch_hour='    || substr(p.batch_str, 9, 2)\n                     || '/pipeline_name=' || x.pl_nm\n           END AS landing_path_out,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.file_nm_template_in IS NOT NULL THEN\n                     replace(replace(replace(replace(replace(t0.file_nm_template_in,\n                        '{src_db}', t0.src_db_nm), '{schema}', t0.src_schema_nm), '{table}', t0.src_table_nm),\n                        '{part}', ''), '{ts}', p.batch_str)\n                ELSE t0.src_db_nm || '.' || t0.src_schema_nm || '.' || t0.src_table_nm\n                     || '.' || p.batch_str || '.parquet'\n           END AS file_name_out\n      FROM t0 CROSS JOIN p\n      -- 자식 파이프라인명 : pl_{data_class}_ingest_{src_type}_{추출 DB}  예) pl_raw_ingest_db2_MLCRP\n      CROSS JOIN LATERAL (SELECT 'pl_' || lower(t0.data_class) || '_ingest_' || lower(t0.src_type)\n                                 || '_' || upper(t0.ext_db_nm) AS pl_nm) x\n),\n-- ③ 수집 이력 PENDING / SKIPPED 생성\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n          (master_run_id, run_group_id, run_rule_id, target_id, ingest_pipeline_nm, run_type_cd,\n           sink_type_cd, load_method_cd,\n           src_type, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm, data_class,\n           extract_query, landing_path, file_name, sink_table_full_nm, status, created_by)\n    SELECT p.master_run_id, t.run_group_id, t.run_rule_id, t.target_id, t.pl_nm, 'FULL',\n           t.sink_type_cd,\n           CASE WHEN t.sink_type_cd = 'GEN2' THEN 'FULL_DELETE_INSERT' END,\n           t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n           NULLIF(trim(t.cdc_tgt_db_nm), ''), NULLIF(trim(t.cdc_tgt_schema_nm), ''), t.data_class,\n           -- 추출쿼리 : 템플릿 우선({WHERE} -> 1=1), 없으면 SELECT * (추출 위치 스키마)\n           CASE WHEN NULLIF(trim(t.src_query_template), '') IS NOT NULL\n                THEN replace(t.src_query_template, '{WHERE}', '1=1')\n                ELSE 'SELECT * FROM ' || t.ext_schema_nm || '.' || t.src_table_nm\n                     || CASE upper(t.src_type) WHEN 'DB2'   THEN ' WITH UR'\n                                               WHEN 'MSSQL' THEN ' WITH (NOLOCK)'\n                                               ELSE '' END\n           END,\n           t.landing_path_out,\n           t.file_name_out,\n           CASE WHEN t.sink_type_cd = 'TABLE' THEN concat_ws('.', t.sink_db_nm, t.sink_schema_nm, t.sink_table_nm) END,\n           CASE p.skip_yn WHEN 'Y' THEN 'SKIPPED' ELSE 'PENDING' END,\n           p.created_by\n      FROM t CROSS JOIN p\n    RETURNING ingest_pipeline_id, master_run_id, ingest_pipeline_nm, extract_query, landing_path, file_name,\n              sink_table_full_nm, target_id, src_db_nm, src_schema_nm, src_table_nm,\n              cdc_tgt_db_nm, cdc_tgt_schema_nm, sink_type_cd, load_method_cd, status\n)\n-- ④ ForEach 입력. Filter Not Skipped : @not(equals(item().status, 'SKIPPED'))\nSELECT ingest_pipeline_id,                                  -- p_ingest_pipeline_id\n       master_run_id,                                       -- p_master_run_id\n       ingest_pipeline_nm,                                  -- p_child_pipeline_nm\n       extract_query,                                       -- p_extract_query\n       COALESCE(landing_path, '')       AS landing_path,    -- p_landing_path (TABLE Sink 는 '')\n       COALESCE(file_name, '')          AS file_name,       -- p_file_name    (TABLE Sink 는 '')\n       COALESCE(sink_table_full_nm, '') AS sink_table_full_nm,\n       target_id, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm,\n       sink_type_cd, load_method_cd, status\n  FROM ins\n ORDER BY src_db_nm, src_schema_nm, src_table_nm;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "ForEach Child Ingest",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter Not Skipped",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter Not Skipped').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 2,
+							"activities": [
+								{
+									"name": "pipeline_dispatcher_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Filter Not Skipped",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline_Script",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().status, 'PENDING')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline_Script_copy1",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "-- ============================================================================\n-- pl_raw_orch_full > Script \"Ins_master_run\" (FULL 수집 첫 활동)\n--   ctl_master_pipeline_run 에 이번 실행을 PENDING 으로 등록\n--     -> Start_ingest_pipeline Script (수집 이력 생성 + Master RUNNING 전환)\n--     -> ForEach -> 종료 Script (SUCCEEDED / FAILED)\n--\n--   진입 구분 : 그룹에 스케줄이 있고 수동 실행(Manual)이 아니면 SCHEDULE, 그 외 MANUAL\n--   그룹명이 틀리거나 비활성이면 행이 만들어지지 않고 에러 (아래 검증)\n--   같은 RunId 재실행 시 무시 (ON CONFLICT)\n--   선행 : ck_master_status 에 PENDING 추가 (adf_meta_alter_v83_cdc_tgt.sql)\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                  AS master_run_id,\n           '@{pipeline().Pipeline}'::text                                AS pipeline_nm,\n           '@{pipeline().parameters.p_run_group_nm}'::text               AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb    AS target_ids,\n           '@{pipeline().TriggerType}'::text                             AS trigger_type,   -- Manual / ScheduleTrigger / PipelineActivity ...\n           '@{pipeline().TriggerName}'::text                             AS trigger_nm,\n           '@{pipeline().DataFactory}'::text                             AS created_by\n),\ng AS (\n    SELECT p.*, g.run_group_id, g.schedule_id,\n           (g.schedule_id IS NOT NULL AND p.trigger_type <> 'Manual') AS sch_yn\n      FROM p\n      JOIN adfadm.ctl_ingest_run_group g\n        ON g.run_group_nm = p.run_group_nm\n       AND g.enabled_yn = 'Y'\n       AND g.job_type_cd IN ('RAW_FULL', 'META_FULL')      -- FULL 전용 마스터\n),\nins AS (\n    INSERT INTO adfadm.ctl_master_pipeline_run\n          (master_run_id, master_pipeline_nm, trigger_type_cd, adf_trigger_nm, schedule_id, run_group_id,\n           run_param, status, created_by)\n    SELECT g.master_run_id, g.pipeline_nm,\n           CASE WHEN g.sch_yn THEN 'SCHEDULE' ELSE 'MANUAL' END,\n           NULLIF(g.trigger_nm, ''),\n           CASE WHEN g.sch_yn THEN g.schedule_id END,\n           g.run_group_id,\n           jsonb_strip_nulls(jsonb_build_object('target_ids', g.target_ids)),\n           'PENDING',\n           g.created_by\n      FROM g\n    ON CONFLICT (master_run_id) DO NOTHING\n    RETURNING master_run_id, trigger_type_cd, schedule_id, run_group_id, status\n)\nSELECT i.master_run_id, i.trigger_type_cd, i.schedule_id, i.run_group_id, i.status,\n       -- 그룹명 오류 · 비활성 · FULL 그룹 아님 -> 형변환 오류로 활동 실패 (메시지에 그룹명 표시)\n       CASE WHEN (SELECT count(*) FROM g) = 0\n            THEN ('RUN_GROUP_NOT_FOUND_OR_NOT_FULL:' || (SELECT run_group_nm FROM p))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) d\n  LEFT JOIN ins i ON TRUE;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_run_group_nm": {
+						"type": "string",
+						"defaultValue": "iwp_a_full_daily_6pm"
+					},
+					"p_target_ids": {
+						"type": "string"
+					},
+					"p_schedule_id": {
+						"type": "string"
+					},
+					"p_trigger_nm": {
+						"type": "string"
+					},
+					"p_scheduled_time": {
+						"type": "string"
+					},
+					"p_base_biz_dt": {
+						"type": "string"
+					},
+					"p_parallel": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"pv_yyyyMMddHHmmss": {
+						"type": "String"
+					},
+					"pv_data_class": {
+						"type": "String",
+						"defaultValue": "RAW"
+					},
+					"pv_ingest_type": {
+						"type": "String",
+						"defaultValue": "FULL"
+					},
+					"pv_init_wait_yn": {
+						"type": "String",
+						"defaultValue": "N"
+					},
+					"pv_succeededTotalSizeMb": {
+						"type": "Integer",
+						"defaultValue": 2
+					},
+					"pv_dbx_api_call_yn": {
+						"type": "Boolean",
+						"defaultValue": false
+					}
+				},
+				"folder": {
+					"name": "raw/orchestration"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_dispatcher_ingest')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/master_pipeline_incr_daily_ipdtm')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2017,6 +2275,251 @@
 				"[concat(variables('factoryId'), '/pipelines/pl_ctl_master_pipeline_run')]",
 				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
 				"[concat(variables('factoryId'), '/pipelines/dbx_rest_api_call')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_dispatcher_ingest')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/master_pipeline_incr_daily_ipdtm_copy1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline_Script_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pv_yyyyMMddHHmmss",
+							"value": {
+								"value": "@{formatDateTime(convertFromUtc(utcNow(), 'Korea Standard Time'), 'yyyyMMddHHmmss')}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline_Script",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Set variable1_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "-- ============================================================================\n-- INCR 전용 수집 스크립트 : pl_raw_orch_incr > Script \"Start_ingest_pipeline Script\"\n--   흐름 : Ins_master_run(PENDING) -> Set Variable(pv_incr_from_val) -> 이 Script\n--          -> Filter Not Skipped -> ForEach -> pl_dispatcher_ingest\n--          실패 시 Fail_master_run, ForEach 완료 시 End_master_run (adf_script_v83_master_end.sql)\n--\n--   대상   : Run Group(p_run_group_nm, job_type_cd = RAW_INCR) 의 INCR 대상 (vw_ingest_exec_target)\n--            p_target_ids 로 일부만 수동 실행 가능 (예: [1001,1002])\n--   증분 조건 : 증분컬럼 >= 시작일  (시작일 = pv_incr_from_val, 모든 대상 공통)\n--     pv_incr_from_val : ADF Set Variable. 파라미터 p_incr_from_val 이 있으면 그 값, 없으면 오늘 - N 일\n--                        형식 yyyy-MM-dd 또는 yyyyMMdd\n--     증분컬럼 유형 (master.incr_column_type) · 형식 (master.incr_column_format)\n--       DATE      DB2 : col >= DATE('2026-10-01')             MSSQL : CAST('2026-10-01' AS DATE)\n--                 기타 : col >= DATE '2026-10-01'\n--       TIMESTAMP DB2 : col >= TIMESTAMP('2026-10-01 00:00:00') MSSQL : CAST('2026-10-01 00:00:00' AS DATETIME2)\n--                 기타 : col >= TIMESTAMP '2026-10-01 00:00:00'\n--       STRING  + 형식 : col >= '20261001'  (시작일을 형식대로 변환. YYYYMMDD / YYYY-MM-DD / YYYYMM ...)\n--       NUMERIC + 형식 : col >= 20261001    (숫자형 날짜. 따옴표 없음)\n--       형식은 PostgreSQL to_char 형식 (YYYY MM DD HH24 MI SS)\n--     상한 · HWM 사용 안 함 (incr_to_val = NULL)\n--\n--   DBX 전달 (GEN2)\n--     load_method_cd = master.incr_load_method_cd (UPSERT / RANGE_DELETE_INSERT ...)\n--     RANGE_DELETE_INSERT : range_column_nm = 증분컬럼, range_operator_cd = '>=',\n--                           range_value = [\"YYYYMMDD\"] (월 형식 컬럼은 [\"YYYYMM\"])\n--\n--   CDC / 경로 / 파일명 : FULL 스크립트와 동일\n--     추출 위치 = COALESCE(NULLIF(cdc_tgt_*, ''), src_*), 파일명 = src_*\n--     landing_path 없으면 incr/batch_date=YYYYMMDD/batch_hour=HH/pipeline_name={자식 파이프라인명}\n--     file_nm_template 없으면 {src_db}.{src_schema}.{src_table}.{YYYYMMDDHHMISS}.parquet\n--\n--   즉시 실패 (형변환 오류로 Script 실패 -> 실패 경로에서 Master FAILED)\n--     시작일 없음 / 형식 오류          -> INCR_FROM_VAL_INVALID:값\n--     STRING / NUMERIC 인데 형식 없음  -> INCR_COL_FORMAT_MISSING:target_id\n--     그 외 유형                       -> INCR_COL_TYPE_NOT_SUPPORTED:target_id\n--\n--   Script 재시도 = 0. ADF 동적 식은 p CTE 에만 사용\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                        AS master_run_id,\n           '@{pipeline().parameters.p_run_group_nm}'::text                     AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb          AS target_ids,\n           trim('@{variables('pv_incr_from_val')}')                            AS from_in,     -- yyyy-MM-dd / yyyyMMdd\n           '@{variables('pv_yyyyMMddHHmmss')}'::text                           AS batch_str,\n           '@{if(pipeline().globalParameters.gp_pipeline_run_skip, 'Y', 'N')}'::text AS skip_yn,\n           '@{pipeline().DataFactory}'::text                                   AS created_by\n),\n-- ⓪ 시작일 검증 · 변환\nd AS (\n    SELECT p.*,\n           CASE WHEN p.from_in ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN to_date(p.from_in, 'YYYY-MM-DD')\n                WHEN p.from_in ~ '^[0-9]{8}$'                  THEN to_date(p.from_in, 'YYYYMMDD')\n                ELSE to_date(('INCR_FROM_VAL_INVALID:' || p.from_in)::int::text, 'YYYY')\n           END AS from_dt\n      FROM p\n),\n-- ① 대상 + 추출 위치\nt0 AS (\n    SELECT e.run_group_id, e.run_rule_id, m.*,\n           COALESCE(NULLIF(trim(m.cdc_tgt_db_nm), ''),     m.src_db_nm)     AS ext_db_nm,\n           COALESCE(NULLIF(trim(m.cdc_tgt_schema_nm), ''), m.src_schema_nm) AS ext_schema_nm,\n           NULLIF(trim(m.landing_path), '')     AS landing_path_in,\n           NULLIF(trim(m.file_nm_template), '') AS file_nm_template_in\n      FROM p\n      JOIN adfadm.vw_ingest_exec_target    e ON e.run_group_nm = p.run_group_nm AND e.run_type_cd = 'INCR'\n      JOIN adfadm.ctl_ingest_target_master m ON m.target_id = e.target_id\n     WHERE p.target_ids IS NULL\n        OR e.target_id IN (SELECT jsonb_array_elements_text(p.target_ids)::bigint)\n),\n-- ② 조건 · 자식 파이프라인명 · 경로 · 파일명\nt AS (\n    SELECT t0.*, x.pl_nm,\n           -- 기록용 시작값 : 증분컬럼 형식 (DATE / TIMESTAMP 는 YYYY-MM-DD)\n           CASE WHEN upper(t0.incr_column_type) IN ('STRING','NUMERIC') AND NULLIF(trim(t0.incr_column_format), '') IS NOT NULL\n                THEN to_char(d.from_dt, t0.incr_column_format)\n                ELSE to_char(d.from_dt, 'YYYY-MM-DD') END AS from_val,\n           -- DBX 범위 값 : 월 형식(일 없음) 컬럼은 YYYYMM, 그 외 YYYYMMDD\n           CASE WHEN upper(t0.incr_column_type) IN ('STRING','NUMERIC') AND t0.incr_column_format NOT ILIKE '%DD%'\n                THEN to_char(d.from_dt, 'YYYYMM') ELSE to_char(d.from_dt, 'YYYYMMDD') END AS range_val,\n           t0.incr_column_nm || ' >= ' ||\n           CASE upper(t0.incr_column_type)\n             WHEN 'DATE' THEN\n                  CASE upper(t0.src_type)\n                    WHEN 'DB2'   THEN 'DATE('''  || to_char(d.from_dt, 'YYYY-MM-DD') || ''')'\n                    WHEN 'MSSQL' THEN 'CAST('''  || to_char(d.from_dt, 'YYYY-MM-DD') || ''' AS DATE)'\n                    ELSE              'DATE '''  || to_char(d.from_dt, 'YYYY-MM-DD') || '''' END\n             WHEN 'TIMESTAMP' THEN\n                  CASE upper(t0.src_type)\n                    WHEN 'DB2'   THEN 'TIMESTAMP(''' || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00'')'\n                    WHEN 'MSSQL' THEN 'CAST('''      || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00'' AS DATETIME2)'\n                    ELSE              'TIMESTAMP ''' || to_char(d.from_dt, 'YYYY-MM-DD') || ' 00:00:00''' END\n             -- 문자 · 숫자형 날짜 : 형식대로 변환\n             WHEN 'STRING' THEN\n                  CASE WHEN NULLIF(trim(t0.incr_column_format), '') IS NULL\n                       THEN ('INCR_COL_FORMAT_MISSING:' || t0.target_id)::int::text\n                       ELSE '''' || to_char(d.from_dt, t0.incr_column_format) || '''' END\n             WHEN 'NUMERIC' THEN\n                  CASE WHEN NULLIF(trim(t0.incr_column_format), '') IS NULL\n                       THEN ('INCR_COL_FORMAT_MISSING:' || t0.target_id)::int::text\n                       ELSE to_char(d.from_dt, t0.incr_column_format) END\n             -- 그 외 유형 -> 형변환 오류로 Script 실패\n             ELSE ('INCR_COL_TYPE_NOT_SUPPORTED:' || t0.target_id)::int::text\n           END AS cond_sql,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.landing_path_in IS NOT NULL THEN\n                     replace(replace(replace(t0.landing_path_in,\n                        '{batch_date}',  left(d.batch_str, 8)),\n                        '{batch_hour}',  substr(d.batch_str, 9, 2)),\n                        '{pipeline_nm}', x.pl_nm)\n                ELSE 'incr'\n                     || '/batch_date='    || left(d.batch_str, 8)\n                     || '/batch_hour='    || substr(d.batch_str, 9, 2)\n                     || '/pipeline_name=' || x.pl_nm\n           END AS landing_path_out,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.file_nm_template_in IS NOT NULL THEN\n                     replace(replace(replace(replace(replace(t0.file_nm_template_in,\n                        '{src_db}', t0.src_db_nm), '{schema}', t0.src_schema_nm), '{table}', t0.src_table_nm),\n                        '{part}', ''), '{ts}', d.batch_str)\n                ELSE t0.src_db_nm || '.' || t0.src_schema_nm || '.' || t0.src_table_nm\n                     || '.' || d.batch_str || '.parquet'\n           END AS file_name_out\n      FROM t0 CROSS JOIN d\n      -- 자식 파이프라인명 : pl_{data_class}_ingest_{src_type}_{추출 DB}  예) pl_raw_ingest_db2_MLCRP\n      CROSS JOIN LATERAL (SELECT 'pl_' || lower(t0.data_class) || '_ingest_' || lower(t0.src_type)\n                                 || '_' || upper(t0.ext_db_nm) AS pl_nm) x\n),\n-- ③ Master 이력 PENDING -> RUNNING (+ 대상 건수)\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n       SET status = 'RUNNING', start_dt = now(), update_dt = now(),\n           child_total_cnt = (SELECT count(*) FROM t)\n      FROM p\n     WHERE m.master_run_id = p.master_run_id\n       AND m.status = 'PENDING'\n    RETURNING m.master_run_id\n),\n-- ④ 수집 이력 PENDING / SKIPPED 생성\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n          (master_run_id, run_group_id, run_rule_id, target_id, ingest_pipeline_nm, run_type_cd,\n           sink_type_cd, load_method_cd, range_column_nm, range_operator_cd, range_value,\n           incr_policy_id, incr_column_nm, incr_from_val, incr_to_val,\n           src_type, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm, data_class,\n           extract_query, landing_path, file_name, sink_table_full_nm, status, created_by)\n    SELECT p.master_run_id, t.run_group_id, t.run_rule_id, t.target_id, t.pl_nm, 'INCR',\n           t.sink_type_cd,\n           CASE WHEN t.sink_type_cd = 'GEN2' THEN t.incr_load_method_cd END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT' THEN t.incr_column_nm END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT' THEN '>=' END,\n           CASE WHEN t.sink_type_cd = 'GEN2' AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT'\n                THEN jsonb_build_array(t.range_val) END,\n           t.incr_policy_id, t.incr_column_nm, t.from_val, NULL,\n           t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n           NULLIF(trim(t.cdc_tgt_db_nm), ''), NULLIF(trim(t.cdc_tgt_schema_nm), ''), t.data_class,\n           -- 추출쿼리 : 템플릿 우선({WHERE} -> 증분 조건), 없으면 SELECT * (추출 위치 스키마)\n           CASE WHEN NULLIF(trim(t.src_query_template), '') IS NOT NULL\n                THEN replace(t.src_query_template, '{WHERE}', t.cond_sql)\n                ELSE 'SELECT * FROM ' || t.ext_schema_nm || '.' || t.src_table_nm\n                     || CASE WHEN upper(t.src_type) = 'MSSQL' THEN ' WITH (NOLOCK)' ELSE '' END\n                     || ' WHERE ' || t.cond_sql\n                     || CASE WHEN upper(t.src_type) = 'DB2'   THEN ' WITH UR'       ELSE '' END\n           END,\n           t.landing_path_out,\n           t.file_name_out,\n           CASE WHEN t.sink_type_cd = 'TABLE' THEN concat_ws('.', t.sink_db_nm, t.sink_schema_nm, t.sink_table_nm) END,\n           CASE p.skip_yn WHEN 'Y' THEN 'SKIPPED' ELSE 'PENDING' END,\n           p.created_by\n      FROM t CROSS JOIN p\n    RETURNING ingest_pipeline_id, master_run_id, ingest_pipeline_nm, extract_query, landing_path, file_name,\n              sink_table_full_nm, target_id, src_db_nm, src_schema_nm, src_table_nm,\n              cdc_tgt_db_nm, cdc_tgt_schema_nm, sink_type_cd, load_method_cd,\n              incr_column_nm, incr_from_val, range_value, status\n)\n-- ⑤ ForEach 입력. Filter Not Skipped : @not(equals(item().status, 'SKIPPED'))\nSELECT ingest_pipeline_id,                                  -- p_ingest_pipeline_id\n       master_run_id,                                       -- p_master_run_id\n       ingest_pipeline_nm,                                  -- p_child_pipeline_nm\n       extract_query,                                       -- p_extract_query\n       COALESCE(landing_path, '')       AS landing_path,    -- p_landing_path (TABLE Sink 는 '')\n       COALESCE(file_name, '')          AS file_name,       -- p_file_name    (TABLE Sink 는 '')\n       COALESCE(sink_table_full_nm, '') AS sink_table_full_nm,\n       target_id, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm,\n       sink_type_cd, load_method_cd, incr_column_nm, incr_from_val, range_value::text AS range_value, status\n  FROM ins\n ORDER BY target_id;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline_Script",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Start_ingest_pipeline_Script').output.resultSets[0].rows",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "pipeline_dispatcher_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set variable1_copy1",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pv_incr_from_val",
+							"value": {
+								"value": "@if(\n    empty(coalesce(pipeline().parameters.p_incr_from_val, '')),\n    formatDateTime(\n        addDays(convertFromUtc(utcNow(), 'Korea Standard Time'),\n                mul(-1, int(variables('pv_condition_interval')))),\n        'yyyy-MM-dd'),\n    pipeline().parameters.p_incr_from_val\n)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline_Script_copy1",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "-- ============================================================================\n-- pl_raw_orch_incr > Script \"Ins_master_run\" (INCR 수집 첫 활동)\n--   ctl_master_pipeline_run 에 이번 실행을 PENDING 으로 등록\n--     -> Set Variable (pv_incr_from_val)\n--     -> Start_ingest_pipeline Script (adf_script_v83_incr.sql : 수집 이력 생성 + Master RUNNING 전환)\n--     -> Filter -> ForEach -> End_master_run (SUCCEEDED / FAILED)\n--        Start_ingest_pipeline Script 실패 시 Fail_master_run (adf_script_v83_master_end.sql)\n--\n--   진입 구분 : 그룹에 스케줄이 있고 수동 실행(Manual)이 아니면 SCHEDULE, 그 외 MANUAL\n--   그룹명이 틀리거나, 비활성이거나, INCR 그룹(RAW_INCR)이 아니면 행이 만들어지지 않고 에러\n--   같은 RunId 재실행 시 무시 (ON CONFLICT)\n--   run_param : 수동 지정값 기록 (target_ids, incr_from_val = 파라미터 p_incr_from_val)\n--   선행 : ck_master_status 에 PENDING 추가 (adf_meta_alter_v83_cdc_tgt.sql)\n-- ============================================================================\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                  AS master_run_id,\n           '@{pipeline().Pipeline}'::text                                AS pipeline_nm,\n           '@{pipeline().parameters.p_run_group_nm}'::text               AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb    AS target_ids,\n           NULLIF(trim('@{pipeline().parameters.p_incr_from_val}'), '')  AS incr_from_val,\n           '@{pipeline().TriggerType}'::text                             AS trigger_type,   -- Manual / ScheduleTrigger / PipelineActivity ...\n           '@{pipeline().TriggerName}'::text                             AS trigger_nm,\n           '@{pipeline().DataFactory}'::text                             AS created_by\n),\ng AS (\n    SELECT p.*, g.run_group_id, g.schedule_id,\n           (g.schedule_id IS NOT NULL AND p.trigger_type <> 'Manual') AS sch_yn\n      FROM p\n      JOIN adfadm.ctl_ingest_run_group g\n        ON g.run_group_nm = p.run_group_nm\n       AND g.enabled_yn = 'Y'\n       AND g.job_type_cd = 'RAW_INCR'                       -- INCR 전용 마스터\n),\nins AS (\n    INSERT INTO adfadm.ctl_master_pipeline_run\n          (master_run_id, master_pipeline_nm, trigger_type_cd, adf_trigger_nm, schedule_id, run_group_id,\n           run_param, status, created_by)\n    SELECT g.master_run_id, g.pipeline_nm,\n           CASE WHEN g.sch_yn THEN 'SCHEDULE' ELSE 'MANUAL' END,\n           NULLIF(g.trigger_nm, ''),\n           CASE WHEN g.sch_yn THEN g.schedule_id END,\n           g.run_group_id,\n           jsonb_strip_nulls(jsonb_build_object('target_ids',    g.target_ids,\n                                                'incr_from_val', g.incr_from_val)),\n           'PENDING',\n           g.created_by\n      FROM g\n    ON CONFLICT (master_run_id) DO NOTHING\n    RETURNING master_run_id, trigger_type_cd, schedule_id, run_group_id, run_param, status\n)\nSELECT i.master_run_id, i.trigger_type_cd, i.schedule_id, i.run_group_id, i.run_param::text AS run_param, i.status,\n       -- 그룹명 오류 · 비활성 · INCR 그룹 아님 -> 형변환 오류로 활동 실패 (메시지에 그룹명 표시)\n       CASE WHEN (SELECT count(*) FROM g) = 0\n            THEN ('RUN_GROUP_NOT_FOUND_OR_NOT_INCR:' || (SELECT run_group_nm FROM p))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) d\n  LEFT JOIN ins i ON TRUE;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_run_group_nm": {
+						"type": "string",
+						"defaultValue": "iwp_a_incr_daily_6pm"
+					},
+					"p_target_ids": {
+						"type": "string"
+					},
+					"p_incr_from_val": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"pv_yyyyMMddHHmmss": {
+						"type": "String"
+					},
+					"v_data_class": {
+						"type": "String",
+						"defaultValue": "RAW"
+					},
+					"v_ingest_type": {
+						"type": "String",
+						"defaultValue": "INCR"
+					},
+					"v_init_wait_yn": {
+						"type": "String",
+						"defaultValue": "N"
+					},
+					"v_list": {
+						"type": "Array"
+					},
+					"v_start_value": {
+						"type": "String"
+					},
+					"v_condition_frequency": {
+						"type": "String",
+						"defaultValue": "DAILY"
+					},
+					"pv_condition_interval": {
+						"type": "Integer",
+						"defaultValue": 3
+					},
+					"pv_incr_from_val": {
+						"type": "String"
+					},
+					"pv_bizdays": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "raw/orchestration"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_dispatcher_ingest')]"
 			]
 		},
@@ -2439,6 +2942,430 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Fail1",
+						"type": "Fail",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"message": {
+								"value": "@pipeline().parameters.a",
+								"type": "Expression"
+							},
+							"errorCode": "-1"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"a": {
+						"type": "string",
+						"defaultValue": "a"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1_copy1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Fail1",
+						"type": "Fail",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"message": {
+								"value": "@pipeline().parameters.a",
+								"type": "Expression"
+							},
+							"errorCode": "-1"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"a": {
+						"type": "string",
+						"defaultValue": "a"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_cmn_master_start')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "공통 자식: 마스터 첫 단계. ctl_master_pipeline_run PENDING 등록 + 시작 조건 검증 (v8.3). 실패 시 마스터도 실패.",
+				"activities": [
+					{
+						"name": "Ins_master_run",
+						"description": "PENDING 등록 (ON CONFLICT DO NOTHING) + 검증 4종 (RUN_GROUP_NOT_FOUND_OR_JOB_TYPE / TARGET_NOT_IN_GROUP / INCR_COND_VAR_INVALID / INCR_POLICY_MISMATCH)",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:05:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "/* pl_cmn_master_start > Script \"Ins_master_run\" (v8.3)\n   마스터 첫 활동. ctl_master_pipeline_run PENDING 등록 + 시작 조건 검증 (child_total_cnt = 0)\n   검증 실패 : 형변환 오류로 활동 실패 (문장 전체 취소, Master 행 생성 안 됨)\n   같은 master_run_id 재호출 시 무시 (ON CONFLICT DO NOTHING) : 자동 Retry / Rerun from failed activity 대비\n   ADF 동적 식은 p CTE 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT NULLIF(trim('@{pipeline().parameters.p_master_run_id}'), '')                 AS master_run_id,\n           NULLIF(trim('@{pipeline().parameters.p_master_pipeline_nm}'), '')            AS pipeline_nm,\n           trim('@{pipeline().parameters.p_trigger_type}')                             AS trigger_type,\n           COALESCE(NULLIF(trim('@{pipeline().parameters.p_trigger_nm}'), ''), 'Manual') AS trigger_nm,\n           string_to_array(upper(replace('@{pipeline().parameters.p_job_types}', ' ', '')), ',') AS job_types,\n           trim('@{pipeline().parameters.p_run_group_nm}')                             AS run_group_nm,\n           NULLIF(trim('@{pipeline().parameters.p_scheduled_time}'), '')::timestamptz  AS scheduled_dt,\n           NULLIF(trim('@{pipeline().parameters.p_target_ids}'), '')::jsonb            AS target_ids,\n           NULLIF(trim('@{pipeline().parameters.p_incr_from_val}'), '')                AS incr_from_val,\n           NULLIF(trim('@{pipeline().parameters.p_bizday_n}'), '')                     AS bizday_n,\n           NULLIF(trim('@{pipeline().parameters.p_bizday_offset}'), '')                AS bizday_offset,\n           NULLIF(trim('@{pipeline().parameters.p_dbx_last_run_yn}'), '')              AS dbx_last_run_yn,\n           NULLIF(upper(trim('@{pipeline().parameters.p_cond_unit}')), '')             AS cond_unit,\n           NULLIF(trim('@{pipeline().parameters.p_cond_interval}'), '')                AS cond_interval,\n           NULLIF(trim('@{pipeline().parameters.p_entry_run_id}'), '')                 AS entry_run_id,\n           '@{pipeline().DataFactory}'::text                                          AS created_by\n),\n/* 그룹 : 활성 + 이 마스터가 받는 작업유형 */\ng AS (\n    SELECT p.*, g.run_group_id, g.job_type_cd\n      FROM p\n      JOIN adfadm.ctl_ingest_run_group g\n        ON g.run_group_nm = p.run_group_nm\n       AND g.enabled_yn = 'Y'\n       AND g.job_type_cd = ANY (p.job_types)\n),\n/* 수동 지정 target_id 목록 */\nreq AS (\n    SELECT DISTINCT x::bigint AS target_id\n      FROM p, jsonb_array_elements_text(COALESCE(p.target_ids, '[]'::jsonb)) x\n),\n/* 이번 실행 수집 대상 (검증용, 건수는 기록하지 않음) */\ntgt AS (\n    SELECT e.target_id, e.range_unit_cd, e.range_interval\n      FROM g\n      JOIN adfadm.vw_ingest_exec_target e ON e.run_group_id = g.run_group_id\n     WHERE g.target_ids IS NULL\n        OR e.target_id IN (SELECT target_id FROM req)\n),\n/* 검증 1 : 지정했지만 그룹 대상이 아닌 target_id */\nnf AS (\n    SELECT string_agg(r.target_id::text, ',' ORDER BY r.target_id) AS ids\n      FROM req r\n     WHERE NOT EXISTS (SELECT 1 FROM tgt t WHERE t.target_id = r.target_id)\n),\n/* 검증 2 : INCR 그룹 대상 중 증분정책(단위, N)이 마스터 설정과 다른 대상 */\nmm AS (\n    SELECT string_agg(t.target_id::text, ',' ORDER BY t.target_id) AS ids\n      FROM tgt t, g\n     WHERE g.job_type_cd = 'RAW_INCR'\n       AND (   t.range_unit_cd IS DISTINCT FROM g.cond_unit\n            OR t.range_interval::text IS DISTINCT FROM g.cond_interval)\n),\nins AS (\n    INSERT INTO adfadm.ctl_master_pipeline_run\n          (master_run_id, master_pipeline_nm, trigger_type_cd, adf_trigger_nm, scheduled_dt, run_group_id,\n           run_param, entry_run_id, child_total_cnt, status, created_by)\n    SELECT g.master_run_id, g.pipeline_nm,\n           CASE WHEN g.trigger_type = 'Manual' THEN 'MANUAL' ELSE 'SCHEDULE' END,\n           g.trigger_nm,\n           g.scheduled_dt,\n           g.run_group_id,\n           jsonb_strip_nulls(jsonb_build_object(\n               'target_ids',      g.target_ids,\n               'incr_from_val',   g.incr_from_val,\n               'bizday_n',        g.bizday_n,\n               'bizday_offset',   g.bizday_offset,\n               'dbx_last_run_yn', g.dbx_last_run_yn,\n               'condition',       CASE WHEN g.job_type_cd = 'RAW_INCR' THEN g.cond_unit || '/' || g.cond_interval END)),\n           g.entry_run_id,\n           0,\n           'PENDING',\n           g.created_by\n      FROM g\n     WHERE g.master_run_id IS NOT NULL\n       AND g.pipeline_nm IS NOT NULL\n    ON CONFLICT (master_run_id) DO NOTHING\n    RETURNING master_run_id, trigger_type_cd, adf_trigger_nm, run_group_id, run_param, child_total_cnt, status\n)\nSELECT i.master_run_id, i.trigger_type_cd, i.adf_trigger_nm, i.run_group_id,\n       i.run_param::text AS run_param, i.child_total_cnt, i.status,\n       CASE WHEN (SELECT master_run_id IS NULL OR pipeline_nm IS NULL FROM p)\n            THEN ('MASTER_PARAM_MISSING:' || (SELECT COALESCE(master_run_id, '') || '/' || COALESCE(pipeline_nm, '') FROM p))::int\n            WHEN (SELECT count(*) FROM g) = 0\n            THEN ('RUN_GROUP_NOT_FOUND_OR_JOB_TYPE:' || (SELECT run_group_nm FROM p))::int\n            WHEN (SELECT ids FROM nf) IS NOT NULL\n            THEN ('TARGET_NOT_IN_GROUP:' || (SELECT ids FROM nf))::int\n            WHEN (SELECT job_type_cd FROM g) = 'RAW_INCR'\n             AND (SELECT cond_unit IS NULL OR cond_unit NOT IN ('DAY','MONTH','HOUR','MINUTE')\n                         OR cond_interval IS NULL OR cond_interval !~ '^[1-9][0-9]*$' FROM p)\n            THEN ('INCR_COND_VAR_INVALID:' || (SELECT COALESCE(cond_unit, '') || '/' || COALESCE(cond_interval, '') FROM p))::int\n            WHEN (SELECT ids FROM mm) IS NOT NULL\n            THEN ('INCR_POLICY_MISMATCH:' || (SELECT cond_unit || '/' || cond_interval FROM p)\n                  || ':' || (SELECT ids FROM mm))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) d\n  LEFT JOIN ins i ON TRUE;\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:05:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_master_run_id": {
+						"type": "String"
+					},
+					"p_master_pipeline_nm": {
+						"type": "String"
+					},
+					"p_trigger_type": {
+						"type": "String"
+					},
+					"p_trigger_nm": {
+						"type": "String"
+					},
+					"p_job_types": {
+						"type": "String"
+					},
+					"p_run_group_nm": {
+						"type": "String"
+					},
+					"p_scheduled_time": {
+						"type": "String"
+					},
+					"p_target_ids": {
+						"type": "String"
+					},
+					"p_incr_from_val": {
+						"type": "String"
+					},
+					"p_bizday_n": {
+						"type": "String"
+					},
+					"p_bizday_offset": {
+						"type": "String"
+					},
+					"p_dbx_last_run_yn": {
+						"type": "String"
+					},
+					"p_cond_unit": {
+						"type": "String"
+					},
+					"p_cond_interval": {
+						"type": "String"
+					},
+					"p_requester": {
+						"type": "String"
+					},
+					"p_entry_run_id": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "util/sop"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_cmn_run_check')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "공통 자식 (v8.3): 마스터 2번째 단계. 전역 skip / BIZDAY 판정 -> ctl_trigger_history 기록, SKIP 이면 Master = SKIPPED",
+				"activities": [
+					{
+						"name": "If_bizday",
+						"description": "BIZDAY 판정 대상(p_bizday_n 있음, Manual 아님, 전역 skip 아님)일 때만 고객 DB2 조회",
+						"type": "IfCondition",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@and(and(not(empty(pipeline().parameters.p_bizday_n)), not(equals(toLower(pipeline().parameters.p_trigger_type), 'manual'))), not(pipeline().globalParameters.gp_pipeline_run_skip))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Lkp_biz_cnt",
+									"description": "당월 영업일 수 (0 = CALENDAR_MISSING)",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "OdbcSource",
+											"query": "SELECT COUNT(*) AS BIZ_CNT  \r\nFROM MLDADM.TBCMB1001\r\nWHERE HLDY_CD = '00'\r\nAND BZ_YM = VARCHAR_FORMAT(CURRENT DATE, 'YYYYMM')",
+											"queryTimeout": "02:00:00"
+										},
+										"dataset": {
+											"referenceName": "ds_src_odbc_table_MLIWT",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": true
+									}
+								},
+								{
+									"name": "Lkp_bizday",
+									"description": "영업일 판정 (RUN_YN / BASE_BIZ_DT / EXEC_DT)",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "Lkp_biz_cnt",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 1,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "OdbcSource",
+											"query": {
+												"value": "WITH PARAM AS (     SELECT         @{int(pipeline().parameters.p_bizday_n)} AS BIZDAY_N,         @{if(empty(pipeline().parameters.p_bizday_offset), 0, int(pipeline().parameters.p_bizday_offset))} AS BIZDAY_OFFSET     FROM SYSIBM.SYSDUMMY1 ), BIZ_DAY AS (     SELECT         Y.BZ_YM,         Y.SOLR_DT,          ROW_NUMBER() OVER         (             PARTITION BY Y.BZ_YM             ORDER BY Y.SOLR_DT         ) AS BIZ_DAY_SEQ      FROM MLDADM.TBCMB1001 Y      WHERE Y.HLDY_CD = '00'        /* offset으로 월 경계를 넘어가는 경우까지 고려 */       AND Y.BZ_YM IN       (           VARCHAR_FORMAT(CURRENT DATE - 1 MONTH, 'YYYYMM'),           VARCHAR_FORMAT(CURRENT DATE,           'YYYYMM'),           VARCHAR_FORMAT(CURRENT DATE + 1 MONTH, 'YYYYMM')       ) ), TARGET_DAY AS (     SELECT         B.BZ_YM,          B.SOLR_DT AS BASE_BIZ_DT,          DATE(             TIMESTAMP_FORMAT(B.SOLR_DT, 'YYYYMMDD')         )         + P.BIZDAY_OFFSET DAYS AS EXEC_DATE      FROM BIZ_DAY B      CROSS JOIN PARAM P      WHERE B.BIZ_DAY_SEQ = P.BIZDAY_N ) SELECT     CASE         WHEN COUNT(             CASE                 WHEN EXEC_DATE = CURRENT DATE                 THEN 1             END         ) > 0         THEN 'Y'         ELSE 'N'     END AS RUN_YN,      MAX(         CASE             WHEN EXEC_DATE = CURRENT DATE             THEN BASE_BIZ_DT         END     ) AS BASE_BIZ_DT,      MAX(         CASE             WHEN EXEC_DATE = CURRENT DATE             THEN VARCHAR_FORMAT(EXEC_DATE, 'YYYYMMDD')         END     ) AS EXEC_DT  FROM TARGET_DAY\",\n                  ",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00"
+										},
+										"dataset": {
+											"referenceName": "ds_src_odbc_table_MLIWT",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": true
+									}
+								},
+								{
+									"name": "Set_biz_result",
+									"description": "조회 결과를 | 구분 문자열로 저장 (If 밖 Script 에서 사용)",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Lkp_bizday",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "v_biz_result",
+										"value": {
+											"value": "@concat(string(activity('Lkp_biz_cnt').output.firstRow.BIZ_CNT), '|', coalesce(activity('Lkp_bizday').output.firstRow.RUN_YN, ''), '|', coalesce(activity('Lkp_bizday').output.firstRow.BASE_BIZ_DT, ''), '|', coalesce(activity('Lkp_bizday').output.firstRow.EXEC_DT, ''))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set_biz_err",
+									"description": "조회 실패 표시 -> Scr_judge 가 ETC 로 기록",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Lkp_bizday",
+											"dependencyConditions": [
+												"Failed",
+												"Skipped"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "v_biz_err",
+										"value": "Y"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Scr_judge",
+						"description": "판정 결과 -> Trigger 이력 + Master SKIPPED",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "If_bizday",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "/* pl_cmn_run_check > Script \"Scr_judge\" (v8.3)\n   전역 skip / BIZDAY 판정 결과 -> ctl_trigger_history 1행 (master_run_id 당 1회) + Master PENDING -> SKIPPED\n   판정 순서 : GLOBAL_SKIP -> ETC (고객 DB 조회 실패) -> CALENDAR_MISSING -> NOT_BIZDAY -> 실행 (run_yn = Y, Master 는 PENDING 유지)\n   BIZDAY 판정 대상 : p_bizday_n 이 있고 trigger_type 이 Manual 이 아닌 실행\n   ETC : Master 는 SKIPPED 로 바꾸지 않음 (skip_reason_cd 제약). 이후 Fail 활동으로 파이프라인 실패 -> 마스터가 Master FAILED 처리\n   같은 master_run_id 재호출 시 이력 중복 INSERT 안 함. ADF 동적 식은 p CTE 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT NULLIF(trim('@{pipeline().parameters.p_master_run_id}'), '')                    AS master_run_id,\n           COALESCE(NULLIF(trim('@{pipeline().parameters.p_trigger_nm}'), ''), 'Manual')    AS trigger_nm,\n           NULLIF(trim('@{pipeline().parameters.p_trigger_id}'), '')                       AS trigger_run_id,\n           NULLIF(trim('@{pipeline().parameters.p_scheduled_time}'), '')::timestamptz      AS scheduled_dt,\n           NULLIF(trim('@{pipeline().parameters.p_requester}'), '')                        AS requester_nm,\n           '@{if(pipeline().globalParameters.gp_pipeline_run_skip, 'Y', 'N')}'::text                  AS gp_pipeline_run_skip,\n           (NULLIF(trim('@{pipeline().parameters.p_bizday_n}'), '') IS NOT NULL\n            AND lower(trim('@{pipeline().parameters.p_trigger_type}')) <> 'manual')        AS bizday_yn,\n           '@{variables('v_biz_err')}'::text                                               AS biz_err,\n           '@{variables('v_biz_result')}'::text                                            AS biz_result,\n           '@{pipeline().DataFactory}'::text                                               AS created_by\n),\n/* v_biz_result = 당월 영업일 수 | RUN_YN | BASE_BIZ_DT | EXEC_DT */\nb AS (\n    SELECT p.*,\n           NULLIF(btrim(split_part(p.biz_result, '|', 1)), '')::int AS biz_cnt,\n           NULLIF(btrim(split_part(p.biz_result, '|', 2)), '')      AS biz_run_yn,\n           NULLIF(btrim(split_part(p.biz_result, '|', 3)), '')      AS base_biz_dt,\n           NULLIF(btrim(split_part(p.biz_result, '|', 4)), '')      AS exec_dt\n      FROM p\n),\nd AS (\n    SELECT b.*, m.run_group_id,\n           CASE WHEN b.gp_pipeline_run_skip = 'Y'                                       THEN 'GLOBAL_SKIP'\n                WHEN b.bizday_yn AND b.biz_err = 'Y'                              THEN 'ETC'\n                WHEN b.bizday_yn AND COALESCE(b.biz_cnt, 0) = 0                   THEN 'CALENDAR_MISSING'\n                WHEN b.bizday_yn AND COALESCE(b.biz_run_yn, 'N') <> 'Y'           THEN 'NOT_BIZDAY'\n           END AS skip_reason_cd\n      FROM b\n      JOIN adfadm.ctl_master_pipeline_run m ON m.master_run_id = b.master_run_id\n),\nh AS (\n    INSERT INTO adfadm.ctl_trigger_history\n          (adf_trigger_nm, adf_trigger_run_id, scheduled_dt, run_group_id, master_run_id,\n           run_yn, skip_reason_cd, skip_msg, base_biz_dt, exec_dt, requester_nm)\n    SELECT d.trigger_nm, d.trigger_run_id, d.scheduled_dt, d.run_group_id, d.master_run_id,\n           CASE WHEN d.skip_reason_cd IS NULL THEN 'Y' ELSE 'N' END,\n           d.skip_reason_cd,\n           CASE d.skip_reason_cd\n                WHEN 'GLOBAL_SKIP'      THEN '전역 skip (g_skip_yn = true)'\n                WHEN 'CALENDAR_MISSING' THEN '고객 영업일 데이터 없음 (MLDADM.TBCMB1001 당월 0건)'\n                WHEN 'NOT_BIZDAY'       THEN '오늘은 지정한 영업일 (+offset) 이 아님'\n                WHEN 'ETC'              THEN '고객 DB 영업일 조회 실패 (Lkp_biz_cnt / Lkp_bizday). ADF 모니터에서 RunId 확인'\n           END,\n           d.base_biz_dt, d.exec_dt, d.requester_nm\n      FROM d\n     WHERE NOT EXISTS (SELECT 1 FROM adfadm.ctl_trigger_history x WHERE x.master_run_id = d.master_run_id)\n    RETURNING trigger_hist_id\n),\nu AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n       SET status         = CASE WHEN d.skip_reason_cd IN ('GLOBAL_SKIP','CALENDAR_MISSING','NOT_BIZDAY')\n                                 THEN 'SKIPPED' ELSE m.status END,\n           skip_reason_cd = CASE WHEN d.skip_reason_cd IN ('GLOBAL_SKIP','CALENDAR_MISSING','NOT_BIZDAY')\n                                 THEN d.skip_reason_cd END,\n           end_dt         = CASE WHEN d.skip_reason_cd IN ('GLOBAL_SKIP','CALENDAR_MISSING','NOT_BIZDAY')\n                                 THEN now() ELSE m.end_dt END,\n           base_biz_dt    = COALESCE(d.base_biz_dt, m.base_biz_dt),\n           updated_by     = d.created_by,\n           updated_dt     = now()\n      FROM d\n     WHERE m.master_run_id = d.master_run_id\n       AND m.status = 'PENDING'\n    RETURNING m.master_run_id, m.status\n)\nSELECT d.skip_reason_cd,\n       CASE WHEN d.skip_reason_cd IS NULL THEN 'Y' ELSE 'N' END AS run_yn,\n       d.base_biz_dt, d.exec_dt,\n       (SELECT count(*) FROM h) AS hist_ins_cnt,\n       (SELECT count(*) FROM u WHERE status = 'SKIPPED') AS master_skipped_cnt,\n       CASE WHEN (SELECT count(*) FROM d) = 0\n            THEN ('MASTER_NOT_FOUND:' || (SELECT COALESCE(master_run_id, '') FROM p))::int\n            ELSE 1 END AS chk\n  FROM (SELECT 1) x\n  LEFT JOIN d ON TRUE;\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
+						"name": "If_etc",
+						"description": "ETC (DB2 조회 실패) 이면 파이프라인 실패 -> 마스터가 Master FAILED 처리",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Scr_judge",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(coalesce(activity('Scr_judge').output.resultSets[0].rows[0].skip_reason_cd, ''), 'ETC')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Fail_etc",
+									"type": "Fail",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "고객 DB 영업일 조회 실패 (Lkp_biz_cnt / Lkp_bizday). Trigger 이력 ETC 기록됨",
+										"errorCode": "RUN_CHECK_ETC"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_master_run_id": {
+						"type": "String"
+					},
+					"p_master_pipeline_nm": {
+						"type": "String"
+					},
+					"p_trigger_type": {
+						"type": "String"
+					},
+					"p_trigger_nm": {
+						"type": "String"
+					},
+					"p_trigger_id": {
+						"type": "String"
+					},
+					"p_run_group_nm": {
+						"type": "String"
+					},
+					"p_scheduled_time": {
+						"type": "String"
+					},
+					"p_bizday_n": {
+						"type": "String"
+					},
+					"p_bizday_offset": {
+						"type": "String"
+					},
+					"p_requester": {
+						"type": "String"
+					}
+				},
+				"variables": {
+					"v_biz_result": {
+						"type": "String"
+					},
+					"v_biz_err": {
+						"type": "String",
+						"defaultValue": "N"
+					}
+				},
+				"folder": {
+					"name": "util/sop"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
+				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_ctl_master_pipeline_run')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2700,7 +3627,7 @@
 							},
 							"cases": [
 								{
-									"value": "pl_raw_db2_xmeta",
+									"value": "pl_raw_ingest_db2_xmeta",
 									"activities": [
 										{
 											"name": "pl_raw_db2_xmeta",
@@ -2902,22 +3829,28 @@
 				},
 				"parameters": {
 					"p_child_pipeline_nm": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "pl_raw_ingest_db2_xmeta"
 					},
 					"p_landing_path": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "test"
 					},
 					"p_file_name": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "test.par"
 					},
 					"p_extract_query": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "select * from db2inst1.lineitem limit 1;"
 					},
 					"p_ingest_pipeline_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "33"
 					},
 					"p_master_run_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "33"
 					}
 				},
 				"variables": {
@@ -3504,7 +4437,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "\tUPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}';\n",
+										"value": "\n/* Upd_run_start : 수집 이력 PENDING -> RUNNING (start_dt 기록). ingest_pipeline_run_id 에는 마스터 RunId 기록 (Child 파이프라인 없음) */\n\nUPDATE adfadm.ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    updated_by              = 'ADF',\n    updated_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}'\n   AND status = 'PENDING';\n\n\n",
 										"type": "Expression"
 									}
 								}
@@ -3540,7 +4473,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    ingest_pipeline_run_id  ='@{pipeline().RunId}',\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.errors[0].Message,'''','''''')}',\n        ''\n    ),\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+										"value": "/*\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.errors[0].Message,'''','''''')}',\n        ''\n    ),\n*/\n\n\n  /* Upd_run_fail : Copy 실패 -> FAILED + 오류 메시지 (작은따옴표는 이중화) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status     = 'FAILED',\n       end_dt     = now(),\n       error_log  = left('@{replace(activity('Copy data').output.errors[0].Message, '''', '''''')}', 4000),\n       updated_by = '@{pipeline().DataFactory}',\n       updated_dt = now() \n WHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}'\n   AND status IN ('PENDING', 'RUNNING');\n",
 										"type": "Expression"
 									}
 								}
@@ -3576,7 +4509,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'SUCCEEDED',\n    extract_cnt  = @{activity('Copy data').output.rowsRead},\n    save_cnt     = @{activity('Copy data').output.rowsCopied},\n    file_size_mb = @{div(activity('Copy data').output.dataWritten,1048576)},\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+										"value": "/* Upd_run_ok : Copy 성공 -> SUCCEEDED. 건수 = rowsRead / rowsCopied, 크기(MB) = dataRead / dataWritten (byte / 1048576) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status       = 'SUCCEEDED',\n       end_dt       = now(),\n       extract_cnt  = @{activity('Copy data').output.rowsRead},\n       save_cnt     = @{activity('Copy data').output.rowsCopied},\n       read_size_mb = round(@{activity('Copy data').output.dataRead}::numeric / 1048576, 2),\n       file_size_mb = round(@{activity('Copy data').output.dataWritten}::numeric / 1048576, 2),\n       updated_by   = '@{pipeline().DataFactory}',\n       updated_dt   = now()\n WHERE \n  master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}'\n  AND status = 'RUNNING';",
 										"type": "Expression"
 									}
 								}
@@ -3589,16 +4522,16 @@
 						"type": "Fail",
 						"dependsOn": [
 							{
-								"activity": "Failed_UPDATE",
+								"activity": "Copy data",
 								"dependencyConditions": [
-									"Completed"
+									"Failed"
 								]
 							}
 						],
 						"userProperties": [],
 						"typeProperties": {
 							"message": {
-								"value": "@activity('Copy data').output",
+								"value": "@{replace(activity('Copy data').error.message, '''', '''''')}",
 								"type": "Expression"
 							},
 							"errorCode": "-1"
@@ -3610,19 +4543,24 @@
 				},
 				"parameters": {
 					"p_landing_path": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "test"
 					},
 					"p_file_name": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "a.parquet"
 					},
 					"p_extract_query": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "select * from db2inst1.lineitem limit 1;"
 					},
 					"p_ingest_pipeline_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "33"
 					},
 					"p_master_run_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "daf"
 					}
 				},
 				"variables": {
@@ -3639,6 +4577,647 @@
 				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
 				"[concat(variables('factoryId'), '/datasets/Parquet4')]",
 				"[concat(variables('factoryId'), '/linkedServices/ls_egress_postgres_MLKUDPD')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_raw_orch_full')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "RAW/META FULL 마스터 (v8.3). master_start -> run_check -> 수집 이력 생성 -> ForEach Copy(GEN2 Parquet) -> Master 종료",
+				"activities": [
+					{
+						"name": "Set_batch_ts",
+						"description": "배치 시각 (파일명 · 경로용). 표준시 KST 가정",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pv_yyyyMMddHHmmss",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(utcnow(), 'UTC', 'Korea Standard Time'), 'yyyyMMddHHmmss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Exec_master_start",
+						"description": "Master 이력 PENDING 등록 + 시작 조건 검증. 실패하면 마스터도 실패 (Master 행 없음)",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Set_batch_ts",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_cmn_master_start",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_trigger_type": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@if(empty(pipeline().parameters.p_trigger_nm), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
+									"type": "Expression"
+								},
+								"p_job_types": {
+									"value": "@variables('pv_job_types')",
+									"type": "Expression"
+								},
+								"p_run_group_nm": {
+									"value": "@pipeline().parameters.p_run_group_nm",
+									"type": "Expression"
+								},
+								"p_scheduled_time": {
+									"value": "@pipeline().parameters.p_scheduled_time",
+									"type": "Expression"
+								},
+								"p_target_ids": {
+									"value": "@pipeline().parameters.p_target_ids",
+									"type": "Expression"
+								},
+								"p_bizday_n": {
+									"value": "@pipeline().parameters.p_bizday_n",
+									"type": "Expression"
+								},
+								"p_bizday_offset": {
+									"value": "@pipeline().parameters.p_bizday_offset",
+									"type": "Expression"
+								},
+								"p_dbx_last_run_yn": {
+									"value": "@pipeline().parameters.p_dbx_last_run_yn",
+									"type": "Expression"
+								},
+								"p_requester": {
+									"value": "@pipeline().parameters.p_requester",
+									"type": "Expression"
+								},
+								"p_entry_run_id": {
+									"value": "@pipeline().parameters.p_entry_run_id",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Exec_run_check",
+						"description": "BIZDAY 판정 / 전역 skip / Trigger 이력. SKIP 이면 Master = SKIPPED",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Exec_master_start",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_cmn_run_check",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_master_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"p_master_pipeline_nm": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"p_trigger_type": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"p_trigger_nm": {
+									"value": "@if(empty(pipeline().parameters.p_trigger_nm), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
+									"type": "Expression"
+								},
+								"p_trigger_id": {
+									"value": "@if(empty(pipeline().parameters.p_trigger_id), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
+									"type": "Expression"
+								},
+								"p_run_group_nm": {
+									"value": "@pipeline().parameters.p_run_group_nm",
+									"type": "Expression"
+								},
+								"p_scheduled_time": {
+									"value": "@pipeline().parameters.p_scheduled_time",
+									"type": "Expression"
+								},
+								"p_bizday_n": {
+									"value": "@pipeline().parameters.p_bizday_n",
+									"type": "Expression"
+								},
+								"p_bizday_offset": {
+									"value": "@pipeline().parameters.p_bizday_offset",
+									"type": "Expression"
+								},
+								"p_requester": {
+									"value": "@pipeline().parameters.p_requester",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Fail_master_run_check",
+						"description": "run_check 실패 -> Master FAILED",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Exec_run_check",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "/* Fail_master_run_check : Exec_run_check 실패 시. Master 는 PENDING -> FAILED */\nUPDATE adfadm.ctl_master_pipeline_run\n   SET status          = 'FAILED',\n       child_total_cnt = 0,\n       child_succ_cnt  = 0,\n       child_fail_cnt  = 0,\n       error_log       = left('[Exec_run_check] '\n                              || '@{replace(activity('Exec_run_check').error.message, '''', '''''')}', 4000),\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n WHERE master_run_id = '@{pipeline().RunId}'\n   AND status IN ('PENDING', 'RUNNING');\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
+						"name": "Start_ingest_pipeline Script",
+						"description": "Master RUNNING 전환 + 수집 이력 PENDING 생성 (재시도 0)",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Exec_run_check",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "/* pl_raw_orch_full > Script \"Start_ingest_pipeline Script\" (v8.3 FULL 전용, adf_script_v83_full_only.sql 기반)\n   Master PENDING -> RUNNING 전환 + 수집 이력(ctl_ingest_pipeline_run) PENDING 생성. Master 가 PENDING 이 아니면 0건 반환\n   대상 : Run Group(p_run_group_nm) 중 실행유형 FULL (RAW_FULL / META_FULL), p_target_ids 로 일부만 수동 실행 가능\n   추출 위치 = COALESCE(NULLIF(cdc_tgt_*, ''), src_*), 파일명 / DBX 전달 = src_*\n   landing_path 없으면 data_class 소문자/batch_date=YYYYMMDD/batch_hour=HH/pipeline_name=자식 파이프라인명\n   file_nm_template 없으면 src_db.src_schema.src_table.YYYYMMDDHHMISS.parquet\n   Script 재시도 = 0 (재시도 시 수집 이력 중복 생성). ADF 동적 식은 p CTE 에만 사용. 주석은 블록 주석만 사용 */\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                  AS master_run_id,\n           '@{pipeline().parameters.p_run_group_nm}'::text               AS run_group_nm,\n           NULLIF('@{pipeline().parameters.p_target_ids}', '')::jsonb    AS target_ids,\n           '@{variables('pv_yyyyMMddHHmmss')}'::text                     AS batch_str,\n           '@{pipeline().DataFactory}'::text                             AS created_by\n),\n/* 1. 대상 + 추출 위치 */\nt0 AS (\n    SELECT e.run_group_id, e.run_rule_id, m.*,\n           COALESCE(NULLIF(trim(m.cdc_tgt_db_nm), ''),     m.src_db_nm)     AS ext_db_nm,\n           COALESCE(NULLIF(trim(m.cdc_tgt_schema_nm), ''), m.src_schema_nm) AS ext_schema_nm,\n           NULLIF(trim(m.landing_path), '')     AS landing_path_in,\n           NULLIF(trim(m.file_nm_template), '') AS file_nm_template_in\n      FROM p\n      JOIN adfadm.vw_ingest_exec_target    e ON e.run_group_nm = p.run_group_nm\n      JOIN adfadm.ctl_ingest_target_master m ON m.target_id = e.target_id\n     WHERE e.run_type_cd = 'FULL'\n       AND (p.target_ids IS NULL\n            OR e.target_id IN (SELECT jsonb_array_elements_text(p.target_ids)::bigint))\n),\n/* 2. 자식 파이프라인명 / 경로 / 파일명 */\nt AS (\n    SELECT t0.*, x.pl_nm,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.landing_path_in IS NOT NULL THEN\n                     replace(replace(replace(t0.landing_path_in,\n                        '{batch_date}',  left(p.batch_str, 8)),\n                        '{batch_hour}',  substr(p.batch_str, 9, 2)),\n                        '{pipeline_nm}', x.pl_nm)\n                ELSE lower(t0.data_class)\n                     || '/batch_date='    || left(p.batch_str, 8)\n                     || '/batch_hour='    || substr(p.batch_str, 9, 2)\n                     || '/pipeline_name=' || x.pl_nm\n           END AS landing_path_out,\n           CASE WHEN t0.sink_type_cd <> 'GEN2' THEN NULL\n                WHEN t0.file_nm_template_in IS NOT NULL THEN\n                     replace(replace(replace(replace(replace(t0.file_nm_template_in,\n                        '{src_db}', t0.src_db_nm), '{schema}', t0.src_schema_nm), '{table}', t0.src_table_nm),\n                        '{part}', ''), '{ts}', p.batch_str)\n                ELSE t0.src_db_nm || '.' || t0.src_schema_nm || '.' || t0.src_table_nm\n                     || '.' || p.batch_str || '.parquet'\n           END AS file_name_out\n      FROM t0 CROSS JOIN p\n      /* 자식 파이프라인명 : pl_{data_class}_ingest_{src_type}_{추출 DB}  예) pl_raw_ingest_db2_MLCRP */\n      CROSS JOIN LATERAL (SELECT 'pl_' || lower(t0.data_class) || '_ingest_' || lower(t0.src_type)\n                                 || '_' || upper(t0.ext_db_nm) AS pl_nm) x\n),\n/* 3. Master 이력 PENDING -> RUNNING (+ 대상 건수). SKIPPED 등 다른 상태면 0건 -> 수집 이력 생성 안 함 */\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n       SET status = 'RUNNING', start_dt = now(), updated_by = p.created_by, updated_dt = now(),\n           child_total_cnt = (SELECT count(*) FROM t)\n      FROM p\n     WHERE m.master_run_id = p.master_run_id\n       AND m.status = 'PENDING'\n    RETURNING m.master_run_id\n),\n/* 4. 수집 이력 PENDING 생성 (Master 가 RUNNING 으로 전환된 경우만) */\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n          (master_run_id, run_group_id, run_rule_id, target_id, ingest_pipeline_nm, run_type_cd,\n           sink_type_cd, load_method_cd,\n           src_type, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm, data_class,\n           extract_query, landing_path, file_name, sink_table_full_nm, status, created_by)\n    SELECT p.master_run_id, t.run_group_id, t.run_rule_id, t.target_id, t.pl_nm, 'FULL',\n           t.sink_type_cd,\n           CASE WHEN t.sink_type_cd = 'GEN2' THEN 'FULL_DELETE_INSERT' END,\n           t.src_type, t.src_db_nm, t.src_schema_nm, t.src_table_nm,\n           NULLIF(trim(t.cdc_tgt_db_nm), ''), NULLIF(trim(t.cdc_tgt_schema_nm), ''), t.data_class,\n           /* 추출쿼리 : 템플릿 우선({WHERE} -> 1=1), 없으면 SELECT * (추출 위치 스키마) */\n           CASE WHEN NULLIF(trim(t.src_query_template), '') IS NOT NULL\n                THEN replace(t.src_query_template, '{WHERE}', '1=1')\n                ELSE 'SELECT * FROM ' || t.ext_schema_nm || '.' || t.src_table_nm\n                     || CASE upper(t.src_type) WHEN 'DB2'   THEN ' WITH UR'\n                                               WHEN 'MSSQL' THEN ' WITH (NOLOCK)'\n                                               ELSE '' END\n           END,\n           t.landing_path_out,\n           t.file_name_out,\n           CASE WHEN t.sink_type_cd = 'TABLE' THEN concat_ws('.', t.sink_db_nm, t.sink_schema_nm, t.sink_table_nm) END,\n           'PENDING',\n           p.created_by\n      FROM t CROSS JOIN p\n     WHERE EXISTS (SELECT 1 FROM mst)\n    RETURNING ingest_pipeline_id, master_run_id, ingest_pipeline_nm, extract_query, landing_path, file_name,\n              sink_table_full_nm, target_id, src_db_nm, src_schema_nm, src_table_nm,\n              cdc_tgt_db_nm, cdc_tgt_schema_nm, sink_type_cd, load_method_cd, status\n)\n/* 5. ForEach 입력 */\nSELECT ingest_pipeline_id,\n       master_run_id,\n       ingest_pipeline_nm,\n       extract_query,\n       COALESCE(landing_path, '')       AS landing_path,\n       COALESCE(file_name, '')          AS file_name,\n       COALESCE(sink_table_full_nm, '') AS sink_table_full_nm,\n       target_id, src_db_nm, src_schema_nm, src_table_nm, cdc_tgt_db_nm, cdc_tgt_schema_nm,\n       sink_type_cd, load_method_cd, status\n  FROM ins\n ORDER BY src_db_nm, src_schema_nm, src_table_nm;\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
+						"name": "Filter_not_skipped",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline Script",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Start_ingest_pipeline Script').output.resultSets[0].rows",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@not(equals(item().status, 'SKIPPED'))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEach_child_ingest",
+						"description": "수집 대상별 Copy (pl_dispatcher_ingest 호출 대체). 수집 이력 RUNNING -> Copy -> SUCCEEDED / FAILED",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_not_skipped",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter_not_skipped').output.Value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 8,
+							"activities": [
+								{
+									"name": "Upd_run_start",
+									"description": "수집 이력 RUNNING",
+									"type": "Script",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "AzurePostgreSql1",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "NonQuery",
+												"text": {
+													"value": "/* Upd_run_start : 수집 이력 PENDING -> RUNNING (start_dt 기록). ingest_pipeline_run_id 에는 마스터 RunId 기록 (Child 파이프라인 없음) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status                 = 'RUNNING',\n       start_dt               = now(),\n       ingest_pipeline_run_id = '@{pipeline().RunId}',\n       updated_by             = '@{pipeline().DataFactory}',\n       updated_dt             = now()\n WHERE ingest_pipeline_id = '@{item().ingest_pipeline_id}'\n   AND status = 'PENDING';\n",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "00:10:00"
+									}
+								},
+								{
+									"name": "Copy_to_gen2",
+									"description": "원천 DB2 (추출 위치 DB) -> ADLS Gen2 Parquet. 쿼리 / 경로 / 파일명은 수집 이력에서 생성된 값 사용",
+									"type": "Copy",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [
+										{
+											"activity": "Upd_run_start",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "OdbcSource",
+											"query": {
+												"value": "@item().vw_ingest_exec_target",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "OdbcTable2",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Parquet4",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Upd_run_ok",
+									"description": "수집 이력 SUCCEEDED + 건수 / 크기",
+									"type": "Script",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [
+										{
+											"activity": "Copy_to_gen2",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "AzurePostgreSql1",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "NonQuery",
+												"text": {
+													"value": "/* Upd_run_ok : Copy 성공 -> SUCCEEDED. 건수 = rowsRead / rowsCopied, 크기(MB) = dataRead / dataWritten (byte / 1048576) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status       = 'SUCCEEDED',\n       end_dt       = now(),\n       extract_cnt  = @{activity('Copy_to_gen2').output.rowsRead},\n       save_cnt     = @{activity('Copy_to_gen2').output.rowsCopied},\n       read_size_mb = round(@{activity('Copy_to_gen2').output.dataRead}::numeric / 1048576, 2),\n       file_size_mb = round(@{activity('Copy_to_gen2').output.dataWritten}::numeric / 1048576, 2),\n       updated_by   = '@{pipeline().DataFactory}',\n       updated_dt   = now()\n WHERE ingest_pipeline_id = '@{item().ingest_pipeline_id}'\n   AND status = 'RUNNING';\n",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "00:10:00"
+									}
+								},
+								{
+									"name": "Upd_run_fail",
+									"description": "수집 이력 FAILED + 오류 메시지",
+									"type": "Script",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [
+										{
+											"activity": "Copy_to_gen2",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "AzurePostgreSql1",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "NonQuery",
+												"text": {
+													"value": "/* Upd_run_fail : Copy 실패 -> FAILED + 오류 메시지 (작은따옴표는 이중화) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status     = 'FAILED',\n       end_dt     = now(),\n       error_log  = left('@{replace(activity('Copy_to_gen2').error.message, '''', '''''')}', 4000),\n       updated_by = '@{pipeline().DataFactory}',\n       updated_dt = now()\n WHERE ingest_pipeline_id = '@{item().ingest_pipeline_id}'\n   AND status IN ('PENDING', 'RUNNING');\n",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "00:10:00"
+									}
+								},
+								{
+									"name": "pipeline_dispatcher_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "End_master_run",
+						"description": "Master 종료 (수집 이력 집계)",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "ForEach_child_ingest",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "/* End_master_run : ForEach 완료 시 (성공 / 실패 모두). RUNNING 인 Master 만 갱신 (Fail_master_run 이 바꾼 행 · SKIPPED 는 유지)\n   종료 시점에 RUNNING / PENDING 으로 남은 수집 행은 실패로 집계 */\nWITH c AS (\n    SELECT count(*)                                                        AS total_cnt,\n           count(*) FILTER (WHERE status = 'SUCCEEDED')                    AS succ_cnt,\n           count(*) FILTER (WHERE status IN ('FAILED','RUNNING','PENDING')) AS fail_cnt\n      FROM adfadm.ctl_ingest_pipeline_run\n     WHERE master_run_id = '@{pipeline().RunId}'\n       AND status <> 'SKIPPED'\n)\nUPDATE adfadm.ctl_master_pipeline_run m\n   SET child_total_cnt = c.total_cnt,\n       child_succ_cnt  = c.succ_cnt,\n       child_fail_cnt  = c.fail_cnt,\n       status          = CASE WHEN c.fail_cnt = 0 THEN 'SUCCEEDED' ELSE 'FAILED' END,\n       error_log       = CASE WHEN c.fail_cnt = 0 THEN m.error_log\n                              ELSE '수집 실패 ' || c.fail_cnt || '건 (ctl_ingest_pipeline_run 확인)' END,\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n  FROM c\n WHERE m.master_run_id = '@{pipeline().RunId}'\n   AND m.status = 'RUNNING';\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
+						"name": "Fail_master_run",
+						"description": "Start_ingest 실패 -> Master FAILED",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Start_ingest_pipeline Script",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "/* Fail_master_run : Start_ingest_pipeline Script 실패 시. 수집 이력 INSERT 실패면 같은 문장의 RUNNING 전환도 취소되어 Master 는 PENDING 으로 남아 있음 */\nUPDATE adfadm.ctl_master_pipeline_run\n   SET status          = 'FAILED',\n       child_total_cnt = 0,\n       child_succ_cnt  = 0,\n       child_fail_cnt  = 0,\n       error_log       = left('[Start_ingest_pipeline Script] '\n                              || '@{replace(activity('Start_ingest_pipeline Script').error.message, '''', '''''')}', 4000),\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n WHERE master_run_id = '@{pipeline().RunId}'\n   AND status IN ('PENDING', 'RUNNING');\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_run_group_nm": {
+						"type": "String",
+						"defaultValue": "FULL_DAILY"
+					},
+					"p_scheduled_time": {
+						"type": "String"
+					},
+					"p_target_ids": {
+						"type": "String"
+					},
+					"p_trigger_nm": {
+						"type": "String"
+					},
+					"p_trigger_id": {
+						"type": "String"
+					},
+					"p_bizday_n": {
+						"type": "String"
+					},
+					"p_bizday_offset": {
+						"type": "String"
+					},
+					"p_dbx_last_run_yn": {
+						"type": "String"
+					},
+					"p_requester": {
+						"type": "String"
+					},
+					"p_entry_run_id": {
+						"type": "String"
+					}
+				},
+				"variables": {
+					"pv_job_types": {
+						"type": "String",
+						"defaultValue": "RAW_FULL"
+					},
+					"pv_yyyyMMddHHmmss": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "raw/orchestration"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_cmn_master_start')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_cmn_run_check')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
+				"[concat(variables('factoryId'), '/datasets/OdbcTable2')]",
+				"[concat(variables('factoryId'), '/datasets/Parquet4')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_dispatcher_ingest')]"
 			]
 		},
 		{
@@ -4334,7 +5913,17 @@
 			"properties": {
 				"annotations": [],
 				"runtimeState": "Stopped",
-				"pipelines": [],
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pipeline1",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"a": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
+						}
+					}
+				],
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
@@ -4361,7 +5950,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pipeline1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/every_n_min')]",
@@ -4370,7 +5961,26 @@
 			"properties": {
 				"annotations": [],
 				"runtimeState": "Stopped",
-				"pipelines": [],
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pipeline1_copy1",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"a": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
+						}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "pipeline1",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"a": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
+						}
+					}
+				],
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
@@ -4381,7 +5991,10 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pipeline1_copy1')]",
+				"[concat(variables('factoryId'), '/pipelines/pipeline1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/every_week_sat')]",
@@ -4446,6 +6059,55 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/trg_sch_daily1_0400_kst_bizday')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "[BIZDAY] 매일 KST 04:00 기동, 영업일 판정 공유 트리거 - 3영업일 / 3영업일+1일 / 4영업일 / 7영업일+1일",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2026-09-21T01:29:00",
+						"timeZone": "Korea Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								4
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trg_sch_every_10_min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 10,
+						"startTime": "2026-09-21T01:29:00",
+						"timeZone": "Korea Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/trg_sch_every_day_7_time')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
@@ -4500,6 +6162,40 @@
 						"interval": 1,
 						"startTime": "2026-09-21T01:29:00",
 						"timeZone": "Korea Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trigger1')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Month",
+						"interval": 1,
+						"startTime": "2026-09-22T04:55:00",
+						"timeZone": "Korea Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								4
+							],
+							"monthlyOccurrences": [
+								{
+									"day": "Saturday",
+									"occurrence": 1
+								}
+							]
+						}
 					}
 				}
 			},
