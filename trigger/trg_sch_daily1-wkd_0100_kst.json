@@ -1,16 +1,43 @@
 {
 	"name": "trg_sch_daily1-wkd_0100_kst",
 	"properties": {
+		"description": "pl_meta_orch_full 직접 호출 (pl_cmn_orch_trigger_entry 미경유). 평일 새벽 01:00 KST, 그룹 1개(META_WEEKDAY_FULL) 고정. p_scheduled_time = 지연 모니터링용",
 		"annotations": [],
 		"runtimeState": "Stopped",
-		"pipelines": [],
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_meta_orch_full",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"p_run_group_nm": "META_WEEKDAY_FULL",
+					"p_scheduled_time": "@trigger().scheduledTime"
+				}
+			}
+		],
 		"type": "ScheduleTrigger",
 		"typeProperties": {
 			"recurrence": {
-				"frequency": "Minute",
-				"interval": 15,
-				"startTime": "2026-09-27T11:05:00",
-				"timeZone": "Korea Standard Time"
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2026-10-01T01:00:00",
+				"timeZone": "Korea Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						1
+					],
+					"weekDays": [
+						"Monday",
+						"Tuesday",
+						"Wednesday",
+						"Thursday",
+						"Friday"
+					]
+				}
 			}
 		}
 	}
