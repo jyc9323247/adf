@@ -398,7 +398,7 @@
 												"userProperties": [],
 												"typeProperties": {
 													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_month",
+														"referenceName": "pl_raw_orch_incr_window-based-monthly",
 														"type": "PipelineReference"
 													},
 													"waitOnCompletion": true,
