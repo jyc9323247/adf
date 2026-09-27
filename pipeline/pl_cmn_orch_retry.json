@@ -270,13 +270,16 @@
 				"type": "String"
 			},
 			"p_target_ids": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_force_yn": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_requester": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			}
 		},
 		"folder": {
