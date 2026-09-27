@@ -1,5 +1,5 @@
 {
-	"name": "pl_raw_orch_incr_window-based-daily",
+	"name": "pl_raw_orch_incr_window-based-daily3",
 	"properties": {
 		"description": "RAW INCR 마스터 - 일 단위 (v8.3). master_start -> run_check -> 시작일 계산 -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료. 증분컬럼 >= 오늘 - N 일",
 		"activities": [
@@ -504,19 +504,24 @@
 		],
 		"parameters": {
 			"p_run_group_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "TEST_DAILY_INCR_D3"
 			},
 			"p_scheduled_time": {
 				"type": "String"
 			},
 			"p_target_ids": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": [
+					13
+				]
 			},
 			"p_incr_from_val": {
 				"type": "String"
 			},
 			"p_incr_days": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "1"
 			},
 			"p_trigger_nm": {
 				"type": "String"
@@ -534,10 +539,12 @@
 				"type": "String"
 			},
 			"p_requester": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "jeon"
 			},
 			"p_entry_run_id": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "123213"
 			}
 		},
 		"variables": {
