@@ -388,40 +388,31 @@
 				"defaultValue": "FULL_DAILY"
 			},
 			"p_scheduled_time": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_target_ids": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_trigger_nm": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_trigger_id": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_bizday_n": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_bizday_offset": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_dbx_last_run_yn": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_requester": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			},
 			"p_entry_run_id": {
-				"type": "String",
-				"defaultValue": " "
+				"type": "String"
 			}
 		},
 		"variables": {
