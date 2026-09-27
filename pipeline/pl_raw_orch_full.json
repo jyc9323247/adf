@@ -243,7 +243,7 @@
 					"batchCount": 8,
 					"activities": [
 						{
-							"name": "pipeline_dispatcher_copy1",
+							"name": "pipeline_dispatcher",
 							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
