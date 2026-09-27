@@ -218,7 +218,7 @@
 			}
 		},
 		"folder": {
-			"name": "raw/ingestion"
+			"name": "meta/ingestion"
 		},
 		"annotations": []
 	}
