@@ -86,6 +86,9 @@
 		"every_n_min_properties_pipeline1_parameters_a": {
 			"value": "ddd"
 		},
+		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
+			"value": "FULL_DAILY"
+		},
 		"containerUri": {
 			"value": ""
 		},
