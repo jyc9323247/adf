@@ -228,9 +228,6 @@
 				"type": "String"
 			}
 		},
-		"folder": {
-			"name": "raw/orchestration"
-		},
 		"annotations": []
 	}
 }

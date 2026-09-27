@@ -398,9 +398,6 @@
 				"defaultValue": -3
 			}
 		},
-		"folder": {
-			"name": "raw/orchestration"
-		},
 		"annotations": []
 	}
 }
