@@ -341,9 +341,6 @@
 						"type": "string"
 					}
 				},
-				"folder": {
-					"name": "util/sop"
-				},
 				"annotations": []
 			},
 			"dependsOn": []
@@ -406,9 +403,6 @@
 					"p_skip_reason": {
 						"type": "string"
 					}
-				},
-				"folder": {
-					"name": "util/sop"
 				},
 				"annotations": []
 			},

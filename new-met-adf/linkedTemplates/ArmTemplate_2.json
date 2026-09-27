@@ -615,9 +615,6 @@
 						"type": "Array"
 					}
 				},
-				"folder": {
-					"name": "util/sop"
-				},
 				"annotations": []
 			},
 			"dependsOn": [
@@ -882,7 +879,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_meta_db2_xmeta')]",
+			"name": "[concat(parameters('factoryName'), '/pl_meta_ingest_db2_XMETA')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -916,13 +913,14 @@
 								"queryTimeout": "02:00:00"
 							},
 							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
+								"type": "AzurePostgreSqlSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"preCopyScript": {
+									"value": "DELETE FROM @{pipeline().parameters.p_table_nm}.@{pipeline().parameters.p_table_nm}\nWHERE created_dt < (NOW() AT TIME ZONE 'Asia/Seoul') - INTERVAL '7 days'",
+									"type": "Expression"
 								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
+								"writeMethod": "CopyCommand"
 							},
 							"enableStaging": false,
 							"translator": {
@@ -943,15 +941,15 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "Parquet4",
+								"referenceName": "AzurePostgreSqlTable1_sink",
 								"type": "DatasetReference",
 								"parameters": {
-									"p_filename": {
-										"value": "@pipeline().parameters.p_file_name",
+									"p_schema_nm": {
+										"value": "@pipeline().parameters.p_scheam_nm",
 										"type": "Expression"
 									},
-									"p_landing_path": {
-										"value": "@pipeline().parameters.p_landing_path",
+									"p_table_nm": {
+										"value": "@pipeline().parameters.p_table_nm",
 										"type": "Expression"
 									}
 								}
@@ -1084,10 +1082,10 @@
 					"elapsedTimeMetric": {}
 				},
 				"parameters": {
-					"p_landing_path": {
+					"p_scheam_nm": {
 						"type": "string"
 					},
-					"p_file_name": {
+					"p_table_nm": {
 						"type": "string"
 					},
 					"p_extract_query": {
@@ -1106,17 +1104,16 @@
 					}
 				},
 				"folder": {
-					"name": "raw/ingestion"
+					"name": "meta/ingestion"
 				},
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
-				"[concat(variables('factoryId'), '/datasets/Parquet4')]"
+				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_raw_db2_mliwp')]",
+			"name": "[concat(parameters('factoryName'), '/pl_raw_ingest_db2_XMETA')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -1213,7 +1210,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "\tUPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    update_by              = 'ADF',\n    update_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}';\n",
+										"value": "\n/* Upd_run_start : 수집 이력 PENDING -> RUNNING (start_dt 기록). ingest_pipeline_run_id 에는 마스터 RunId 기록 (Child 파이프라인 없음) */\n\nUPDATE adfadm.ctl_ingest_pipeline_run\nSET\n    ingest_pipeline_run_id = '@{pipeline().RunId}',\n    status                 = 'RUNNING',\n    start_dt               = NOW(),\n    attempt_no             = attempt_no + 1,\n    updated_by              = 'ADF',\n    updated_dt              = NOW()\nWHERE master_run_id       = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id  = '@{pipeline().parameters.p_ingest_pipeline_id}'\n   AND status = 'PENDING';\n\n\n",
 										"type": "Expression"
 									}
 								}
@@ -1249,7 +1246,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    ingest_pipeline_run_id  ='@{pipeline().RunId}',\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.errors[0].Message,'''','''''')}',\n        ''\n    ),\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+										"value": "/*\n    error_log = \t NULLIF(\n        '@{replace(activity('Copy data').output.errors[0].Message,'''','''''')}',\n        ''\n    ),\n*/\n\n\n  /* Upd_run_fail : Copy 실패 -> FAILED + 오류 메시지 (작은따옴표는 이중화) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status     = 'FAILED',\n       end_dt     = now(),\n       error_log  = left('@{replace(activity('Copy data').output.errors[0].Message, '''', '''''')}', 4000),\n       updated_by = '@{pipeline().DataFactory}',\n       updated_dt = now() \n WHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}'\n   AND status IN ('PENDING', 'RUNNING');\n",
 										"type": "Expression"
 									}
 								}
@@ -1285,7 +1282,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'SUCCEEDED',\n    extract_cnt  = @{activity('Copy data').output.rowsRead},\n    save_cnt     = @{activity('Copy data').output.rowsCopied},\n    file_size_mb = @{div(activity('Copy data').output.dataWritten,1048576)},\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+										"value": "/* Upd_run_ok : Copy 성공 -> SUCCEEDED. 건수 = rowsRead / rowsCopied, 크기(MB) = dataRead / dataWritten (byte / 1048576) */\nUPDATE adfadm.ctl_ingest_pipeline_run\n   SET status       = 'SUCCEEDED',\n       end_dt       = now(),\n       extract_cnt  = @{activity('Copy data').output.rowsRead},\n       save_cnt     = @{activity('Copy data').output.rowsCopied},\n       read_size_mb = round(@{activity('Copy data').output.dataRead}::numeric / 1048576, 2),\n       file_size_mb = round(@{activity('Copy data').output.dataWritten}::numeric / 1048576, 2),\n       updated_by   = '@{pipeline().DataFactory}',\n       updated_dt   = now()\n WHERE \n  master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}'\n  AND status = 'RUNNING';",
 										"type": "Expression"
 									}
 								}
@@ -1298,16 +1295,16 @@
 						"type": "Fail",
 						"dependsOn": [
 							{
-								"activity": "Failed_UPDATE",
+								"activity": "Copy data",
 								"dependencyConditions": [
-									"Completed"
+									"Failed"
 								]
 							}
 						],
 						"userProperties": [],
 						"typeProperties": {
 							"message": {
-								"value": "@activity('Copy data').output",
+								"value": "@{replace(activity('Copy data').error.message, '''', '''''')}",
 								"type": "Expression"
 							},
 							"errorCode": "-1"
@@ -1319,19 +1316,24 @@
 				},
 				"parameters": {
 					"p_landing_path": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "test"
 					},
 					"p_file_name": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "a.parquet"
 					},
 					"p_extract_query": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "select * from db2inst1.lineitem limit 1;"
 					},
 					"p_ingest_pipeline_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "33"
 					},
 					"p_master_run_id": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "daf"
 					}
 				},
 				"variables": {
@@ -1350,7 +1352,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_raw_db2_xmeta')]",
+			"name": "[concat(parameters('factoryName'), '/pl_raw_ingest_db2_MLIWPT')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -1618,7 +1620,7 @@
 											"userProperties": [],
 											"typeProperties": {
 												"pipeline": {
-													"referenceName": "pl_raw_db2_xmeta",
+													"referenceName": "pl_raw_ingest_db2_XMETA",
 													"type": "PipelineReference"
 												},
 												"waitOnCompletion": true,
@@ -1649,7 +1651,7 @@
 									]
 								},
 								{
-									"value": "pl_meta_db2_xmeta",
+									"value": "pl_meta_ingest_db2_xmeta",
 									"activities": [
 										{
 											"name": "pl_meta_db2_xmeta",
@@ -1661,7 +1663,7 @@
 											"userProperties": [],
 											"typeProperties": {
 												"pipeline": {
-													"referenceName": "pl_raw_db2_xmeta",
+													"referenceName": "pl_raw_ingest_db2_XMETA",
 													"type": "PipelineReference"
 												},
 												"waitOnCompletion": true,
@@ -1692,7 +1694,7 @@
 									]
 								},
 								{
-									"value": "pl_raw_db2_mliwp",
+									"value": "pl_raw_ingest_db2_mliwp",
 									"activities": [
 										{
 											"name": "pl_raw_db2_mliwp",
@@ -1704,7 +1706,7 @@
 											"userProperties": [],
 											"typeProperties": {
 												"pipeline": {
-													"referenceName": "pl_raw_db2_mliwp",
+													"referenceName": "pl_raw_ingest_db2_MLIWPT",
 													"type": "PipelineReference"
 												},
 												"waitOnCompletion": true,
@@ -1774,7 +1776,7 @@
 											{
 												"type": "Query",
 												"text": {
-													"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    error_log = 'Dispatcher Pipeline' \t,\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+													"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    error_log = 'Dispatcher Child Pipeline 없음 ' \t,\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
 													"type": "Expression"
 												}
 											}
@@ -1798,7 +1800,10 @@
 						],
 						"userProperties": [],
 						"typeProperties": {
-							"message": "dispatcher_failed",
+							"message": {
+								"value": "@activity('Switch_pl_dispatcher_ingest').output.value",
+								"type": "Expression"
+							},
 							"errorCode": "-1"
 						}
 					}
@@ -1843,8 +1848,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_raw_db2_xmeta')]",
-				"[concat(variables('factoryId'), '/pipelines/pl_raw_db2_mliwp')]"
+				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_XMETA')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_MLIWPT')]"
 			]
 		},
 		{
@@ -2278,9 +2283,6 @@
 						"type": "String",
 						"defaultValue": "FULL"
 					}
-				},
-				"folder": {
-					"name": "raw/orchestration"
 				},
 				"annotations": []
 			},
@@ -2851,9 +2853,6 @@
 						"defaultValue": false
 					}
 				},
-				"folder": {
-					"name": "raw/orchestration"
-				},
 				"annotations": []
 			},
 			"dependsOn": [
@@ -3095,9 +3094,6 @@
 						"type": "Boolean",
 						"defaultValue": false
 					}
-				},
-				"folder": {
-					"name": "raw/orchestration"
 				},
 				"annotations": []
 			},
@@ -3511,9 +3507,6 @@
 						"defaultValue": -2
 					}
 				},
-				"folder": {
-					"name": "raw/orchestration"
-				},
 				"annotations": []
 			},
 			"dependsOn": [
@@ -3754,9 +3747,6 @@
 					"pv_bizdays": {
 						"type": "String"
 					}
-				},
-				"folder": {
-					"name": "raw/orchestration"
 				},
 				"annotations": []
 			},
@@ -4169,9 +4159,6 @@
 						"type": "Integer",
 						"defaultValue": -3
 					}
-				},
-				"folder": {
-					"name": "raw/orchestration"
 				},
 				"annotations": []
 			},
@@ -4953,7 +4940,7 @@
 					}
 				},
 				"folder": {
-					"name": "raw/orchestration"
+					"name": "meta/orchestration"
 				},
 				"annotations": []
 			},
@@ -5404,7 +5391,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_raw_orch_incr_day')]",
+			"name": "[concat(parameters('factoryName'), '/pl_raw_orch_incr_window-based-daily3')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -5914,19 +5901,24 @@
 				},
 				"parameters": {
 					"p_run_group_nm": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": "TEST_DAILY_INCR_D3"
 					},
 					"p_scheduled_time": {
 						"type": "String"
 					},
 					"p_target_ids": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": [
+							13
+						]
 					},
 					"p_incr_from_val": {
 						"type": "String"
 					},
 					"p_incr_days": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": "1"
 					},
 					"p_trigger_nm": {
 						"type": "String"
@@ -5944,10 +5936,12 @@
 						"type": "String"
 					},
 					"p_requester": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": "jeon"
 					},
 					"p_entry_run_id": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": "123213"
 					}
 				},
 				"variables": {
