@@ -137,67 +137,6 @@
 								},
 								"cases": [
 									{
-										"value": "META_FULL",
-										"activities": [
-											{
-												"name": "Exec_meta_full",
-												"description": "META 수집 (TABLE / GEN2 Sink)",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "pl_meta_orch_full",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"p_run_group_nm": {
-															"value": "@item().run_group_nm",
-															"type": "Expression"
-														},
-														"p_scheduled_time": {
-															"value": "@variables('pv_scheduled_time')",
-															"type": "Expression"
-														},
-														"p_target_ids": {
-															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
-															"type": "Expression"
-														},
-														"p_trigger_nm": {
-															"value": "@variables('pv_trigger_nm')",
-															"type": "Expression"
-														},
-														"p_trigger_id": {
-															"value": "@variables('pv_trigger_id')",
-															"type": "Expression"
-														},
-														"p_bizday_n": {
-															"value": "@string(coalesce(item()?.bizday_n, ''))",
-															"type": "Expression"
-														},
-														"p_bizday_offset": {
-															"value": "@string(coalesce(item()?.bizday_offset, ''))",
-															"type": "Expression"
-														},
-														"p_dbx_last_run_yn": {
-															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
-															"type": "Expression"
-														},
-														"p_requester": "",
-														"p_entry_run_id": {
-															"value": "@pipeline().RunId",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									},
-									{
 										"value": "RAW_FULL",
 										"activities": [
 											{
@@ -322,7 +261,7 @@
 										]
 									},
 									{
-										"value": "RAW_INCR_DAY",
+										"value": "RAW_INCR_DAY_3",
 										"activities": [
 											{
 												"name": "Exec_incr_day",
@@ -335,7 +274,7 @@
 												"userProperties": [],
 												"typeProperties": {
 													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_window-based-daily",
+														"referenceName": "pl_raw_orch_incr_window-based-daily3",
 														"type": "PipelineReference"
 													},
 													"waitOnCompletion": true,
@@ -385,7 +324,7 @@
 										]
 									},
 									{
-										"value": "RAW_INCR_MONTH",
+										"value": "RAW_INCR_MONTH_1",
 										"activities": [
 											{
 												"name": "Exec_incr_month",
@@ -398,7 +337,7 @@
 												"userProperties": [],
 												"typeProperties": {
 													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_window-based-monthly",
+														"referenceName": "pl_raw_orch_incr_window-based-monthly1",
 														"type": "PipelineReference"
 													},
 													"waitOnCompletion": true,
@@ -442,69 +381,6 @@
 														},
 														"p_incr_from_val": "",
 														"p_incr_months": ""
-													}
-												}
-											}
-										]
-									},
-									{
-										"value": "RAW_INCR_MINUTE",
-										"activities": [
-											{
-												"name": "Exec_incr_time",
-												"description": "RAW_INCR pl_raw_orch_incr_time",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_window-based-minutely",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"p_run_group_nm": {
-															"value": "@item().run_group_nm",
-															"type": "Expression"
-														},
-														"p_scheduled_time": {
-															"value": "@variables('pv_scheduled_time')",
-															"type": "Expression"
-														},
-														"p_target_ids": {
-															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
-															"type": "Expression"
-														},
-														"p_trigger_nm": {
-															"value": "@variables('pv_trigger_nm')",
-															"type": "Expression"
-														},
-														"p_trigger_id": {
-															"value": "@variables('pv_trigger_id')",
-															"type": "Expression"
-														},
-														"p_bizday_n": {
-															"value": "@string(coalesce(item()?.bizday_n, ''))",
-															"type": "Expression"
-														},
-														"p_bizday_offset": {
-															"value": "@string(coalesce(item()?.bizday_offset, ''))",
-															"type": "Expression"
-														},
-														"p_dbx_last_run_yn": {
-															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
-															"type": "Expression"
-														},
-														"p_requester": "",
-														"p_entry_run_id": {
-															"value": "@pipeline().RunId",
-															"type": "Expression"
-														},
-														"p_incr_from_val": "",
-														"p_incr_minutes": ""
 													}
 												}
 											}
