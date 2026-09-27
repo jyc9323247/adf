@@ -1,5 +1,5 @@
 {
-	"name": "pl_raw_orch_incr_day",
+	"name": "pl_raw_orch_incr_window-based-daily",
 	"properties": {
 		"description": "RAW INCR 마스터 - 일 단위 (v8.3). master_start -> run_check -> 시작일 계산 -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료. 증분컬럼 >= 오늘 - N 일",
 		"activities": [
