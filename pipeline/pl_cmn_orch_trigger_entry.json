@@ -461,7 +461,7 @@
 												"userProperties": [],
 												"typeProperties": {
 													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_time",
+														"referenceName": "pl_raw_orch_incr_window-based-minutely",
 														"type": "PipelineReference"
 													},
 													"waitOnCompletion": true,
