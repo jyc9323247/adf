@@ -3,7 +3,7 @@
 	"properties": {
 		"description": "pl_meta_orch_full 직접 호출 (pl_cmn_orch_trigger_entry 미경유). 평일 새벽 01:00 KST, 그룹 1개(META_WEEKDAY_FULL) 고정. p_scheduled_time = 지연 모니터링용",
 		"annotations": [],
-		"runtimeState": "Stopped",
+		"runtimeState": "Started",
 		"pipelines": [
 			{
 				"pipelineReference": {
