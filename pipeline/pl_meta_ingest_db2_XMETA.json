@@ -31,13 +31,14 @@
 						"queryTimeout": "02:00:00"
 					},
 					"sink": {
-						"type": "ParquetSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+						"type": "AzurePostgreSqlSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"preCopyScript": {
+							"value": "DELETE FROM @{pipeline().parameters.p_table_nm}.@{pipeline().parameters.p_table_nm}\nWHERE created_dt < (NOW() AT TIME ZONE 'Asia/Seoul') - INTERVAL '7 days'",
+							"type": "Expression"
 						},
-						"formatSettings": {
-							"type": "ParquetWriteSettings"
-						}
+						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
 					"translator": {
@@ -57,15 +58,15 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Parquet4",
+						"referenceName": "AzurePostgreSqlTable1_sink",
 						"type": "DatasetReference",
 						"parameters": {
-							"p_filename": {
-								"value": "@pipeline().parameters.p_file_name",
+							"p_schema_nm": {
+								"value": "@pipeline().parameters.p_scheam_nm",
 								"type": "Expression"
 							},
-							"p_landing_path": {
-								"value": "@pipeline().parameters.p_landing_path",
+							"p_table_nm": {
+								"value": "@pipeline().parameters.p_table_nm",
 								"type": "Expression"
 							}
 						}
@@ -195,10 +196,10 @@
 			}
 		],
 		"parameters": {
-			"p_landing_path": {
+			"p_scheam_nm": {
 				"type": "string"
 			},
-			"p_file_name": {
+			"p_table_nm": {
 				"type": "string"
 			},
 			"p_extract_query": {
