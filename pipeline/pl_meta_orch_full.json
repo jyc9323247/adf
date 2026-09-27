@@ -1,7 +1,7 @@
 {
 	"name": "pl_meta_orch_full",
 	"properties": {
-		"description": "META 수집 마스터 (v8.3) - TABLE / GEN2 두 Sink. master_start -> run_check -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료",
+		"description": "META 수집 마스터 (v8.3) - TABLE / GEN2 두 Sink. Trigger 가 직접 호출 (pl_cmn_orch_trigger_entry 미경유, 단일 그룹). 영업일 판정 미사용 (p_bizday_n/offset 고정 공백), entry_run_id 없음. master_start -> run_check(전역 skip · Trigger 이력) -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료",
 		"activities": [
 			{
 				"name": "Set_batch_ts",
@@ -76,14 +76,8 @@
 							"value": "@pipeline().parameters.p_target_ids",
 							"type": "Expression"
 						},
-						"p_bizday_n": {
-							"value": "@pipeline().parameters.p_bizday_n",
-							"type": "Expression"
-						},
-						"p_bizday_offset": {
-							"value": "@pipeline().parameters.p_bizday_offset",
-							"type": "Expression"
-						},
+						"p_bizday_n": "",
+						"p_bizday_offset": "",
 						"p_dbx_last_run_yn": {
 							"value": "@pipeline().parameters.p_dbx_last_run_yn",
 							"type": "Expression"
@@ -92,10 +86,7 @@
 							"value": "@pipeline().parameters.p_requester",
 							"type": "Expression"
 						},
-						"p_entry_run_id": {
-							"value": "@pipeline().parameters.p_entry_run_id",
-							"type": "Expression"
-						},
+						"p_entry_run_id": "",
 						"p_incr_from_val": "",
 						"p_incr_days": "",
 						"p_incr_months": "",
@@ -156,14 +147,8 @@
 							"value": "@pipeline().parameters.p_scheduled_time",
 							"type": "Expression"
 						},
-						"p_bizday_n": {
-							"value": "@pipeline().parameters.p_bizday_n",
-							"type": "Expression"
-						},
-						"p_bizday_offset": {
-							"value": "@pipeline().parameters.p_bizday_offset",
-							"type": "Expression"
-						},
+						"p_bizday_n": "",
+						"p_bizday_offset": "",
 						"p_requester": {
 							"value": "@pipeline().parameters.p_requester",
 							"type": "Expression"
@@ -446,19 +431,10 @@
 			"p_trigger_id": {
 				"type": "String"
 			},
-			"p_bizday_n": {
-				"type": "String"
-			},
-			"p_bizday_offset": {
-				"type": "String"
-			},
 			"p_dbx_last_run_yn": {
 				"type": "String"
 			},
 			"p_requester": {
-				"type": "String"
-			},
-			"p_entry_run_id": {
 				"type": "String"
 			}
 		},
