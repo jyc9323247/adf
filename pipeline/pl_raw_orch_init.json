@@ -181,7 +181,7 @@
 				"typeProperties": {
 					"variableName": "pv_start_val",
 					"value": {
-						"value": "@coalesce(pipeline().parameters.p_start_val, '')",
+						"value": "@coalesce(trim(pipeline().parameters.p_start_val), '')",
 						"type": "Expression"
 					}
 				}
@@ -206,7 +206,7 @@
 				"typeProperties": {
 					"variableName": "pv_end_val",
 					"value": {
-						"value": "@coalesce(pipeline().parameters.p_end_val, '')",
+						"value": "@coalesce(trim(pipeline().parameters.p_end_val), '')",
 						"type": "Expression"
 					}
 				}
@@ -231,7 +231,7 @@
 				"typeProperties": {
 					"variableName": "pv_partition_val",
 					"value": {
-						"value": "@coalesce(pipeline().parameters.p_partition_val, '')",
+						"value": "@coalesce(trim(pipeline().parameters.p_partition_val), '')",
 						"type": "Expression"
 					}
 				}
@@ -622,7 +622,7 @@
 					"batchCount": 8,
 					"activities": [
 						{
-							"name": "pipeline_dispatcher_copy1",
+							"name": "pipeline_dispatcher",
 							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
