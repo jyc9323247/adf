@@ -1,5 +1,5 @@
 {
-	"name": "pl_meta_db2_xmeta",
+	"name": "pl_meta_ingest_db2_XMETA",
 	"properties": {
 		"activities": [
 			{
@@ -24,7 +24,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "OdbcSource",
-						"query": "@pipeline().parameters.p_extract_query",
+						"query": {
+							"value": "@pipeline().parameters.p_extract_query",
+							"type": "Expression"
+						},
 						"queryTimeout": "02:00:00"
 					},
 					"sink": {
