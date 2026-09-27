@@ -238,6 +238,15 @@
 					},
 					"every_mon_to_sat_properties_pipeline1_parameters_a": {
 						"value": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
+					},
+					"every_n_min_properties_pipeline1_copy1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
+					},
+					"every_n_min_properties_pipeline1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
+					},
+					"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
+						"value": "[parameters('every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm')]"
 					}
 				}
 			},
@@ -278,15 +287,6 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
-					},
-					"every_n_min_properties_pipeline1_copy1_parameters_a": {
-						"value": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
-					},
-					"every_n_min_properties_pipeline1_parameters_a": {
-						"value": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
-					},
-					"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
-						"value": "[parameters('every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm')]"
 					}
 				}
 			},
