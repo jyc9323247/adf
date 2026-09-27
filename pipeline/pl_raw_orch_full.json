@@ -102,11 +102,11 @@
 							"type": "Expression"
 						},
 						"p_run_group_nm": {
-							"value": "@pipeline().parameters.p_run_group_nm",
+							"value": "@trim(pipeline().parameters.p_run_group_nm)",
 							"type": "Expression"
 						},
 						"p_scheduled_time": {
-							"value": "@if(\n  and(\n    not(equals(pipeline().parameters.p_scheduled_time, null)),\n    not(equals(trim(pipeline().parameters.p_scheduled_time), ''))\n  ),\n  pipeline().parameters.p_scheduled_time,\n  formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss')\n)",
+							"value": "@trim(pipeline().parameters.p_scheduled_time)\n",
 							"type": "Expression"
 						},
 						"p_bizday_n": {
