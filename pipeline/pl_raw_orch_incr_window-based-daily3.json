@@ -239,7 +239,7 @@
 				"typeProperties": {
 					"variableName": "pv_incr_from_val",
 					"value": {
-						"value": "@if(not(empty(pipeline().parameters.p_incr_from_val)), pipeline().parameters.p_incr_from_val, formatDateTime(addDays(convertTimeZone(utcnow(), 'UTC', 'Korea Standard Time'), sub(0, int(if(empty(pipeline().parameters.p_incr_days), variables('pv_condition_interval'), pipeline().parameters.p_incr_days)))), 'yyyy-MM-dd'))",
+						"value": "@if(\n    not(empty(trim(pipeline().parameters.p_incr_from_val))),\n    trim(pipeline().parameters.p_incr_from_val),\n    formatDateTime(\n        addDays(\n            convertTimeZone(utcnow(), 'UTC', 'Korea Standard Time'),\n            sub(\n                0,\n                int(\n                    if(\n                        empty(trim(pipeline().parameters.p_incr_days)),\n                        variables('pv_condition_interval'),\n                        trim(pipeline().parameters.p_incr_days)\n                    )\n                )\n            )\n        ),\n        'yyyy-MM-dd'\n    )\n)",
 						"type": "Expression"
 					}
 				}
