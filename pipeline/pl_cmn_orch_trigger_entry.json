@@ -1,8 +1,648 @@
 {
 	"name": "pl_cmn_orch_trigger_entry",
 	"properties": {
+		"description": "Trigger 진입 (v8.3). ADF Trigger 가 p_sched_json (그룹 목록) 을 넘기면 그룹별 병렬로 job_type_cd 에 맞는 마스터 호출. Trigger 이력은 마스터 안의 pl_cmn_run_check 가 마스터 실행마다 기록. 종료 시 entry_run_id 기준 결과 집계",
+		"activities": [
+			{
+				"name": "Set_trigger_nm",
+				"description": "Trigger 이름 (Trigger 실행 시 실제 Trigger 명. 디버그 실행이면 Debug 계열 값 [확인필요])",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_trigger_nm",
+					"value": {
+						"value": "@pipeline().TriggerName",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_trigger_id",
+				"description": "Trigger ID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_trigger_nm",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_trigger_id",
+					"value": {
+						"value": "@pipeline().TriggerId",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_scheduled_time",
+				"description": "Trigger 예정 시각 (Trigger 파라미터 @trigger().scheduledTime). 비어 있으면(수동/디버그) 현재 UTC",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_trigger_id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_scheduled_time",
+					"value": {
+						"value": "@if(empty(pipeline().parameters.p_scheduled_time), utcnow(), pipeline().parameters.p_scheduled_time)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If_empty_sched",
+				"description": "p_sched_json 이 비어 있으면 실패 (Trigger 설정 오류). 형식이 JSON 이 아니면 이 활동이 실패",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set_scheduled_time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(length(json(pipeline().parameters.p_sched_json)), 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Fail_empty_sched",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "p_sched_json 에 실행할 그룹이 없음 (Trigger 파라미터 확인)",
+								"errorCode": "ENTRY_EMPTY_SCHED"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_sched",
+				"description": "p_sched_json 그룹별 병렬 실행. 한 그룹(마스터)이 실패해도 나머지 그룹은 계속 (ForEach 는 반복 하나가 실패해도 다른 반복을 끝까지 수행)",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "If_empty_sched",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@json(pipeline().parameters.p_sched_json)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "Switch_job_type",
+							"description": "job_type_cd -> 마스터 (RAW_INCR 는 incr_unit 으로 일 / 월 / 분 마스터 분기)",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@if(equals(toUpper(item().job_type_cd), 'RAW_INCR'), concat('RAW_INCR_', toUpper(coalesce(item()?.incr_unit, ''))), toUpper(item().job_type_cd))",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "META_FULL",
+										"activities": [
+											{
+												"name": "Exec_meta_full",
+												"description": "META 수집 (TABLE / GEN2 Sink)",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_meta_orch_full",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_dbx_last_run_yn": {
+															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "RAW_FULL",
+										"activities": [
+											{
+												"name": "Exec_raw_full",
+												"description": "RAW 정기 FULL",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_raw_orch_full",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_dbx_last_run_yn": {
+															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "RAW_REFRESH",
+										"activities": [
+											{
+												"name": "Exec_raw_refresh",
+												"description": "RAW_REFRESH 그룹 FULL_REFRESH (주말 등)",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_raw_orch_init",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"p_init_load_group": "",
+														"p_request_yn": "",
+														"p_run_type_override": "",
+														"p_start_val": "",
+														"p_end_val": "",
+														"p_partition_val": ""
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "RAW_INCR_DAY",
+										"activities": [
+											{
+												"name": "Exec_incr_day",
+												"description": "RAW_INCR pl_raw_orch_incr_day",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_raw_orch_incr_day",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_dbx_last_run_yn": {
+															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"p_incr_from_val": "",
+														"p_incr_days": ""
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "RAW_INCR_MONTH",
+										"activities": [
+											{
+												"name": "Exec_incr_month",
+												"description": "RAW_INCR pl_raw_orch_incr_month",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_raw_orch_incr_month",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_dbx_last_run_yn": {
+															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"p_incr_from_val": "",
+														"p_incr_months": ""
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "RAW_INCR_MINUTE",
+										"activities": [
+											{
+												"name": "Exec_incr_time",
+												"description": "RAW_INCR pl_raw_orch_incr_time",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_raw_orch_incr_time",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_run_group_nm": {
+															"value": "@item().run_group_nm",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
+															"type": "Expression"
+														},
+														"p_target_ids": {
+															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_trigger_nm": {
+															"value": "@variables('pv_trigger_nm')",
+															"type": "Expression"
+														},
+														"p_trigger_id": {
+															"value": "@variables('pv_trigger_id')",
+															"type": "Expression"
+														},
+														"p_bizday_n": {
+															"value": "@string(coalesce(item()?.bizday_n, ''))",
+															"type": "Expression"
+														},
+														"p_bizday_offset": {
+															"value": "@string(coalesce(item()?.bizday_offset, ''))",
+															"type": "Expression"
+														},
+														"p_dbx_last_run_yn": {
+															"value": "@string(coalesce(item()?.dbx_last_run_yn, ''))",
+															"type": "Expression"
+														},
+														"p_requester": "",
+														"p_entry_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"p_incr_from_val": "",
+														"p_incr_minutes": ""
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Fail_unknown_job_type",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat('지원하지 않는 job_type_cd / incr_unit : ', item().job_type_cd, ' / ', coalesce(item()?.incr_unit, ''), ' (run_group_nm = ', item().run_group_nm, ')')",
+												"type": "Expression"
+											},
+											"errorCode": "ENTRY_UNKNOWN_JOB_TYPE"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lkp_entry_result",
+				"description": "진입에서 기동한 마스터 결과 집계 (Master 이력 entry_run_id)",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach_sched",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "/* Lkp_entry_result : 이번 진입(pipeline RunId)에서 기동한 마스터 결과 집계 (Master 이력의 entry_run_id 기준)\n   expected_cnt : p_sched_json 그룹 수. master_cnt 가 적으면 Master 행도 못 남기고 실패한 마스터 (검증 오류 등)\n   fail_cnt : FAILED Master. open_cnt : PENDING / RUNNING 으로 남은 Master (비정상 종료)\n   SKIPPED (전역 skip / NOT_BIZDAY / CALENDAR_MISSING) 는 정상으로 본다. ADF 동적 식은 p 에만 사용 */\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text                                 AS entry_run_id,\n           @{length(json(pipeline().parameters.p_sched_json))}::int    AS expected_cnt\n)\nSELECT p.expected_cnt,\n       count(m.master_run_id)::int                                                        AS master_cnt,\n       (count(m.master_run_id) FILTER (WHERE m.status = 'FAILED'))::int                   AS fail_cnt,\n       (count(m.master_run_id) FILTER (WHERE m.status IN ('PENDING', 'RUNNING')))::int    AS open_cnt,\n       (count(m.master_run_id) FILTER (WHERE m.status = 'SKIPPED'))::int                  AS skipped_cnt\n  FROM p\n  LEFT JOIN adfadm.ctl_master_pipeline_run m ON m.entry_run_id = p.entry_run_id\n GROUP BY p.expected_cnt;\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "If_entry_failed",
+				"description": "FAILED / 비정상 종료 / Master 미생성 마스터가 있거나 ForEach 가 실패했으면 진입도 실패 (알림용)",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lkp_entry_result",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(greater(activity('Lkp_entry_result').output.resultSets[0].rows[0].fail_cnt, 0), or(greater(activity('Lkp_entry_result').output.resultSets[0].rows[0].open_cnt, 0), greater(sub(activity('Lkp_entry_result').output.resultSets[0].rows[0].expected_cnt, activity('Lkp_entry_result').output.resultSets[0].rows[0].master_cnt), 0)))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Fail_entry",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@concat('진입 실패 : 마스터 실패 ', string(activity('Lkp_entry_result').output.resultSets[0].rows[0].fail_cnt), ' / 비정상 종료 ', string(activity('Lkp_entry_result').output.resultSets[0].rows[0].open_cnt), ' / Master 미생성 ', string(sub(activity('Lkp_entry_result').output.resultSets[0].rows[0].expected_cnt, activity('Lkp_entry_result').output.resultSets[0].rows[0].master_cnt)), ' (그룹 ', string(activity('Lkp_entry_result').output.resultSets[0].rows[0].expected_cnt), '개, entry_run_id = ', pipeline().RunId, ')')",
+									"type": "Expression"
+								},
+								"errorCode": "ENTRY_FAILED"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Fail_sched_loop",
+				"description": "ForEach_sched 자체가 실패 (형식 오류 등) 하면 집계 후에도 실패로 종료",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "ForEach_sched",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "ForEach_sched 실패 (마스터 호출 오류). ADF 모니터에서 그룹별 Switch 결과 확인",
+					"errorCode": "ENTRY_LOOP_FAILED"
+				}
+			}
+		],
+		"parameters": {
+			"p_sched_json": {
+				"type": "String"
+			},
+			"p_scheduled_time": {
+				"type": "String"
+			}
+		},
+		"variables": {
+			"pv_trigger_nm": {
+				"type": "String"
+			},
+			"pv_trigger_id": {
+				"type": "String"
+			},
+			"pv_scheduled_time": {
+				"type": "String"
+			}
+		},
 		"folder": {
-			"name": "raw/orchestration"
+			"name": "util/sop"
 		},
 		"annotations": []
 	}
