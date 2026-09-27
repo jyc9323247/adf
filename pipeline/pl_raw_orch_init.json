@@ -881,7 +881,7 @@
 		"parameters": {
 			"p_init_load_group": {
 				"type": "String",
-				"defaultValue": " "
+				"defaultValue": "INIT_TEST_CLYM"
 			},
 			"p_run_group_nm": {
 				"type": "String",
