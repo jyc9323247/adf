@@ -152,31 +152,31 @@
 							"type": "Expression"
 						},
 						"p_trigger_nm": {
-							"value": "@if(empty(pipeline().parameters.p_trigger_nm), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
+							"value": "@if(empty(trim(pipeline().parameters.p_trigger_nm)), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
 							"type": "Expression"
 						},
 						"p_trigger_id": {
-							"value": "@if(empty(pipeline().parameters.p_trigger_id), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
+							"value": "@if(empty(trim(pipeline().parameters.p_trigger_id)), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
 							"type": "Expression"
 						},
 						"p_run_group_nm": {
-							"value": "@pipeline().parameters.p_run_group_nm",
+							"value": "@trim(pipeline().parameters.p_run_group_nm)",
 							"type": "Expression"
 						},
 						"p_scheduled_time": {
-							"value": "@pipeline().parameters.p_scheduled_time",
+							"value": "@trim(pipeline().parameters.p_scheduled_time)",
 							"type": "Expression"
 						},
 						"p_bizday_n": {
-							"value": "@pipeline().parameters.p_bizday_n",
+							"value": "@trim(pipeline().parameters.p_bizday_n)",
 							"type": "Expression"
 						},
 						"p_bizday_offset": {
-							"value": "@pipeline().parameters.p_bizday_offset",
+							"value": "@trim(pipeline().parameters.p_bizday_offset)",
 							"type": "Expression"
 						},
 						"p_requester": {
-							"value": "@pipeline().parameters.p_requester",
+							"value": "@trim(pipeline().parameters.p_requester)",
 							"type": "Expression"
 						}
 					}
