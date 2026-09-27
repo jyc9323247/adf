@@ -2,7 +2,7 @@
 	"name": "every_n_min",
 	"properties": {
 		"annotations": [],
-		"runtimeState": "Stopped",
+		"runtimeState": "Started",
 		"pipelines": [
 			{
 				"pipelineReference": {
@@ -20,6 +20,15 @@
 				},
 				"parameters": {
 					"a": "ddd"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "pl_raw_orch_full",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"p_run_group_nm": "FULL_DAILY"
 				}
 			}
 		],
