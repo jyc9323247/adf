@@ -424,19 +424,24 @@
 				"defaultValue": "04:00"
 			},
 			"p_target_ids": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_trigger_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_trigger_id": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_dbx_last_run_yn": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_requester": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			}
 		},
 		"variables": {
