@@ -886,43 +886,56 @@
 				"type": "String"
 			},
 			"p_request_yn": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_run_type_override": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_start_val": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_end_val": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_partition_val": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_target_ids": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_scheduled_time": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_trigger_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_trigger_id": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_bizday_n": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_bizday_offset": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_requester": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			},
 			"p_entry_run_id": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "\"\""
 			}
 		},
 		"variables": {
