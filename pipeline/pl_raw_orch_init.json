@@ -94,31 +94,31 @@
 							"type": "Expression"
 						},
 						"p_trigger_nm": {
-							"value": "@if(empty(pipeline().parameters.p_trigger_nm), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
+							"value": "@if(empty(trim(pipeline().parameters.p_trigger_nm)), pipeline().TriggerName, pipeline().parameters.p_trigger_nm)",
 							"type": "Expression"
 						},
 						"p_trigger_id": {
-							"value": "@if(empty(pipeline().parameters.p_trigger_id), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
+							"value": "@if(empty(trim(pipeline().parameters.p_trigger_id)), pipeline().TriggerId, pipeline().parameters.p_trigger_id)",
 							"type": "Expression"
 						},
 						"p_run_group_nm": {
-							"value": "@pipeline().parameters.p_run_group_nm",
+							"value": "@trim(pipeline().parameters.p_run_group_nm)",
 							"type": "Expression"
 						},
 						"p_scheduled_time": {
-							"value": "@pipeline().parameters.p_scheduled_time",
+							"value": "@trim(pipeline().parameters.p_scheduled_time)",
 							"type": "Expression"
 						},
 						"p_bizday_n": {
-							"value": "@pipeline().parameters.p_bizday_n",
+							"value": "@trim(pipeline().parameters.p_bizday_n)",
 							"type": "Expression"
 						},
 						"p_bizday_offset": {
-							"value": "@pipeline().parameters.p_bizday_offset",
+							"value": "@trim(pipeline().parameters.p_bizday_offset)",
 							"type": "Expression"
 						},
 						"p_requester": {
-							"value": "@pipeline().parameters.p_requester",
+							"value": "@trim(pipeline().parameters.p_requester)",
 							"type": "Expression"
 						}
 					}
@@ -880,62 +880,64 @@
 		],
 		"parameters": {
 			"p_init_load_group": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": " "
 			},
 			"p_run_group_nm": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": " "
 			},
 			"p_request_yn": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_run_type_override": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_start_val": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_end_val": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_partition_val": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_target_ids": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_scheduled_time": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_trigger_nm": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_trigger_id": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_bizday_n": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_bizday_offset": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_requester": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": "adfadm"
 			},
 			"p_entry_run_id": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			}
 		},
 		"variables": {
