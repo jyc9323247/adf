@@ -18,14 +18,6 @@
 		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
 			"type": "string",
 			"defaultValue": "FULL_DAILY"
-		},
-		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm": {
-			"type": "string",
-			"defaultValue": "META_WEEKDAY_FULL"
-		},
-		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
-			"type": "string",
-			"defaultValue": "@trigger().scheduledTime"
 		}
 	},
 	"variables": {
@@ -2623,55 +2615,6 @@
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/trg_sch_daily1-wkd_0100_kst')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "pl_meta_orch_full 직접 호출 (pl_cmn_orch_trigger_entry 미경유). 평일 새벽 01:00 KST, 그룹 1개(META_WEEKDAY_FULL) 고정. p_scheduled_time = 지연 모니터링용",
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pl_meta_orch_full",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"p_run_group_nm": "[parameters('trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm')]",
-							"p_scheduled_time": "[parameters('trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time')]"
-						}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Week",
-						"interval": 1,
-						"startTime": "2026-10-01T01:00:00",
-						"timeZone": "Korea Standard Time",
-						"schedule": {
-							"minutes": [
-								0
-							],
-							"hours": [
-								1
-							],
-							"weekDays": [
-								"Monday",
-								"Tuesday",
-								"Wednesday",
-								"Thursday",
-								"Friday"
-							]
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_meta_orch_full')]"
-			]
 		}
 	]
 }
