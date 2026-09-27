@@ -1,0 +1,9 @@
+{
+	"name": "pl_cmn_orch_trigger_entry",
+	"properties": {
+		"folder": {
+			"name": "raw/orchestration"
+		},
+		"annotations": []
+	}
+}
