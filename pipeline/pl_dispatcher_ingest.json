@@ -26,7 +26,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"pipeline": {
-											"referenceName": "pl_raw_db2_xmeta",
+											"referenceName": "pl_raw_ingest_db2_XMETA",
 											"type": "PipelineReference"
 										},
 										"waitOnCompletion": true,
@@ -57,7 +57,7 @@
 							]
 						},
 						{
-							"value": "pl_meta_db2_xmeta",
+							"value": "pl_meta_ingest_db2_xmeta",
 							"activities": [
 								{
 									"name": "pl_meta_db2_xmeta",
@@ -69,7 +69,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"pipeline": {
-											"referenceName": "pl_raw_db2_xmeta",
+											"referenceName": "pl_raw_ingest_db2_XMETA",
 											"type": "PipelineReference"
 										},
 										"waitOnCompletion": true,
@@ -100,7 +100,7 @@
 							]
 						},
 						{
-							"value": "pl_raw_db2_mliwp",
+							"value": "pl_raw_ingest_db2_mliwp",
 							"activities": [
 								{
 									"name": "pl_raw_db2_mliwp",
@@ -112,7 +112,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"pipeline": {
-											"referenceName": "pl_raw_db2_mliwp",
+											"referenceName": "pl_raw_ingest_db2_MLIWPT",
 											"type": "PipelineReference"
 										},
 										"waitOnCompletion": true,
@@ -182,7 +182,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    error_log = 'Dispatcher Pipeline' \t,\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
+											"value": "UPDATE \"ADFADM\".ctl_ingest_pipeline_run\nSET\n    status    = 'FAILED',\n    error_log = 'Dispatcher Child Pipeline 없음 ' \t,\n    end_dt    = NOW(),\n    update_by = 'ADF',\n    update_dt = NOW()\nWHERE master_run_id      = '@{pipeline().parameters.p_master_run_id}'\n  AND ingest_pipeline_id = '@{pipeline().parameters.p_ingest_pipeline_id}';",
 											"type": "Expression"
 										}
 									}
@@ -206,7 +206,10 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"message": "dispatcher_failed",
+					"message": {
+						"value": "@activity('Switch_pl_dispatcher_ingest').output.value",
+						"type": "Expression"
+					},
 					"errorCode": "-1"
 				}
 			}

@@ -1,5 +1,5 @@
 {
-	"name": "pl_meta_ingest_db2_MLIWPT",
+	"name": "pl_raw_ingest_db2_MLIWPT",
 	"properties": {
 		"activities": [
 			{
