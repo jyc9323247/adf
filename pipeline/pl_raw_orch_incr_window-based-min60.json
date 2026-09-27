@@ -1,5 +1,5 @@
 {
-	"name": "pl_raw_orch_incr_window-based-60min",
+	"name": "pl_raw_orch_incr_window-based-min60",
 	"properties": {
 		"description": "RAW INCR 마스터 - 분 / 시간 단위 (v8.3). master_start -> run_check -> 시작 시각 계산 -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료. 증분컬럼 >= 예정시각 - N 분(시간). 증분컬럼 DATE / TIMESTAMP / STRING",
 		"activities": [
@@ -553,7 +553,7 @@
 			},
 			"pv_condition_interval": {
 				"type": "String",
-				"defaultValue": "30"
+				"defaultValue": "60"
 			},
 			"pv_incr_from_val": {
 				"type": "String"
