@@ -277,16 +277,22 @@
 													},
 													"waitOnCompletion": true,
 													"parameters": {
+														"p_init_load_group": "",
 														"p_run_group_nm": {
 															"value": "@item().run_group_nm",
 															"type": "Expression"
 														},
-														"p_scheduled_time": {
-															"value": "@variables('pv_scheduled_time')",
-															"type": "Expression"
-														},
+														"p_request_yn": "",
+														"p_run_type_override": "",
+														"p_start_val": "",
+														"p_end_val": "",
+														"p_partition_val": "",
 														"p_target_ids": {
 															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
+															"type": "Expression"
+														},
+														"p_scheduled_time": {
+															"value": "@variables('pv_scheduled_time')",
 															"type": "Expression"
 														},
 														"p_trigger_nm": {
@@ -309,13 +315,7 @@
 														"p_entry_run_id": {
 															"value": "@pipeline().RunId",
 															"type": "Expression"
-														},
-														"p_init_load_group": "",
-														"p_request_yn": "",
-														"p_run_type_override": "",
-														"p_start_val": "",
-														"p_end_val": "",
-														"p_partition_val": ""
+														}
 													}
 												}
 											}
@@ -335,7 +335,7 @@
 												"userProperties": [],
 												"typeProperties": {
 													"pipeline": {
-														"referenceName": "pl_raw_orch_incr_day",
+														"referenceName": "pl_raw_orch_incr_window-based-daily",
 														"type": "PipelineReference"
 													},
 													"waitOnCompletion": true,
@@ -352,6 +352,8 @@
 															"value": "@if(empty(item()?.target_ids), '', string(item().target_ids))",
 															"type": "Expression"
 														},
+														"p_incr_from_val": "",
+														"p_incr_days": "",
 														"p_trigger_nm": {
 															"value": "@variables('pv_trigger_nm')",
 															"type": "Expression"
@@ -376,9 +378,7 @@
 														"p_entry_run_id": {
 															"value": "@pipeline().RunId",
 															"type": "Expression"
-														},
-														"p_incr_from_val": "",
-														"p_incr_days": ""
+														}
 													}
 												}
 											}
