@@ -106,7 +106,7 @@
 							"type": "Expression"
 						},
 						"p_scheduled_time": {
-							"value": "@if(\n  and(\n    not(equals(pipeline().parameters.p_scheduled_time, null)),\n    not(equals(trim(pipeline().parameters.p_scheduled_time), ''))\n  ),\n  pipeline().parameters.p_scheduled_time,\n  if(\n    not(equals(pipeline().TriggerTime, null)),\n    formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss'),\n    formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Korea Standard Time'), 'yyyy-MM-dd HH:mm:ss')\n  )\n)",
+							"value": "@if(\n  and(\n    not(equals(pipeline().parameters.p_scheduled_time, null)),\n    not(equals(trim(pipeline().parameters.p_scheduled_time), ''))\n  ),\n  pipeline().parameters.p_scheduled_time,\n  formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss')\n)",
 							"type": "Expression"
 						},
 						"p_bizday_n": {
