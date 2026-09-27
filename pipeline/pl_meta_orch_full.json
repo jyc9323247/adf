@@ -421,27 +421,27 @@
 			},
 			"p_scheduled_time": {
 				"type": "String",
-				"defaultValue": "04:00"
+				"defaultValue": " "
 			},
 			"p_target_ids": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_trigger_nm": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_trigger_id": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " "
 			},
 			"p_dbx_last_run_yn": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": "Y"
 			},
 			"p_requester": {
 				"type": "String",
-				"defaultValue": "\"\""
+				"defaultValue": " adfadm"
 			}
 		},
 		"variables": {
