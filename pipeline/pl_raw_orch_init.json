@@ -963,7 +963,7 @@
 			},
 			"p_run_type_override": {
 				"type": "String",
-				"defaultValue": " "
+				"defaultValue": " PARTIAL_REFRESH"
 			},
 			"p_start_val": {
 				"type": "String",
@@ -975,7 +975,10 @@
 			},
 			"p_partition_val": {
 				"type": "String",
-				"defaultValue": " "
+				"defaultValue": [
+					"202608",
+					"202612"
+				]
 			},
 			"p_target_ids": {
 				"type": "String",
