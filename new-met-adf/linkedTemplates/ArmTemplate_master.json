@@ -119,6 +119,14 @@
 			"type": "string",
 			"defaultValue": "FULL_DAILY"
 		},
+		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm": {
+			"type": "string",
+			"defaultValue": "META_WEEKDAY_FULL"
+		},
+		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
+			"type": "string",
+			"defaultValue": "@trigger().scheduledTime"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "스토리지 계정 연결 된 ARM 서식 파일을 포함 하는 URI입니다."
@@ -238,15 +246,6 @@
 					},
 					"every_mon_to_sat_properties_pipeline1_parameters_a": {
 						"value": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
-					},
-					"every_n_min_properties_pipeline1_copy1_parameters_a": {
-						"value": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
-					},
-					"every_n_min_properties_pipeline1_parameters_a": {
-						"value": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
-					},
-					"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
-						"value": "[parameters('every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm')]"
 					}
 				}
 			},
@@ -287,6 +286,21 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"every_n_min_properties_pipeline1_copy1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
+					},
+					"every_n_min_properties_pipeline1_parameters_a": {
+						"value": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
+					},
+					"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
+						"value": "[parameters('every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm')]"
+					},
+					"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm": {
+						"value": "[parameters('trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm')]"
+					},
+					"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
+						"value": "[parameters('trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time')]"
 					}
 				}
 			},

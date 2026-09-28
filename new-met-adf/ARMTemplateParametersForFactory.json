@@ -88,6 +88,12 @@
 		},
 		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
 			"value": "FULL_DAILY"
+		},
+		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_run_group_nm": {
+			"value": "META_WEEKDAY_FULL"
+		},
+		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
+			"value": "@trigger().scheduledTime"
 		}
 	}
 }
