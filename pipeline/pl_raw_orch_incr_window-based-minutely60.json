@@ -404,6 +404,39 @@
 									}
 								}
 							}
+						},
+						{
+							"name": "Script1",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "pipeline_dispatcher",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": "/* ============================================================================\n   INCR HWM 갱신 스크립트 : pl_raw_orch_incr_* > ForEach_child_ingest\n     흐름 : ... > pipeline_dispatcher (pl_dispatcher_ingest) --[Success]--> 이 Script\n\n   전제 :\n     자식 수집 파이프라인이 추출 데이터의 MAX(증분컬럼) 을\n     ctl_ingest_pipeline_run.incr_to_val 에 기록한 뒤\n     status='SUCCEEDED' 로 갱신함.\n\n   HWM 적용값 :\n     1) incr_to_val 이 NULL / 빈 문자열 / 공백이 아니면 incr_to_val\n     2) incr_to_val 이 NULL / 빈 문자열 / 공백이면 incr_from_val\n     3) 둘 다 없으면 기존 HWM 유지\n\n   파라미터 :\n     p_ingest_pipeline_id = @{item().ingest_pipeline_id}\n\n   동작 :\n     1) run_type_cd='INCR' AND status='SUCCEEDED' 인 이력만 대상\n     2) incr_to_val 우선, 없으면 incr_from_val 로 HWM 갱신\n     3) 둘 다 NULL / 공백이면 HWM 은 유지하고 last_success_dt 만 갱신\n\n   Script 재시도 = 0.\n   ADF 동적 식은 p CTE 에만 사용.\n   주석은 블록 주석만 사용.\n============================================================================ */\n\nWITH p AS (\n    SELECT\n        '@{item().ingest_pipeline_id}'::text\n            AS ingest_pipeline_id\n),\n\nr AS (\n    SELECT\n        ipr.target_id,\n        ipr.incr_column_nm,\n        ipr.incr_from_val,\n        ipr.incr_to_val,\n        ipr.ingest_pipeline_id,\n\n        /* ★ 변경 :\n           incr_to_val 우선,\n           NULL / 빈 문자열 / 공백이면 incr_from_val 사용\n        */\n        COALESCE(\n            NULLIF(\n                trim(ipr.incr_to_val),\n                ''\n            ),\n            NULLIF(\n                trim(ipr.incr_from_val),\n                ''\n            )\n        ) AS hw_val\n\n    FROM p\n\n    JOIN adfadm.ctl_ingest_pipeline_run ipr\n      ON ipr.ingest_pipeline_id = p.ingest_pipeline_id\n\n    WHERE ipr.run_type_cd = 'INCR'\n      AND ipr.status = 'SUCCEEDED'\n),\n\nupd AS (\n    UPDATE adfadm.ctl_ingest_target_incr_state s\n\n       SET incr_column_nm = r.incr_column_nm,\n\n           /* ★ 변경 :\n              incr_to_val 없으면 incr_from_val 사용\n              둘 다 없으면 기존 HWM 유지\n           */\n           incr_column_hw_val = COALESCE(\n               r.hw_val,\n               s.incr_column_hw_val\n           ),\n\n           last_success_dt = now(),\n\n           /* ★ 변경 :\n              실제 적용할 HWM 값이 있을 때 갱신\n           */\n           hw_updated_dt =\n               CASE\n                   WHEN r.hw_val IS NOT NULL\n                       THEN now()\n                   ELSE s.hw_updated_dt\n               END,\n\n           hw_ingest_pipeline_id =\n               CASE\n                   WHEN r.hw_val IS NOT NULL\n                       THEN r.ingest_pipeline_id\n                   ELSE s.hw_ingest_pipeline_id\n               END,\n\n           updated_dt = now()\n\n      FROM r\n\n     WHERE s.target_id = r.target_id\n\n    RETURNING\n        s.target_id\n)\n\nINSERT INTO adfadm.ctl_ingest_target_incr_state\n(\n    target_id,\n    incr_column_nm,\n    incr_column_hw_val,\n    last_success_dt,\n    hw_updated_dt,\n    hw_ingest_pipeline_id,\n    updated_dt\n)\n\nSELECT\n    r.target_id,\n    r.incr_column_nm,\n\n    /* ★ 변경 :\n       incr_to_val 없으면 incr_from_val\n    */\n    r.hw_val,\n\n    now(),\n\n    CASE\n        WHEN r.hw_val IS NOT NULL\n            THEN now()\n    END,\n\n    CASE\n        WHEN r.hw_val IS NOT NULL\n            THEN r.ingest_pipeline_id\n    END,\n\n    now()\n\nFROM r\n\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM upd\n    WHERE upd.target_id = r.target_id\n)\n\nAND NOT EXISTS (\n    SELECT 1\n    FROM adfadm.ctl_ingest_target_incr_state s2\n    WHERE s2.target_id = r.target_id\n);"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
 						}
 					]
 				}
