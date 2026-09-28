@@ -8355,7 +8355,7 @@
 						"typeProperties": {
 							"variableName": "pv_partition_val",
 							"value": {
-								"value": "@coalesce(trim(pipeline().parameters.p_partition_val), '')",
+								"value": "@if(\n    or(\n        empty(pipeline().parameters.p_partition_val),\n        equals(trim(string(pipeline().parameters.p_partition_val)), '')\n    ),\n    '[]',\n    string(pipeline().parameters.p_partition_val)\n)",
 								"type": "Expression"
 							}
 						}
@@ -8600,6 +8600,77 @@
 																	"type": "NonQuery",
 																	"text": {
 																		"value": "/* Ins_src_lookup : 원천조회 결과 -> ctl_ingest_src_lookup (PART). 같은 (master_run_id, target_id) 는 지우고 다시 적재 (재시도 대비)\n   LOOKUP_VAL 이 없는(null) 행 = 원천 NULL 파티션 */\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text        AS master_run_id,\n           @{item().target_id}::bigint         AS target_id,\n           '@{replace(string(activity('Lkp_src_part_MLCRP').output.value), '''', '''''')}'::jsonb AS vals,\n           '@{pipeline().DataFactory}'::text   AS created_by\n),\ndel AS (\n    DELETE FROM adfadm.ctl_ingest_src_lookup l\n     USING p\n     WHERE l.master_run_id = p.master_run_id AND l.target_id = p.target_id AND l.lookup_type_cd = 'PART'\n)\nINSERT INTO adfadm.ctl_ingest_src_lookup (master_run_id, target_id, lookup_type_cd, lookup_val, created_by)\nSELECT p.master_run_id, p.target_id, 'PART', rtrim(e ->> 'LOOKUP_VAL'), p.created_by\n  FROM p CROSS JOIN LATERAL jsonb_array_elements(p.vals) e;\n",
+																		"type": "Expression"
+																	}
+																}
+															],
+															"scriptBlockExecutionTimeout": "00:10:00"
+														}
+													}
+												]
+											},
+											{
+												"value": "XMETA",
+												"activities": [
+													{
+														"name": "Lkp_src_part_XMETA",
+														"description": "원천 DISTINCT 파티션 값 조회 (ODBC, ds_src_odbc_table_MLIWT)",
+														"type": "Lookup",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.01:00:00",
+															"retry": 1,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "OdbcSource",
+																"query": {
+																	"value": "@item().lookup_query",
+																	"type": "Expression"
+																}
+															},
+															"dataset": {
+																"referenceName": "ds_src_odbc_table_MLIWT",
+																"type": "DatasetReference",
+																"parameters": {}
+															},
+															"firstRowOnly": false
+														}
+													},
+													{
+														"name": "Ins_src_lookup_XMETA",
+														"description": "조회 결과 적재 (XMETA)",
+														"type": "Script",
+														"dependsOn": [
+															{
+																"activity": "Lkp_src_part_XMETA",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.00:10:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"linkedServiceName": {
+															"referenceName": "AzurePostgreSql1",
+															"type": "LinkedServiceReference"
+														},
+														"typeProperties": {
+															"scripts": [
+																{
+																	"type": "NonQuery",
+																	"text": {
+																		"value": "/* Ins_src_lookup : 원천조회 결과 -> ctl_ingest_src_lookup (PART). 같은 (master_run_id, target_id) 는 지우고 다시 적재 (재시도 대비)\n   LOOKUP_VAL 이 없는(null) 행 = 원천 NULL 파티션 */\nWITH p AS (\n    SELECT '@{pipeline().RunId}'::text        AS master_run_id,\n           @{item().target_id}::bigint         AS target_id,\n           '@{replace(string(activity('Lkp_src_part_XMETA').output.value), '''', '''''')}'::jsonb AS vals,\n           '@{pipeline().DataFactory}'::text   AS created_by\n),\ndel AS (\n    DELETE FROM adfadm.ctl_ingest_src_lookup l\n     USING p\n     WHERE l.master_run_id = p.master_run_id AND l.target_id = p.target_id AND l.lookup_type_cd = 'PART'\n)\nINSERT INTO adfadm.ctl_ingest_src_lookup (master_run_id, target_id, lookup_type_cd, lookup_val, created_by)\nSELECT p.master_run_id, p.target_id, 'PART', rtrim(e ->> 'LOOKUP_VAL'), p.created_by\n  FROM p CROSS JOIN LATERAL jsonb_array_elements(p.vals) e;\n",
 																		"type": "Expression"
 																	}
 																}
@@ -9014,7 +9085,7 @@
 					},
 					"p_run_group_nm": {
 						"type": "String",
-						"defaultValue": " "
+						"defaultValue": "TEST_WEEKEND_REFRESH"
 					},
 					"p_request_yn": {
 						"type": "String",
@@ -9022,7 +9093,7 @@
 					},
 					"p_run_type_override": {
 						"type": "String",
-						"defaultValue": " "
+						"defaultValue": " PARTIAL_REFRESH"
 					},
 					"p_start_val": {
 						"type": "String",
@@ -9034,7 +9105,10 @@
 					},
 					"p_partition_val": {
 						"type": "String",
-						"defaultValue": " "
+						"defaultValue": [
+							"202608",
+							"202612"
+						]
 					},
 					"p_target_ids": {
 						"type": "String",
