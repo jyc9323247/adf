@@ -231,7 +231,7 @@
 				"typeProperties": {
 					"variableName": "pv_partition_val",
 					"value": {
-						"value": "@coalesce(trim(pipeline().parameters.p_partition_val), '')",
+						"value": "@if(\n    or(\n        empty(pipeline().parameters.p_partition_val),\n        equals(trim(string(pipeline().parameters.p_partition_val)), '')\n    ),\n    '[]',\n    string(pipeline().parameters.p_partition_val)\n)",
 						"type": "Expression"
 					}
 				}
@@ -955,7 +955,7 @@
 			},
 			"p_run_group_nm": {
 				"type": "String",
-				"defaultValue": " "
+				"defaultValue": "TEST_WEEKEND_REFRESH"
 			},
 			"p_request_yn": {
 				"type": "String",
