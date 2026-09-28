@@ -422,6 +422,10 @@
 			"p_entry_run_id": {
 				"type": "String",
 				"defaultValue": " "
+			},
+			"p_condition_unit": {
+				"type": "string",
+				"defaultValue": "day"
 			}
 		},
 		"variables": {
