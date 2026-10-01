@@ -4418,14 +4418,15 @@
 				},
 				"parameters": {
 					"p_master_run_id": {
-						"type": "String"
+						"type": "String",
+						"defaultValue": "6d600f8d-8041-43e1-b2f4-dde94f50286e"
 					},
 					"p_target_ids": {
 						"type": "String"
 					},
 					"p_force_yn": {
 						"type": "String",
-						"defaultValue": "Y"
+						"defaultValue": "N"
 					},
 					"p_requester": {
 						"type": "String"
@@ -5739,11 +5740,11 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_raw_orch_incr_window-based-daily3')]",
+			"name": "[concat(parameters('factoryName'), '/pl_raw_orch_full_copy1')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"description": "RAW INCR 마스터 - 일 단위 (v8.3). master_start -> run_check -> 시작일 계산 -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료. 증분컬럼 >= 오늘 - N 일",
+				"description": "RAW FULL 마스터 (v8.3). Ins_master_run(스크립트) -> run_check -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료",
 				"activities": [
 					{
 						"name": "Set_batch_ts",
@@ -5764,98 +5765,40 @@
 						}
 					},
 					{
-						"name": "Exec_master_start",
-						"description": "Master PENDING 등록 + 검증 (증분정책 단위 · N 일치 포함). 실패하면 마스터도 실패 (Master 행 없음)",
-						"type": "ExecutePipeline",
+						"name": "Ins_master_run",
+						"description": "Master PENDING 등록 + 검증 (그룹 / TARGET_NOT_IN_GROUP). 실패하면 마스터도 실패 (Master 행 없음)",
+						"type": "Script",
 						"dependsOn": [
 							{
-								"activity": "Set_batch_ts",
+								"activity": "Set_batch_count",
 								"dependencyConditions": [
 									"Succeeded"
 								]
 							}
 						],
 						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
 							"secureInput": false
 						},
 						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
 						"typeProperties": {
-							"pipeline": {
-								"referenceName": "pl_cmn_master_start",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"p_master_run_id": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"p_master_pipeline_nm": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"p_trigger_type": {
-									"value": "@pipeline().TriggerType",
-									"type": "Expression"
-								},
-								"p_trigger_nm": {
-									"value": "@if(empty(trim(pipeline().parameters.p_trigger_nm)), pipeline().TriggerName, trim(pipeline().parameters.p_trigger_nm))",
-									"type": "Expression"
-								},
-								"p_job_types": {
-									"value": "@variables('pv_job_types')",
-									"type": "Expression"
-								},
-								"p_run_group_nm": {
-									"value": "@trim(pipeline().parameters.p_run_group_nm)",
-									"type": "Expression"
-								},
-								"p_scheduled_time": {
-									"value": "@trim(pipeline().parameters.p_scheduled_time)",
-									"type": "Expression"
-								},
-								"p_target_ids": {
-									"value": "@trim(pipeline().parameters.p_target_ids)",
-									"type": "Expression"
-								},
-								"p_incr_from_val": {
-									"value": "@trim(pipeline().parameters.p_incr_from_val)",
-									"type": "Expression"
-								},
-								"p_incr_days": {
-									"value": "@trim(pipeline().parameters.p_incr_days)",
-									"type": "Expression"
-								},
-								"p_incr_months": "",
-								"p_bizday_n": {
-									"value": "@trim(pipeline().parameters.p_bizday_n)",
-									"type": "Expression"
-								},
-								"p_bizday_offset": {
-									"value": "@trim(pipeline().parameters.p_bizday_offset)",
-									"type": "Expression"
-								},
-								"p_dbx_last_run_yn": {
-									"value": "@trim(pipeline().parameters.p_dbx_last_run_yn)",
-									"type": "Expression"
-								},
-								"p_cond_unit": {
-									"value": "@variables('pv_condition_unit')",
-									"type": "Expression"
-								},
-								"p_cond_interval": {
-									"value": "@variables('pv_condition_interval')",
-									"type": "Expression"
-								},
-								"p_requester": {
-									"value": "@trim(pipeline().parameters.p_requester)",
-									"type": "Expression"
-								},
-								"p_entry_run_id": {
-									"value": "@trim(pipeline().parameters.p_entry_run_id)",
-									"type": "Expression"
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "/* pl_raw_orch_full > Script \"Ins_master_run\" (v8.3, adf_script_v83_master_ins.sql 기반)\n   마스터 첫 활동. ctl_master_pipeline_run 에 이번 실행을 PENDING 으로 등록 + 시작 조건 검증 (child_total_cnt = 0)\n\n   ADF Trigger 파라미터는 등록 시 빈 값을 직접 넣기 어려우므로 공백(\" \")을 미입력값으로 사용할 수 있음.\n   모든 문자열 파라미터는 btrim() 후 빈 문자열이면 NULL 로 정규화.\n   jsonb / timestamptz 형변환 대상도 공백이면 형변환하지 않고 NULL 처리.\n\n   검증 실패 : 형변환 오류로 활동 실패 (문장 전체 취소, Master 행 생성 안 됨)\n     MASTER_PARAM_MISSING:RunId/파이프라인명\n     RUN_GROUP_NOT_FOUND_OR_JOB_TYPE:그룹명\n       그룹 없음 / 비활성 / 작업유형(pv_job_types) 불일치\n     TARGET_NOT_IN_GROUP:1003,1004\n       p_target_ids 중 이 그룹의 FULL 대상이 아닌 target_id\n       (삭제 · 초기적재 대기 · 비활성 규칙 포함)\n\n   변경 :\n     Trigger명은 p_trigger_nm 우선\n       -> 없으면 TriggerName\n       -> 그것도 없으면 Manual\n     p_entry_run_id 를 entry_run_id 에 기록\n     작업유형은 변수 pv_job_types 사용\n     TARGET_NOT_IN_GROUP 검증 추가\n     ADF Trigger용 공백 파라미터를 NULL 로 정규화\n\n   같은 master_run_id 재호출 시 무시 (ON CONFLICT DO NOTHING).\n   ADF 동적 식은 p CTE 에만 사용.\n   주석은 블록 주석만 사용\n*/\nWITH p AS (\n    SELECT\n           /* ADF 시스템 값 */\n           NULLIF(btrim('@{pipeline().RunId}'), '')::text\n               AS master_run_id,\n\n           NULLIF(btrim('@{pipeline().Pipeline}'), '')::text\n               AS pipeline_nm,\n\n           /* 필수 파라미터 : 공백이면 NULL.\n              이후 그룹 검증에서 정상적으로 실패 처리 */\n           NULLIF(btrim('@{pipeline().parameters.p_run_group_nm}'), '')::text\n               AS run_group_nm,\n\n           /* 선택 파라미터 : 공백이면 NULL.\n              NULL 인 경우 timestamptz 형변환을 수행하지 않음 */\n           CASE\n               WHEN NULLIF(btrim('@{pipeline().parameters.p_scheduled_time}'), '') IS NULL\n               THEN NULL::timestamptz\n               ELSE btrim('@{pipeline().parameters.p_scheduled_time}')::timestamptz\n           END\n               AS scheduled_dt,\n\n           /* 선택 파라미터 : 공백이면 NULL.\n              NULL 인 경우 jsonb 형변환을 수행하지 않음 */\n           CASE\n               WHEN NULLIF(btrim('@{pipeline().parameters.p_target_ids}'), '') IS NULL\n               THEN NULL::jsonb\n               ELSE btrim('@{pipeline().parameters.p_target_ids}')::jsonb\n           END\n               AS target_ids,\n\n           /* 일반 선택 문자열 : 공백이면 NULL */\n           NULLIF(btrim('@{pipeline().parameters.p_bizday_n}'), '')::text\n               AS bizday_n,\n\n           NULLIF(btrim('@{pipeline().parameters.p_bizday_offset}'), '')::text\n               AS bizday_offset,\n\n           NULLIF(btrim('@{pipeline().parameters.p_dbx_last_run_yn}'), '')::text\n               AS dbx_last_run_yn,\n\n           NULLIF(btrim('@{pipeline().parameters.p_entry_run_id}'), '')::text\n               AS entry_run_id,\n\n           /* TriggerType도 공백 방어 */\n           COALESCE(\n               NULLIF(btrim('@{pipeline().TriggerType}'), ''),\n               'Manual'\n           )::text\n               AS trigger_type,\n\n           /* Trigger 명 :\n              p_trigger_nm -> TriggerName -> Manual */\n           COALESCE(\n               NULLIF(btrim('@{pipeline().parameters.p_trigger_nm}'), ''),\n               NULLIF(btrim('@{pipeline().TriggerName}'), ''),\n               'Manual'\n           )::text\n               AS trigger_nm,\n\n           NULLIF(btrim('@{pipeline().DataFactory}'), '')::text\n               AS created_by,\n\n           /* pv_job_types 의 공백 제거.\n              변수 자체가 공백이면 빈 배열로 처리 */\n           CASE\n               WHEN NULLIF(\n                        btrim(\n                            replace(\n                                '@{variables('pv_job_types')}',\n                                ' ',\n                                ''\n                            )\n                        ),\n                        ''\n                    ) IS NULL\n               THEN ARRAY[]::text[]\n               ELSE string_to_array(\n                        upper(\n                            replace(\n                                '@{variables('pv_job_types')}',\n                                ' ',\n                                ''\n                            )\n                        ),\n                        ','\n                    )\n           END\n               AS job_types\n),\n\n/* 그룹 : 활성 + 이 마스터가 받는 작업유형 */\ng AS (\n    SELECT p.*,\n           g.run_group_id\n      FROM p\n      JOIN adfadm.ctl_ingest_run_group g\n        ON g.run_group_nm = p.run_group_nm\n       AND g.enabled_yn = 'Y'\n       AND g.job_type_cd = ANY (p.job_types)\n),\n\n/* 수동 지정 target_id 목록.\n   p_target_ids 가 NULL 이거나 [] 이면 0건 */\nreq AS (\n    SELECT DISTINCT x::bigint AS target_id\n      FROM p\n      CROSS JOIN LATERAL\n           jsonb_array_elements_text(\n               COALESCE(p.target_ids, '[]'::jsonb)\n           ) x\n),\n\n/* 이번 실행 수집 대상 (검증용)\n   Start_ingest_pipeline Script 의 대상 선정과 같은 조건\n   그룹의 FULL 대상 */\ntgt AS (\n    SELECT e.target_id\n      FROM g\n      JOIN adfadm.vw_ingest_exec_target e\n        ON e.run_group_id = g.run_group_id\n       AND e.run_type_cd = 'FULL'\n),\n\n/* 검증 : 지정했지만 그룹 대상이 아닌 target_id */\nnf AS (\n    SELECT string_agg(\n               r.target_id::text,\n               ','\n               ORDER BY r.target_id\n           ) AS ids\n      FROM req r\n     WHERE NOT EXISTS (\n               SELECT 1\n                 FROM tgt t\n                WHERE t.target_id = r.target_id\n           )\n),\n\nins AS (\n    INSERT INTO adfadm.ctl_master_pipeline_run\n          (\n           master_run_id,\n           master_pipeline_nm,\n           trigger_type_cd,\n           adf_trigger_nm,\n           scheduled_dt,\n           run_group_id,\n           run_param,\n           entry_run_id,\n           child_total_cnt,\n           status,\n           created_by\n          )\n    SELECT g.master_run_id,\n           g.pipeline_nm,\n\n           CASE\n               WHEN upper(g.trigger_type) = 'MANUAL'\n               THEN 'MANUAL'\n               ELSE 'SCHEDULE'\n           END,\n\n           g.trigger_nm,\n           g.scheduled_dt,\n           g.run_group_id,\n\n           jsonb_strip_nulls(\n               jsonb_build_object(\n                   'target_ids',      g.target_ids,\n                   'bizday_n',        g.bizday_n,\n                   'bizday_offset',   g.bizday_offset,\n                   'dbx_last_run_yn', g.dbx_last_run_yn\n               )\n           ),\n\n           g.entry_run_id,\n           0,\n           'PENDING',\n           g.created_by\n\n      FROM g\n     WHERE g.master_run_id IS NOT NULL\n       AND g.pipeline_nm IS NOT NULL\n\n    ON CONFLICT (master_run_id) DO NOTHING\n\n    RETURNING\n           master_run_id,\n           trigger_type_cd,\n           adf_trigger_nm,\n           run_group_id,\n           run_param,\n           child_total_cnt,\n           status\n)\n\nSELECT i.master_run_id,\n       i.trigger_type_cd,\n       i.adf_trigger_nm,\n       i.run_group_id,\n       i.run_param::text AS run_param,\n       i.child_total_cnt,\n       i.status,\n\n       CASE\n           WHEN (\n               SELECT master_run_id IS NULL\n                   OR pipeline_nm IS NULL\n                 FROM p\n           )\n           THEN (\n               'MASTER_PARAM_MISSING:'\n               ||\n               (\n                   SELECT COALESCE(master_run_id, '')\n                          || '/'\n                          || COALESCE(pipeline_nm, '')\n                     FROM p\n               )\n           )::int\n\n           WHEN (SELECT count(*) FROM g) = 0\n           THEN (\n               'RUN_GROUP_NOT_FOUND_OR_JOB_TYPE:'\n               ||\n               COALESCE(\n                   (SELECT run_group_nm FROM p),\n                   ''\n               )\n           )::int\n\n           WHEN (SELECT ids FROM nf) IS NOT NULL\n           THEN (\n               'TARGET_NOT_IN_GROUP:'\n               ||\n               (SELECT ids FROM nf)\n           )::int\n\n           ELSE 1\n       END AS chk\n\n  FROM (SELECT 1) d\n  LEFT JOIN ins i\n    ON TRUE;",
+										"type": "Expression"
+									}
 								}
-							}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
 						}
 					},
 					{
@@ -5864,7 +5807,7 @@
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "Exec_master_start",
+								"activity": "Ins_master_run",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -5906,7 +5849,7 @@
 									"type": "Expression"
 								},
 								"p_scheduled_time": {
-									"value": "@trim(pipeline().parameters.p_scheduled_time)",
+									"value": "@if(\n  and(\n    not(equals(pipeline().parameters.p_scheduled_time, null)),\n    not(equals(trim(pipeline().parameters.p_scheduled_time), ''))\n  ),\n  pipeline().parameters.p_scheduled_time,\n  if(\n    not(equals(pipeline().TriggerTime, null)),\n    formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss'),\n    formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Korea Standard Time'), 'yyyy-MM-dd HH:mm:ss')\n  )\n)",
 									"type": "Expression"
 								},
 								"p_bizday_n": {
@@ -5918,7 +5861,7 @@
 									"type": "Expression"
 								},
 								"p_requester": {
-									"value": "@trim(pipeline().parameters.p_requester)",
+									"value": "@pipeline().parameters.p_requester",
 									"type": "Expression"
 								}
 							}
@@ -5962,74 +5905,12 @@
 						}
 					},
 					{
-						"name": "Set_incr_from_val",
-						"description": "증분 시작일 : p_incr_from_val (날짜) > p_incr_days (오늘 - N 일) > 마스터 기본 N (pv_condition_interval) 순, KST",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Exec_run_check",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "pv_incr_from_val",
-							"value": {
-								"value": "@if(\n    not(empty(trim(pipeline().parameters.p_incr_from_val))),\n    trim(pipeline().parameters.p_incr_from_val),\n    formatDateTime(\n        addDays(\n            convertTimeZone(utcnow(), 'UTC', 'Korea Standard Time'),\n            sub(\n                0,\n                int(\n                    if(\n                        empty(trim(pipeline().parameters.p_incr_days)),\n                        variables('pv_condition_interval'),\n                        trim(pipeline().parameters.p_incr_days)\n                    )\n                )\n            )\n        ),\n        'yyyy-MM-dd'\n    )\n)",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Fail_master_run_setvar",
-						"description": "시작일 계산 실패 -> Master FAILED",
-						"type": "Script",
-						"dependsOn": [
-							{
-								"activity": "Set_incr_from_val",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.00:10:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"linkedServiceName": {
-							"referenceName": "AzurePostgreSql1",
-							"type": "LinkedServiceReference"
-						},
-						"typeProperties": {
-							"scripts": [
-								{
-									"type": "NonQuery",
-									"text": {
-										"value": "/* Fail_master_run_setvar : Set_incr_from_val 실패 시 (예 : p_incr_days 가 숫자가 아님). Master 는 PENDING / RUNNING -> FAILED */\nUPDATE adfadm.ctl_master_pipeline_run\n   SET status          = 'FAILED',\n       child_total_cnt = 0,\n       child_succ_cnt  = 0,\n       child_fail_cnt  = 0,\n       error_log       = left('[Set_incr_from_val] '\n                              || '@{replace(activity('Set_incr_from_val').error.message, '''', '''''')}', 4000),\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n WHERE master_run_id = '@{pipeline().RunId}'\n   AND status IN ('PENDING', 'RUNNING');\n",
-										"type": "Expression"
-									}
-								}
-							],
-							"scriptBlockExecutionTimeout": "00:10:00"
-						}
-					},
-					{
 						"name": "Start_ingest_pipeline Script",
 						"description": "Master RUNNING 전환 + 수집 이력 PENDING 생성 (재시도 0)",
 						"type": "Script",
 						"dependsOn": [
 							{
-								"activity": "Set_incr_from_val",
+								"activity": "Exec_run_check",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -6052,7 +5933,7 @@
 								{
 									"type": "Query",
 									"text": {
-										"value": "/* pl_raw_orch_incr_day > Script \"Start_ingest_pipeline Script\"\n   (v8.3 INCR 전용, adf_script_v83_incr.sql 기반)\n\n   Master PENDING -> RUNNING 전환\n   + 수집 이력(ctl_ingest_pipeline_run) PENDING 생성.\n   Master 가 PENDING 이 아니면 (SKIPPED 등) 0건 반환\n\n   대상 :\n     Run Group(p_run_group_nm, RAW_INCR) 의 INCR 대상\n     (vw_ingest_exec_target),\n     p_target_ids 로 일부만 수동 실행 가능\n\n   증분 조건 :\n     증분컬럼 >= 시작일\n     (시작일 = pv_incr_from_val, 모든 대상 공통.\n      상한 없음, incr_to_val = NULL)\n\n     pv_incr_from_val :\n       p_incr_from_val 이 있으면 그 값,\n       없으면 오늘 - N 일\n       (형식 yyyy-MM-dd / yyyyMMdd, 시각 있는 형식도 허용)\n\n   증분컬럼 유형 :\n     DATE / TIMESTAMP / STRING + 형식\n     (PostgreSQL to_char 형식)\n     그 외 유형은 즉시 실패\n\n   DBX 전달 (GEN2) :\n     load_method_cd = master.incr_load_method_cd.\n\n     RANGE_DELETE_INSERT 는\n       range_column_nm = 증분컬럼,\n       range_operator_cd = '>=',\n       range_value = [YYYYMMDD]\n       (월 형식 컬럼은 [YYYYMM])\n\n   HWM :\n     자식 수집 파이프라인이 갱신\n     (이 스크립트는 관여 안 함)\n\n   INCR 수집은 GEN2 기준으로 처리.\n\n   ★ 변경 : INCR 수집 경로\n     landing_path 없으면\n\n       incr/\n         frequency={frequency}/\n           batch_datetime={YYYYMMDDHHMI}/\n\n     frequency 표준화 :\n       month   / monthly   -> monthly\n       week    / weekly    -> weekly\n       day     / daily     -> daily\n       hour    / hourly    -> hourly\n       minute  / minutely  -> minutely\n\n     대소문자 구분 없음.\n\n     예)\n       incr/frequency=monthly/batch_datetime=202609281610\n       incr/frequency=hourly/batch_datetime=202609281610\n\n   ★ 변경 : INCR 파일명\n     시퀀스(part) 위치는 항상 default\n\n       {src_db}.{schema}.{table}.default.{ts}.parquet\n\n     예)\n       MLSQP.FSADM.MS_TBBMB9000.default.20260714070001.parquet\n\n     FULL / 부분 Refresh 는 별도 FULL 로직에서\n     202601, 2026 등의 실제 시퀀스 값을 사용\n\n   즉시 실패\n     (형변환 오류 -> Script 실패 -> Fail_master_run) :\n       INCR_FROM_VAL_INVALID:값\n       INCR_COL_FORMAT_MISSING:target_id\n       INCR_COL_TYPE_NOT_SUPPORTED:target_id\n\n   수집 이력 INSERT 는\n     Master RUNNING 전환 시에만 수행\n     (SKIPPED Master 에서는 생성하지 않음)\n\n   전역 skip 은 run_check 가 처리.\n\n   Script 재시도 = 0.\n   ADF 동적 식은 p CTE 에만 사용.\n   주석은 블록 주석만 사용.\n*/\n\nWITH p AS (\n    SELECT\n        '@{pipeline().RunId}'::text\n            AS master_run_id,\n\n        '@{pipeline().parameters.p_run_group_nm}'::text\n            AS run_group_nm,\n\n        NULLIF(\n            trim('@{pipeline().parameters.p_target_ids}'),\n            ''\n        )::jsonb\n            AS target_ids,\n\n        '@{variables('pv_incr_from_val')}'\n            AS from_in,\n\n        '@{variables('pv_yyyyMMddHHmmss')}'::text\n            AS batch_str,\n\n        /* ★ 변경 : frequency 원본값 */\n        '@{variables('pv_condition_unit')}'::text\n            AS frequency_in,\n\n        '@{if(\n            pipeline().globalParameters.gp_pipeline_run_skip,\n            'Y',\n            'N'\n        )}'::text\n            AS skip_yn,\n\n        '@{pipeline().DataFactory}'::text\n            AS created_by\n),\n\n/* 0. 시작값 검증 / 변환 */\nd AS (\n    SELECT\n        p.*,\n\n        CASE\n            WHEN p.from_in ~\n                 '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'\n                THEN to_timestamp(\n                    p.from_in,\n                    'YYYY-MM-DD'\n                )\n\n            WHEN p.from_in ~\n                 '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}(:[0-9]{2})?$'\n                THEN to_timestamp(\n                    rpad(\n                        p.from_in,\n                        19,\n                        ':00'\n                    ),\n                    'YYYY-MM-DD HH24:MI:SS'\n                )\n\n            WHEN p.from_in ~\n                 '^[0-9]{8}$'\n                THEN to_timestamp(\n                    p.from_in,\n                    'YYYYMMDD'\n                )\n\n            WHEN p.from_in ~\n                 '^[0-9]{12}([0-9]{2})?$'\n                THEN to_timestamp(\n                    rpad(\n                        p.from_in,\n                        14,\n                        '0'\n                    ),\n                    'YYYYMMDDHH24MISS'\n                )\n\n            ELSE\n                to_timestamp(\n                    (\n                        'INCR_FROM_VAL_INVALID:'\n                        || p.from_in\n                    )::int::text,\n                    'YYYY'\n                )\n        END::timestamp\n            AS from_dt,\n\n        /* ★ 변경 : frequency 표준화 */\n        CASE lower(trim(p.frequency_in))\n\n            WHEN 'month'\n                THEN 'monthly'\n\n            WHEN 'monthly'\n                THEN 'monthly'\n\n            WHEN 'week'\n                THEN 'weekly'\n\n            WHEN 'weekly'\n                THEN 'weekly'\n\n            WHEN 'day'\n                THEN 'daily'\n\n            WHEN 'daily'\n                THEN 'daily'\n\n            WHEN 'hour'\n                THEN 'hourly'\n\n            WHEN 'hourly'\n                THEN 'hourly'\n\n            WHEN 'minute'\n                THEN 'minutely'\n\n            WHEN 'minutely'\n                THEN 'minutely'\n\n            ELSE\n                lower(trim(p.frequency_in))\n\n        END::text\n            AS frequency\n\n    FROM p\n),\n\n/* 1. 대상 + 추출 위치 */\nt0 AS (\n    SELECT\n        e.run_group_id,\n        e.run_rule_id,\n        m.*,\n\n        COALESCE(\n            NULLIF(\n                trim(m.cdc_tgt_db_nm),\n                ''\n            ),\n            m.src_db_nm\n        ) AS ext_db_nm,\n\n        COALESCE(\n            NULLIF(\n                trim(m.cdc_tgt_schema_nm),\n                ''\n            ),\n            m.src_schema_nm\n        ) AS ext_schema_nm,\n\n        NULLIF(\n            trim(m.landing_path),\n            ''\n        ) AS landing_path_in,\n\n        NULLIF(\n            trim(m.file_nm_template),\n            ''\n        ) AS file_nm_template_in\n\n    FROM p\n\n    JOIN adfadm.vw_ingest_exec_target e\n      ON e.run_group_nm = p.run_group_nm\n     AND e.run_type_cd = 'INCR'\n\n    JOIN adfadm.ctl_ingest_target_master m\n      ON m.target_id = e.target_id\n\n    WHERE p.target_ids IS NULL\n\n       OR e.target_id IN (\n            SELECT\n                jsonb_array_elements_text(\n                    p.target_ids\n                )::bigint\n       )\n),\n\n/* 2. 조건 / 자식 파이프라인명 / 경로 / 파일명 */\nt AS (\n    SELECT\n        t0.*,\n        x.pl_nm,\n\n        /* 기록용 시작값 */\n        CASE\n            WHEN upper(t0.incr_column_type) = 'STRING'\n             AND NULLIF(\n                    trim(t0.incr_column_format),\n                    ''\n                 ) IS NOT NULL\n\n                THEN to_char(\n                    d.from_dt,\n                    t0.incr_column_format\n                )\n\n            WHEN upper(t0.incr_column_type) = 'TIMESTAMP'\n\n                THEN to_char(\n                    d.from_dt,\n                    'YYYY-MM-DD HH24:MI:SS'\n                )\n\n            ELSE\n                to_char(\n                    d.from_dt,\n                    'YYYY-MM-DD'\n                )\n\n        END AS from_val,\n\n        /* DBX 범위 값 */\n        CASE\n            WHEN upper(t0.incr_column_type) = 'STRING'\n             AND t0.incr_column_format NOT ILIKE '%DD%'\n\n                THEN to_char(\n                    d.from_dt,\n                    'YYYYMM'\n                )\n\n            ELSE\n                to_char(\n                    d.from_dt,\n                    'YYYYMMDD'\n                )\n\n        END AS range_val,\n\n        /* 증분 조건 */\n        t0.incr_column_nm\n        || ' >= '\n        ||\n        CASE upper(t0.incr_column_type)\n\n            WHEN 'DATE' THEN\n                CASE upper(t0.src_type)\n\n                    WHEN 'DB2'\n                        THEN\n                            'DATE('''\n                            || to_char(\n                                   d.from_dt,\n                                   'YYYY-MM-DD'\n                               )\n                            || ''')'\n\n                    WHEN 'MSSQL'\n                        THEN\n                            'CAST('''\n                            || to_char(\n                                   d.from_dt,\n                                   'YYYY-MM-DD'\n                               )\n                            || ''' AS DATE)'\n\n                    ELSE\n                        'DATE '''\n                        || to_char(\n                               d.from_dt,\n                               'YYYY-MM-DD'\n                           )\n                        || ''''\n\n                END\n\n            WHEN 'TIMESTAMP' THEN\n                CASE upper(t0.src_type)\n\n                    WHEN 'DB2'\n                        THEN\n                            'TIMESTAMP('''\n                            || to_char(\n                                   d.from_dt,\n                                   'YYYY-MM-DD HH24:MI:SS'\n                               )\n                            || ''')'\n\n                    WHEN 'MSSQL'\n                        THEN\n                            'CAST('''\n                            || to_char(\n                                   d.from_dt,\n                                   'YYYY-MM-DD HH24:MI:SS'\n                               )\n                            || ''' AS DATETIME2)'\n\n                    ELSE\n                        'TIMESTAMP '''\n                        || to_char(\n                               d.from_dt,\n                               'YYYY-MM-DD HH24:MI:SS'\n                           )\n                        || ''''\n\n                END\n\n            WHEN 'STRING' THEN\n                CASE\n                    WHEN NULLIF(\n                            trim(\n                                t0.incr_column_format\n                            ),\n                            ''\n                         ) IS NULL\n\n                        THEN (\n                            'INCR_COL_FORMAT_MISSING:'\n                            || t0.target_id\n                        )::int::text\n\n                    ELSE\n                        ''''\n                        || to_char(\n                               d.from_dt,\n                               t0.incr_column_format\n                           )\n                        || ''''\n\n                END\n\n            ELSE\n                (\n                    'INCR_COL_TYPE_NOT_SUPPORTED:'\n                    || t0.target_id\n                )::int::text\n\n        END AS cond_sql,\n\n        /* ==========================================================\n           ★ 변경 : INCR Landing Path\n\n           INCR GEN2 파일 수집 경로만 생성.\n\n           사용자 지정 landing_path 토큰:\n             {frequency}\n             {batch_datetime}\n\n           기본:\n             incr/\n               frequency=monthly|weekly|daily|hourly|minutely/\n                 batch_datetime=YYYYMMDDHHMI/\n           ========================================================== */\n        CASE\n            WHEN t0.sink_type_cd <> 'GEN2'\n                THEN NULL\n\n            WHEN t0.landing_path_in IS NOT NULL\n                THEN replace(\n                         replace(\n                             t0.landing_path_in,\n                             '{frequency}',\n                             d.frequency\n                         ),\n                         '{batch_datetime}',\n                         left(\n                             d.batch_str,\n                             12\n                         )\n                     )\n\n            ELSE\n                'incr'\n                || '/frequency='\n                || d.frequency\n                || '/batch_datetime='\n                || left(\n                       d.batch_str,\n                       12\n                   )\n\n        END AS landing_path_out,\n\n        /* ==========================================================\n           ★ 변경 : INCR 파일명\n\n           INCR GEN2 파일 기준.\n\n           sequence(part) = default\n\n           DB.SCHEMA.TABLE.default.TIMESTAMP.parquet\n           ========================================================== */\n        CASE\n            WHEN t0.sink_type_cd <> 'GEN2'\n                THEN NULL\n\n            WHEN t0.file_nm_template_in IS NOT NULL\n                THEN replace(\n                         replace(\n                           replace(\n                             replace(\n                               replace(\n                                 t0.file_nm_template_in,\n\n                                 '{src_db}',\n                                 t0.src_db_nm\n                               ),\n\n                               '{schema}',\n                               t0.src_schema_nm\n                             ),\n\n                             '{table}',\n                             t0.src_table_nm\n                           ),\n\n                           '{part}',\n                           'default'\n                         ),\n\n                         '{ts}',\n                         d.batch_str\n                     )\n\n            ELSE\n                t0.src_db_nm\n                || '.'\n                || t0.src_schema_nm\n                || '.'\n                || t0.src_table_nm\n                || '.default.'\n                || d.batch_str\n                || '.parquet'\n\n        END AS file_name_out\n\n    FROM t0\n\n    CROSS JOIN d\n\n    /* 자식 수집 파이프라인 */\n    CROSS JOIN LATERAL (\n        SELECT\n            'pl_'\n            || lower(t0.data_class)\n            || '_ingest_'\n            || lower(t0.src_type)\n            || '_'\n            || upper(t0.ext_db_nm)\n                AS pl_nm\n    ) x\n),\n\n/* 3. Master 이력 PENDING -> RUNNING */\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n\n       SET status = 'RUNNING',\n           start_dt = now(),\n           updated_by = p.created_by,\n           updated_dt = now(),\n\n           child_total_cnt = (\n               SELECT count(*)\n               FROM t\n           )\n\n      FROM p\n\n     WHERE m.master_run_id = p.master_run_id\n       AND m.status = 'PENDING'\n\n    RETURNING\n        m.master_run_id\n),\n\n/* 4. 수집 이력 PENDING 생성 */\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        run_group_id,\n        run_rule_id,\n        target_id,\n        ingest_pipeline_nm,\n        run_type_cd,\n\n        sink_type_cd,\n        load_method_cd,\n        range_column_nm,\n        range_operator_cd,\n        range_value,\n\n        incr_policy_id,\n        incr_column_nm,\n        incr_from_val,\n        incr_to_val,\n\n        src_type,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        data_class,\n\n        extract_query,\n        landing_path,\n        file_name,\n\n        status,\n        created_by\n    )\n\n    SELECT\n        p.master_run_id,\n        t.run_group_id,\n        t.run_rule_id,\n        t.target_id,\n        t.pl_nm,\n        'INCR',\n\n        t.sink_type_cd,\n\n        CASE\n            WHEN t.sink_type_cd = 'GEN2'\n                THEN t.incr_load_method_cd\n        END,\n\n        CASE\n            WHEN t.sink_type_cd = 'GEN2'\n             AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT'\n                THEN t.incr_column_nm\n        END,\n\n        CASE\n            WHEN t.sink_type_cd = 'GEN2'\n             AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT'\n                THEN '>='\n        END,\n\n        CASE\n            WHEN t.sink_type_cd = 'GEN2'\n             AND t.incr_load_method_cd = 'RANGE_DELETE_INSERT'\n                THEN jsonb_build_array(\n                    t.range_val\n                )\n        END,\n\n        t.incr_policy_id,\n        t.incr_column_nm,\n        t.from_val,\n        NULL,\n\n        t.src_type,\n        t.src_db_nm,\n        t.src_schema_nm,\n        t.src_table_nm,\n\n        NULLIF(\n            trim(\n                t.cdc_tgt_db_nm\n            ),\n            ''\n        ),\n\n        NULLIF(\n            trim(\n                t.cdc_tgt_schema_nm\n            ),\n            ''\n        ),\n\n        t.data_class,\n\n        /* 추출쿼리 */\n        CASE\n            WHEN NULLIF(\n                    trim(\n                        t.src_query_template\n                    ),\n                    ''\n                 ) IS NOT NULL\n\n                THEN replace(\n                    t.src_query_template,\n                    '{WHERE}',\n                    t.cond_sql\n                )\n\n            ELSE\n                'SELECT * FROM '\n                || t.ext_schema_nm\n                || '.'\n                || t.src_table_nm\n\n                || CASE\n                       WHEN upper(t.src_type) = 'MSSQL'\n                           THEN ' WITH (NOLOCK)'\n                       ELSE ''\n                   END\n\n                || ' WHERE '\n                || t.cond_sql\n\n                || CASE\n                       WHEN upper(t.src_type) = 'DB2'\n                           THEN ' WITH UR'\n                       ELSE ''\n                   END\n\n        END,\n\n        t.landing_path_out,\n        t.file_name_out,\n\n        'PENDING',\n        p.created_by\n\n    FROM t\n\n    CROSS JOIN p\n\n    WHERE EXISTS (\n        SELECT 1\n        FROM mst\n    )\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        ingest_pipeline_nm,\n        extract_query,\n        landing_path,\n        file_name,\n\n        target_id,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n        sink_type_cd,\n        load_method_cd,\n        incr_column_nm,\n        incr_from_val,\n        range_value,\n        status\n)\n\n/* 5. ForEach 입력 */\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    ingest_pipeline_nm,\n    extract_query,\n\n    COALESCE(\n        landing_path,\n        ''\n    ) AS landing_path,\n\n    COALESCE(\n        file_name,\n        ''\n    ) AS file_name,\n\n    target_id,\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n\n    sink_type_cd,\n    load_method_cd,\n    incr_column_nm,\n    incr_from_val,\n    range_value::text\n        AS range_value,\n    status\n\nFROM ins\n\nORDER BY target_id;",
+										"value": "/* pl_raw_orch_full > Script \"Start_ingest_pipeline Script\"\n   (v8.3 FULL 전용, adf_script_v83_full_only.sql 기반)\n\n   Master PENDING -> RUNNING 전환\n   + 수집 이력(ctl_ingest_pipeline_run) PENDING 생성.\n   Master 가 PENDING 이 아니면 0건 반환\n\n   대상 :\n     Run Group(p_run_group_nm) 중 실행유형 FULL\n     (RAW_FULL / META_FULL),\n     p_target_ids 로 일부만 수동 실행 가능\n\n   ADF Trigger 파라미터는 빈 값 대신 공백(\" \")이 전달될 수 있으므로\n   p CTE 에서 trim + NULLIF 로 공백을 NULL 로 정규화한다.\n\n   추출 위치 :\n     COALESCE(NULLIF(cdc_tgt_*, ''), src_*)\n\n   파일명 / DBX 전달 :\n     src_*\n\n   ★ 변경 : FULL 저장 경로\n\n     Pipeline Parameter :\n       p_frequency_cd\n\n     전달값 :\n       daily\n       weekly\n       monthly\n       hourly\n\n     landing_path 없으면 :\n\n       full/\n         frequency={p_frequency_cd}/\n           batch_datetime={YYYYMMDDHHMI}/\n\n     예)\n       full/frequency=daily/batch_datetime=202609281930\n       full/frequency=weekly/batch_datetime=202609281930\n       full/frequency=monthly/batch_datetime=202609281930\n       full/frequency=hourly/batch_datetime=202609281930\n\n   ★ 변경 : FULL 파일명\n\n     FULL / 부분 Refresh 는 sequence(part) 값을 사용\n\n       {src_db}.{schema}.{table}.{part}.{ts}.parquet\n\n     예)\n       DB.SCHEMA.TABLE.202601.20260928193001.parquet\n       DB.SCHEMA.TABLE.2026.20260928193001.parquet\n\n     INCR 처럼 default 를 사용하지 않음.\n\n     단, 현재 본 스크립트에는\n       202601 / 2026 등의 실제 part 값을 공급하는\n       파라미터 또는 컬럼이 포함되어 있지 않음.\n\n   ★ 변경 : TABLE sink 로직 제거\n\n     sink_table_full_nm INSERT / RETURNING / ForEach 출력 제거\n\n   Script 재시도 = 0\n   (재시도 시 수집 이력 중복 생성).\n\n   ADF 동적 식은 p CTE 에만 사용.\n   주석은 블록 주석만 사용.\n*/\n\nWITH p AS (\n    SELECT\n        NULLIF(\n            trim('@{pipeline().RunId}'),\n            ''\n        )::text\n            AS master_run_id,\n\n        NULLIF(\n            trim('@{pipeline().parameters.p_run_group_nm}'),\n            ''\n        )::text\n            AS run_group_nm,\n\n        /* 공백 / 빈 문자열이면 NULL,\n           실제 값이 있으면 JSONB 변환\n        */\n        CASE\n            WHEN NULLIF(\n                     trim('@{pipeline().parameters.p_target_ids}'),\n                     ''\n                 ) IS NULL\n                THEN NULL::jsonb\n\n            ELSE\n                trim(\n                    '@{pipeline().parameters.p_target_ids}'\n                )::jsonb\n        END\n            AS target_ids,\n\n        NULLIF(\n            trim('@{variables('pv_yyyyMMddHHmmss')}'),\n            ''\n        )::text\n            AS batch_str,\n\n        /* =========================================================\n           ★ 변경 : FULL 수집 주기\n\n           Pipeline Parameter :\n             p_frequency_cd\n\n           전달값 :\n             daily / weekly / monthly / hourly\n\n           전달값 자체가 표준화된 값이므로\n           별도의 day -> daily 등의 변환은 하지 않음.\n           대소문자 방지를 위해 lower 처리.\n           ========================================================= */\n        lower(\n            NULLIF(\n                trim(\n                    '@{pipeline().parameters.p_frequency_cd}'\n                ),\n                ''\n            )\n        )::text\n            AS frequency_cd,\n\n        NULLIF(\n            trim('@{pipeline().DataFactory}'),\n            ''\n        )::text\n            AS created_by\n),\n\n/* ================================================================\n   1. 대상 + 추출 위치\n   ================================================================ */\nt0 AS (\n    SELECT\n        e.run_group_id,\n        e.run_rule_id,\n        m.*,\n\n        COALESCE(\n            NULLIF(\n                trim(m.cdc_tgt_db_nm),\n                ''\n            ),\n            m.src_db_nm\n        ) AS ext_db_nm,\n\n        COALESCE(\n            NULLIF(\n                trim(m.cdc_tgt_schema_nm),\n                ''\n            ),\n            m.src_schema_nm\n        ) AS ext_schema_nm,\n\n        NULLIF(\n            trim(m.landing_path),\n            ''\n        ) AS landing_path_in,\n\n        NULLIF(\n            trim(m.file_nm_template),\n            ''\n        ) AS file_nm_template_in\n\n    FROM p\n\n    JOIN adfadm.vw_ingest_exec_target e\n      ON e.run_group_nm = p.run_group_nm\n\n    JOIN adfadm.ctl_ingest_target_master m\n      ON m.target_id = e.target_id\n\n    WHERE e.run_type_cd = 'FULL'\n\n      AND (\n              p.target_ids IS NULL\n\n              OR e.target_id IN (\n                  SELECT\n                      jsonb_array_elements_text(\n                          p.target_ids\n                      )::bigint\n              )\n          )\n),\n\n/* ================================================================\n   2. 자식 파이프라인명 / 경로 / 파일명\n   ================================================================ */\nt AS (\n    SELECT\n        t0.*,\n        x.pl_nm,\n\n        /* =========================================================\n           ★ 변경 : FULL 저장 경로\n\n           기존 :\n             {data_class}/\n               batch_date=YYYYMMDD/\n                 batch_hour=HH/\n                   pipeline_name=...\n\n           변경 :\n             full/\n               frequency=daily|weekly|monthly|hourly/\n                 batch_datetime=YYYYMMDDHHMI/\n\n           landing_path 직접 지정 시 사용 토큰 :\n             {frequency}\n             {batch_datetime}\n\n           제거 토큰 :\n             {batch_date}\n             {batch_hour}\n             {pipeline_nm}\n           ========================================================= */\n        CASE\n            WHEN t0.sink_type_cd <> 'GEN2'\n                THEN NULL\n\n            WHEN t0.landing_path_in IS NOT NULL\n                THEN replace(\n                         replace(\n                             t0.landing_path_in,\n                             '{frequency}',\n                             p.frequency_cd\n                         ),\n                         '{batch_datetime}',\n                         left(\n                             p.batch_str,\n                             12\n                         )\n                     )\n\n            ELSE\n                'full'\n                || '/frequency='\n                || p.frequency_cd\n                || '/batch_datetime='\n                || left(\n                       p.batch_str,\n                       12\n                   )\n\n        END AS landing_path_out,\n\n        /* =========================================================\n           ★ 변경 : FULL 파일명\n\n           최종 규칙 :\n             DB.SCHEMA.TABLE.{part}.{ts}.parquet\n\n           예 :\n             DB.SCHEMA.TABLE.202601.20260928193001.parquet\n             DB.SCHEMA.TABLE.2026.20260928193001.parquet\n\n           INCR 과 달리 {part} = default 로 처리하지 않음.\n\n           현재 이 스크립트에는 실제 part 값을 제공하는\n           파라미터 또는 컬럼이 없으므로,\n           아래에서는 기존 FULL 파일명 생성 구조를 유지한다.\n\n           실제 part 값의 원천이 확정되면\n           이 부분에만 추가하면 됨.\n           ========================================================= */\n        CASE\n            WHEN t0.sink_type_cd <> 'GEN2'\n                THEN NULL\n\n            WHEN t0.file_nm_template_in IS NOT NULL\n                THEN replace(\n                         replace(\n                           replace(\n                             replace(\n                               t0.file_nm_template_in,\n\n                               '{src_db}',\n                               t0.src_db_nm\n                             ),\n\n                             '{schema}',\n                             t0.src_schema_nm\n                           ),\n\n                           '{table}',\n                           t0.src_table_nm\n                         ),\n\n                         '{ts}',\n                         p.batch_str\n                     )\n\n            ELSE\n                t0.src_db_nm\n                || '.'\n                || t0.src_schema_nm\n                || '.'\n                || t0.src_table_nm\n                || '.'\n                || p.batch_str\n                || '.parquet'\n\n        END AS file_name_out\n\n    FROM t0\n    CROSS JOIN p\n\n    /* 자식 파이프라인명 :\n       pl_{data_class}_ingest_{src_type}_{추출 DB}\n\n       예)\n         pl_raw_ingest_db2_MLCRP\n    */\n    CROSS JOIN LATERAL (\n        SELECT\n            'pl_'\n            || lower(t0.data_class)\n            || '_ingest_'\n            || lower(t0.src_type)\n            || '_'\n            || upper(t0.ext_db_nm)\n                AS pl_nm\n    ) x\n),\n\n/* ================================================================\n   3. Master 이력 PENDING -> RUNNING (+ 대상 건수)\n\n   SKIPPED 등 다른 상태면 0건\n   -> 수집 이력 생성 안 함\n   ================================================================ */\nmst AS (\n    UPDATE adfadm.ctl_master_pipeline_run m\n\n       SET status          = 'RUNNING',\n           start_dt        = now(),\n           updated_by      = p.created_by,\n           updated_dt      = now(),\n\n           child_total_cnt = (\n               SELECT count(*)\n                 FROM t\n           )\n\n      FROM p\n\n     WHERE m.master_run_id = p.master_run_id\n       AND m.status = 'PENDING'\n\n    RETURNING\n        m.master_run_id\n),\n\n/* ================================================================\n   4. 수집 이력 PENDING 생성\n\n   Master 가 RUNNING 으로 전환된 경우만\n\n   ★ 변경 :\n     TABLE sink 관련 sink_table_full_nm 완전 제거\n   ================================================================ */\nins AS (\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n    (\n        master_run_id,\n        run_group_id,\n        run_rule_id,\n        target_id,\n        ingest_pipeline_nm,\n        run_type_cd,\n\n        sink_type_cd,\n        load_method_cd,\n\n        src_type,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n\n        data_class,\n\n        extract_query,\n        landing_path,\n        file_name,\n\n        status,\n        created_by\n    )\n\n    SELECT\n        p.master_run_id,\n        t.run_group_id,\n        t.run_rule_id,\n        t.target_id,\n        t.pl_nm,\n        'FULL',\n\n        t.sink_type_cd,\n\n        CASE\n            WHEN t.sink_type_cd = 'GEN2'\n                THEN 'FULL_DELETE_INSERT'\n        END,\n\n        t.src_type,\n        t.src_db_nm,\n        t.src_schema_nm,\n        t.src_table_nm,\n\n        NULLIF(\n            trim(t.cdc_tgt_db_nm),\n            ''\n        ),\n\n        NULLIF(\n            trim(t.cdc_tgt_schema_nm),\n            ''\n        ),\n\n        t.data_class,\n\n        /* 추출쿼리 :\n           템플릿 우선\n             {WHERE} -> 1=1\n\n           템플릿 없으면\n             SELECT *\n        */\n        CASE\n            WHEN NULLIF(\n                    trim(t.src_query_template),\n                    ''\n                 ) IS NOT NULL\n\n                THEN replace(\n                    t.src_query_template,\n                    '{WHERE}',\n                    '1=1'\n                )\n\n            ELSE\n                'SELECT * FROM '\n                || t.ext_schema_nm\n                || '.'\n                || t.src_table_nm\n\n                || CASE upper(t.src_type)\n\n                       WHEN 'DB2'\n                           THEN ' WITH UR'\n\n                       WHEN 'MSSQL'\n                           THEN ' WITH (NOLOCK)'\n\n                       ELSE ''\n\n                   END\n\n        END,\n\n        t.landing_path_out,\n        t.file_name_out,\n\n        'PENDING',\n        p.created_by\n\n    FROM t\n    CROSS JOIN p\n\n    WHERE EXISTS (\n        SELECT 1\n          FROM mst\n    )\n\n    RETURNING\n        ingest_pipeline_id,\n        master_run_id,\n        ingest_pipeline_nm,\n        extract_query,\n\n        landing_path,\n        file_name,\n\n        target_id,\n\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n\n        cdc_tgt_db_nm,\n        cdc_tgt_schema_nm,\n\n        sink_type_cd,\n        load_method_cd,\n\n        status\n)\n\n/* ================================================================\n   5. ForEach 입력\n\n   ★ 변경 :\n     sink_table_full_nm 제거\n   ================================================================ */\nSELECT\n    ingest_pipeline_id,\n    master_run_id,\n    ingest_pipeline_nm,\n    extract_query,\n\n    COALESCE(\n        landing_path,\n        ''\n    ) AS landing_path,\n\n    COALESCE(\n        file_name,\n        ''\n    ) AS file_name,\n\n    target_id,\n\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm,\n\n    cdc_tgt_db_nm,\n    cdc_tgt_schema_nm,\n\n    sink_type_cd,\n    load_method_cd,\n    status\n\nFROM ins\n\nORDER BY\n    src_db_nm,\n    src_schema_nm,\n    src_table_nm;",
 										"type": "Expression"
 									}
 								}
@@ -6084,78 +5965,12 @@
 						}
 					},
 					{
-						"name": "ForEach_child_ingest",
-						"description": "수집 대상별 자식 수집 파이프라인 호출",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "Filter_not_skipped",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('Filter_not_skipped').output.Value",
-								"type": "Expression"
-							},
-							"isSequential": false,
-							"batchCount": 8,
-							"activities": [
-								{
-									"name": "pipeline_dispatcher",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "pl_dispatcher_ingest",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"p_child_pipeline_nm": {
-												"value": "@item().ingest_pipeline_nm",
-												"type": "Expression"
-											},
-											"p_landing_path": {
-												"value": "@item().landing_path",
-												"type": "Expression"
-											},
-											"p_file_name": {
-												"value": "@item().file_name",
-												"type": "Expression"
-											},
-											"p_extract_query": {
-												"value": "@item().extract_query",
-												"type": "Expression"
-											},
-											"p_ingest_pipeline_id": {
-												"value": "@item().ingest_pipeline_id",
-												"type": "Expression"
-											},
-											"p_master_run_id": {
-												"value": "@item().master_run_id",
-												"type": "Expression"
-											}
-										}
-									}
-								}
-							]
-						}
-					},
-					{
 						"name": "End_master_run",
 						"description": "Master 종료 (수집 이력 집계)",
 						"type": "Script",
 						"dependsOn": [
 							{
-								"activity": "ForEach_child_ingest",
+								"activity": "Wait1",
 								"dependencyConditions": [
 									"Completed"
 								]
@@ -6228,7 +6043,13 @@
 						"type": "Fail",
 						"dependsOn": [
 							{
-								"activity": "ForEach_child_ingest",
+								"activity": "ForEach_child_ingest_4",
+								"dependencyConditions": [
+									"Failed"
+								]
+							},
+							{
+								"activity": "ForEach_child_ingest_2",
 								"dependencyConditions": [
 									"Failed"
 								]
@@ -6242,6 +6063,184 @@
 							},
 							"errorCode": "-1"
 						}
+					},
+					{
+						"name": "Set_batch_count",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set_batch_ts",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pv_batch_count",
+							"value": {
+								"value": "@string(if(empty(trim(pipeline().parameters.p_max_parallel)), 8, min(max(int(trim(pipeline().parameters.p_max_parallel)), 1), 50)))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEach_child_ingest_4",
+						"description": "수집 대상별 자식 수집 파이프라인 호출",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_not_skipped",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@if(equals(variables('pv_batch_count'), '4'), activity('Filter_not_skipped').output.Value, json('[]'))",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "pipeline_dispatcher_copy1_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "ForEach_child_ingest_4",
+								"dependencyConditions": [
+									"Completed"
+								]
+							},
+							{
+								"activity": "ForEach_child_ingest_2",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					},
+					{
+						"name": "ForEach_child_ingest_2",
+						"description": "수집 대상별 자식 수집 파이프라인 호출",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_not_skipped",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@if(equals(variables('pv_batch_count'), '2'), activity('Filter_not_skipped').output.Value, json('[]'))",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 2,
+							"activities": [
+								{
+									"name": "pipeline_dispatcher_copy1_copy1_copy1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
 					}
 				],
 				"policy": {
@@ -6250,21 +6249,13 @@
 				"parameters": {
 					"p_run_group_nm": {
 						"type": "String",
-						"defaultValue": "TEST_DAILY_INCR_D3"
+						"defaultValue": "FULL_DAILY"
 					},
 					"p_scheduled_time": {
 						"type": "String",
 						"defaultValue": " "
 					},
 					"p_target_ids": {
-						"type": "String",
-						"defaultValue": " "
-					},
-					"p_incr_from_val": {
-						"type": "String",
-						"defaultValue": " "
-					},
-					"p_incr_days": {
 						"type": "String",
 						"defaultValue": " "
 					},
@@ -6290,30 +6281,30 @@
 					},
 					"p_requester": {
 						"type": "String",
-						"defaultValue": "adfadm"
+						"defaultValue": " "
 					},
 					"p_entry_run_id": {
 						"type": "String",
 						"defaultValue": " "
+					},
+					"p_frequency_cd": {
+						"type": "string",
+						"defaultValue": "daily"
+					},
+					"p_max_parallel": {
+						"type": "string",
+						"defaultValue": "2"
 					}
 				},
 				"variables": {
 					"pv_job_types": {
 						"type": "String",
-						"defaultValue": "RAW_INCR"
-					},
-					"pv_condition_unit": {
-						"type": "String",
-						"defaultValue": "DAY"
-					},
-					"pv_condition_interval": {
-						"type": "String",
-						"defaultValue": "3"
-					},
-					"pv_incr_from_val": {
-						"type": "String"
+						"defaultValue": "RAW_FULL"
 					},
 					"pv_yyyyMMddHHmmss": {
+						"type": "String"
+					},
+					"pv_batch_count": {
 						"type": "String"
 					}
 				},
