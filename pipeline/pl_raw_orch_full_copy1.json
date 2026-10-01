@@ -27,7 +27,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "Set_batch_ts",
+						"activity": "Set_batch_count",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -240,7 +240,10 @@
 						"type": "Expression"
 					},
 					"isSequential": false,
-					"batchCount": 8,
+					"batchCount": {
+						"value": "@int(variables('pv_batch_count'))",
+						"type": "Expression"
+					},
 					"activities": [
 						{
 							"name": "pipeline_dispatcher",
@@ -380,6 +383,30 @@
 					},
 					"errorCode": "-1"
 				}
+			},
+			{
+				"name": "Set_batch_count",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_batch_ts",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pv_batch_count",
+					"value": {
+						"value": "@string(if(empty(trim(pipeline().parameters.p_max_parallel)), 8, min(max(int(trim(pipeline().parameters.p_max_parallel)), 1), 50)))",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -438,6 +465,9 @@
 				"defaultValue": "RAW_FULL"
 			},
 			"pv_yyyyMMddHHmmss": {
+				"type": "String"
+			},
+			"pv_batch_count": {
 				"type": "String"
 			}
 		},
