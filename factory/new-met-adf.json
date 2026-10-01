@@ -17,7 +17,7 @@
 			},
 			"gp_pipeline_run_skip": {
 				"type": "bool",
-				"value": true
+				"value": false
 			}
 		}
 	},
