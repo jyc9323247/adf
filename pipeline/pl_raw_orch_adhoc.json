@@ -346,7 +346,7 @@
 			},
 			"p_run_group_nm": {
 				"type": "String",
-				"defaultValue": "ADHOC"
+				"defaultValue": "ADHOC_TEST"
 			},
 			"p_requester": {
 				"type": "String",
