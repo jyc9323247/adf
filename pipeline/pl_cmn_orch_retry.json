@@ -267,14 +267,15 @@
 		],
 		"parameters": {
 			"p_master_run_id": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "6d600f8d-8041-43e1-b2f4-dde94f50286e"
 			},
 			"p_target_ids": {
 				"type": "String"
 			},
 			"p_force_yn": {
 				"type": "String",
-				"defaultValue": "Y"
+				"defaultValue": "N"
 			},
 			"p_requester": {
 				"type": "String"
