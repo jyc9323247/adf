@@ -16,8 +16,8 @@
 				"value": false
 			},
 			"gp_pipeline_run_skip": {
-				"type": "bool",
-				"value": false
+				"type": "string",
+				"value": "N"
 			}
 		}
 	},
