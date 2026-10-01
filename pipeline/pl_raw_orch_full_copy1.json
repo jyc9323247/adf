@@ -227,7 +227,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "Switch_batch_count",
+						"activity": "Wait1",
 						"dependencyConditions": [
 							"Completed"
 						]
@@ -300,7 +300,13 @@
 				"type": "Fail",
 				"dependsOn": [
 					{
-						"activity": "Switch_batch_count",
+						"activity": "ForEach_child_ingest_4",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "ForEach_child_ingest_2",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -340,8 +346,9 @@
 				}
 			},
 			{
-				"name": "Switch_batch_count",
-				"type": "Switch",
+				"name": "ForEach_child_ingest_4",
+				"description": "수집 대상별 자식 수집 파이프라인 호출",
+				"type": "ForEach",
 				"dependsOn": [
 					{
 						"activity": "Filter_not_skipped",
@@ -352,197 +359,141 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
-					"on": {
-						"value": "@variables('pv_batch_count')",
+					"items": {
+						"value": "@if(equals(variables('pv_batch_count'), '4'), activity('Filter_not_skipped').output.Value, json('[]'))",
 						"type": "Expression"
 					},
-					"cases": [
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
 						{
-							"value": "2",
-							"activities": [
-								{
-									"name": "ForEach_child_ingest",
-									"description": "수집 대상별 자식 수집 파이프라인 호출",
-									"type": "ForEach",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"items": {
-											"value": "@activity('Filter_not_skipped').output.Value",
-											"type": "Expression"
-										},
-										"isSequential": false,
-										"batchCount": 2,
-										"activities": [
-											{
-												"name": "pipeline_dispatcher",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "pl_dispatcher_ingest",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"p_child_pipeline_nm": {
-															"value": "@item().ingest_pipeline_nm",
-															"type": "Expression"
-														},
-														"p_landing_path": {
-															"value": "@item().landing_path",
-															"type": "Expression"
-														},
-														"p_file_name": {
-															"value": "@item().file_name",
-															"type": "Expression"
-														},
-														"p_extract_query": {
-															"value": "@item().extract_query",
-															"type": "Expression"
-														},
-														"p_ingest_pipeline_id": {
-															"value": "@item().ingest_pipeline_id",
-															"type": "Expression"
-														},
-														"p_master_run_id": {
-															"value": "@item().master_run_id",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									}
-								}
-							]
-						},
-						{
-							"value": "4",
-							"activities": [
-								{
-									"name": "ForEach_child_ingest_copy1",
-									"description": "수집 대상별 자식 수집 파이프라인 호출",
-									"type": "ForEach",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"items": {
-											"value": "@activity('Filter_not_skipped').output.Value",
-											"type": "Expression"
-										},
-										"isSequential": false,
-										"batchCount": 4,
-										"activities": [
-											{
-												"name": "pipeline_dispatcher_copy1",
-												"type": "ExecutePipeline",
-												"dependsOn": [],
-												"policy": {
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "pl_dispatcher_ingest",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"p_child_pipeline_nm": {
-															"value": "@item().ingest_pipeline_nm",
-															"type": "Expression"
-														},
-														"p_landing_path": {
-															"value": "@item().landing_path",
-															"type": "Expression"
-														},
-														"p_file_name": {
-															"value": "@item().file_name",
-															"type": "Expression"
-														},
-														"p_extract_query": {
-															"value": "@item().extract_query",
-															"type": "Expression"
-														},
-														"p_ingest_pipeline_id": {
-															"value": "@item().ingest_pipeline_id",
-															"type": "Expression"
-														},
-														"p_master_run_id": {
-															"value": "@item().master_run_id",
-															"type": "Expression"
-														}
-													}
-												}
-											}
-										]
-									}
-								}
-							]
-						}
-					],
-					"defaultActivities": [
-						{
-							"name": "ForEach_child_ingest_copy1_copy1",
-							"description": "수집 대상별 자식 수집 파이프라인 호출",
-							"type": "ForEach",
+							"name": "pipeline_dispatcher_copy1_copy1",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
-								"items": {
-									"value": "@activity('Filter_not_skipped').output.Value",
-									"type": "Expression"
+								"pipeline": {
+									"referenceName": "pl_dispatcher_ingest",
+									"type": "PipelineReference"
 								},
-								"isSequential": true,
-								"activities": [
-									{
-										"name": "pipeline_dispatcher_copy1_copy1",
-										"type": "ExecutePipeline",
-										"dependsOn": [],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "pl_dispatcher_ingest",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"p_child_pipeline_nm": {
-													"value": "@item().ingest_pipeline_nm",
-													"type": "Expression"
-												},
-												"p_landing_path": {
-													"value": "@item().landing_path",
-													"type": "Expression"
-												},
-												"p_file_name": {
-													"value": "@item().file_name",
-													"type": "Expression"
-												},
-												"p_extract_query": {
-													"value": "@item().extract_query",
-													"type": "Expression"
-												},
-												"p_ingest_pipeline_id": {
-													"value": "@item().ingest_pipeline_id",
-													"type": "Expression"
-												},
-												"p_master_run_id": {
-													"value": "@item().master_run_id",
-													"type": "Expression"
-												}
-											}
-										}
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_child_pipeline_nm": {
+										"value": "@item().ingest_pipeline_nm",
+										"type": "Expression"
+									},
+									"p_landing_path": {
+										"value": "@item().landing_path",
+										"type": "Expression"
+									},
+									"p_file_name": {
+										"value": "@item().file_name",
+										"type": "Expression"
+									},
+									"p_extract_query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									},
+									"p_ingest_pipeline_id": {
+										"value": "@item().ingest_pipeline_id",
+										"type": "Expression"
+									},
+									"p_master_run_id": {
+										"value": "@item().master_run_id",
+										"type": "Expression"
 									}
-								]
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "ForEach_child_ingest_4",
+						"dependencyConditions": [
+							"Completed"
+						]
+					},
+					{
+						"activity": "ForEach_child_ingest_2",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "ForEach_child_ingest_2",
+				"description": "수집 대상별 자식 수집 파이프라인 호출",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Filter_not_skipped",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(equals(variables('pv_batch_count'), '2'), activity('Filter_not_skipped').output.Value, json('[]'))",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 2,
+					"activities": [
+						{
+							"name": "pipeline_dispatcher_copy1_copy1_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_dispatcher_ingest",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_child_pipeline_nm": {
+										"value": "@item().ingest_pipeline_nm",
+										"type": "Expression"
+									},
+									"p_landing_path": {
+										"value": "@item().landing_path",
+										"type": "Expression"
+									},
+									"p_file_name": {
+										"value": "@item().file_name",
+										"type": "Expression"
+									},
+									"p_extract_query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									},
+									"p_ingest_pipeline_id": {
+										"value": "@item().ingest_pipeline_id",
+										"type": "Expression"
+									},
+									"p_master_run_id": {
+										"value": "@item().master_run_id",
+										"type": "Expression"
+									}
+								}
 							}
 						}
 					]
