@@ -43,7 +43,7 @@
 					"logSettings": {
 						"enableCopyActivityLog": true,
 						"copyActivityLogSettings": {
-							"logLevel": "Info",
+							"logLevel": "Warning",
 							"enableReliableLogging": false
 						},
 						"logLocationSettings": {
@@ -51,7 +51,10 @@
 								"referenceName": "AzureBlobStorage1",
 								"type": "LinkedServiceReference"
 							},
-							"path": "pipeline-logs"
+							"path": {
+								"value": "@concat(\n  'pipeline-logs/',\n  formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Korea Standard Time'), 'yyyyMM'),\n  '/',\n  formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Korea Standard Time'), 'dd'),\n  '/',\n  pipeline().TriggerName,\n  '/',\n  pipeline().TriggerId\n)",
+								"type": "Expression"
+							}
 						}
 					},
 					"translator": {
@@ -89,6 +92,8 @@
 			{
 				"name": "Running_UPDATE",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
