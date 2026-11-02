@@ -1,0 +1,28 @@
+{
+	"name": "OdbcTable3",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Odbc_pg",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"schema_nm": {
+				"type": "string",
+				"defaultValue": "public"
+			},
+			"table_nm": {
+				"type": "string",
+				"defaultValue": "test"
+			}
+		},
+		"annotations": [],
+		"type": "OdbcTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": {
+				"value": "@{dataset().schema_nm}.{dataset().table_nm}",
+				"type": "Expression"
+			}
+		}
+	}
+}
