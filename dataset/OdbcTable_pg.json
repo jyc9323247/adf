@@ -20,7 +20,7 @@
 		"schema": [],
 		"typeProperties": {
 			"tableName": {
-				"value": "@{dataset().schema_nm}.{dataset().table_nm}",
+				"value": "@{dataset().schema_nm}.@{dataset().table_nm}",
 				"type": "Expression"
 			}
 		}
