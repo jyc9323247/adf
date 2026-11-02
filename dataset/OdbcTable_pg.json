@@ -1,5 +1,5 @@
 {
-	"name": "OdbcTable3",
+	"name": "OdbcTable_pg",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Odbc_pg",
