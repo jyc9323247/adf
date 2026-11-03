@@ -5,6 +5,8 @@
 			{
 				"name": "Copy data PG",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -28,7 +30,7 @@
 						},
 						"writeBatchTimeout": "00:30:00",
 						"preCopyScript": "delete from public.lineitem;",
-						"writeMethod": "BulkInsert"
+						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
 					"translator": {
@@ -234,8 +236,6 @@
 			{
 				"name": "Copy data Gen2",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -290,9 +290,14 @@
 			{
 				"name": "Copy data  Ge2 PG",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Copy data Gen2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -314,10 +319,10 @@
 						}
 					},
 					"sink": {
-						"type": "OdbcSink",
+						"type": "AzurePostgreSqlSink",
 						"writeBatchSize": 1000000,
-						"preCopyScript": "delete from lineitem;",
-						"maxConcurrentConnections": 10
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
 					"translator": {
@@ -341,7 +346,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "OdbcTable3",
+						"referenceName": "pg_bricks",
 						"type": "DatasetReference"
 					}
 				]
