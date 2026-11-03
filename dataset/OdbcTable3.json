@@ -1,0 +1,15 @@
+{
+	"name": "OdbcTable3",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Odbc2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "OdbcTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "\"public\".\"lineitem\""
+		}
+	}
+}
