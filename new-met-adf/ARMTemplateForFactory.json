@@ -27,9 +27,25 @@
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
 		},
+		"Odbc2_password": {
+			"type": "secureString",
+			"metadata": "'Odbc2'의 'password'에 대한 보안 문자열"
+		},
+		"Odbc_pg_password": {
+			"type": "secureString",
+			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
+		},
+		"PostgreSql1_password": {
+			"type": "secureString",
+			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
+		},
 		"ls_egress_postgres_MLKUDPD_password": {
 			"type": "secureString",
 			"metadata": "'ls_egress_postgres_MLKUDPD'의 'password'에 대한 보안 문자열"
+		},
+		"databricks_pg_password": {
+			"type": "secureString",
+			"metadata": "'databricks_pg'의 'password'에 대한 보안 문자열"
 		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"type": "string",
@@ -83,6 +99,26 @@
 			"type": "string",
 			"defaultValue": "db2inst1"
 		},
+		"Odbc2_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"Odbc_pg_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"PostgreSql1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
+		},
+		"PostgreSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"PostgreSql1_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
 		"linkedService1_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "dfafdbewdarfdf.database.windows.net"
@@ -126,6 +162,18 @@
 		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
 			"type": "string",
 			"defaultValue": "@trigger().scheduledTime"
+		},
+		"databricks_pg_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net"
+		},
+		"databricks_pg_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"databricks_pg_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
 		}
 	},
 	"variables": {
@@ -2936,17 +2984,349 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Fail1",
-						"type": "Fail",
+						"name": "Copy data PG",
+						"type": "Copy",
 						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
-							"message": {
-								"value": "@pipeline().parameters.a",
-								"type": "Expression"
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem",
+								"queryTimeout": "02:00:00"
 							},
-							"errorCode": "-1"
-						}
+							"sink": {
+								"type": "AzurePostgreSqlSink",
+								"writeBatchSize": 100000,
+								"writeBatchTimeout": "00:30:00",
+								"preCopyScript": "delete from public.lineitem;",
+								"writeMethod": "BulkInsert"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "L_ORDERKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_orderkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_PARTKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_partkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SUPPKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_suppkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINENUMBER",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_linenumber",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_QUANTITY",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_quantity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_EXTENDEDPRICE",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_extendedprice",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_DISCOUNT",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_discount",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_TAX",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_tax",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RETURNFLAG",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_returnflag",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINESTATUS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_linestatus",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_shipdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMITDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_commitdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RECEIPTDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_receiptdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPINSTRUCT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_shipinstruct",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPMODE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_shipmode",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMENT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_comment",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "pg_bricks",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy data Gen2",
+						"type": "Copy",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "lineitem.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data  Ge2 PG",
+						"type": "Copy",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ParquetSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "ParquetReadSettings"
+								}
+							},
+							"sink": {
+								"type": "OdbcSink",
+								"writeBatchSize": 1000000,
+								"preCopyScript": "delete from lineitem;",
+								"maxConcurrentConnections": 10
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "lineitem.parquet"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "OdbcTable3",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
 					}
 				],
 				"policy": {
@@ -2960,7 +3340,12 @@
 				},
 				"annotations": []
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
+				"[concat(variables('factoryId'), '/datasets/pg_bricks')]",
+				"[concat(variables('factoryId'), '/datasets/Parquet_snappy')]",
+				"[concat(variables('factoryId'), '/datasets/OdbcTable3')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/pipeline1_copy1')]",
@@ -2994,6 +3379,411 @@
 				"annotations": []
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": {
+										"value": "afd1.parquet",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afd2.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1_copy1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afd224.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1_copy2",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afd22.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1_copy3",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afd3.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1_copy4",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afd4.parquet"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data1_copy1_copy3_copy1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "OdbcSource",
+								"query": "select * from db2inst1.lineitem limit 1;",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_src_odbc_table_MLIWT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Parquet_snappy",
+								"type": "DatasetReference",
+								"parameters": {
+									"p2": "test",
+									"p3": "afdg3.parquet"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
+				"[concat(variables('factoryId'), '/datasets/Parquet_snappy')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/pl_cmn_master_start')]",
@@ -10372,6 +11162,39 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/OdbcTable_pg')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Odbc_pg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"schema_nm": {
+						"type": "string",
+						"defaultValue": "public"
+					},
+					"table_nm": {
+						"type": "string",
+						"defaultValue": "test"
+					}
+				},
+				"annotations": [],
+				"type": "OdbcTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": {
+						"value": "@{dataset().schema_nm}.@{dataset().table_nm}",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Odbc_pg')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Parquet3')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -10805,6 +11628,84 @@
 						"type": "SecureString",
 						"value": "[parameters('Odbc1_password')]"
 					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Odbc2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Odbc",
+				"typeProperties": {
+					"connectionString": "DSN=PG18;DisallowEscape=1;BatchSize=500",
+					"authenticationType": "Basic",
+					"userName": "[parameters('Odbc2_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Odbc2_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Odbc_pg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Odbc",
+				"typeProperties": {
+					"connectionString": "DSN=PG;DisallowEscape=1;",
+					"authenticationType": "Basic",
+					"userName": "[parameters('Odbc_pg_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Odbc_pg_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PostgreSql1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "PostgreSqlV2",
+				"typeProperties": {
+					"server": "[parameters('PostgreSql1_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('PostgreSql1_properties_typeProperties_database')]",
+					"username": "[parameters('PostgreSql1_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('PostgreSql1_password')]"
+					},
+					"sslMode": 2,
+					"authenticationType": "Basic"
 				},
 				"connectVia": {
 					"referenceName": "integrationRuntime1",
@@ -11259,408 +12160,73 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pipeline2')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/OdbcTable3')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": {
-										"value": "afd1.parquet",
-										"type": "Expression"
-									}
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afd2.parquet"
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1_copy1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afd224.parquet"
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1_copy2",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afd22.parquet"
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1_copy3",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afd3.parquet"
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1_copy4",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afd4.parquet"
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy data1_copy1_copy3_copy1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "OdbcSource",
-								"query": "select * from db2inst1.lineitem limit 1;",
-								"queryTimeout": "02:00:00"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_src_odbc_table_MLIWT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Parquet_snappy",
-								"type": "DatasetReference",
-								"parameters": {
-									"p2": "test",
-									"p3": "afdg3.parquet"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
+				"linkedServiceName": {
+					"referenceName": "Odbc2",
+					"type": "LinkedServiceReference"
 				},
-				"annotations": []
+				"annotations": [],
+				"type": "OdbcTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": "\"public\".\"lineitem\""
+				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
-				"[concat(variables('factoryId'), '/datasets/Parquet_snappy')]"
+				"[concat(variables('factoryId'), '/linkedServices/Odbc2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/databricks_pg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"version": "2.0",
+				"typeProperties": {
+					"server": "[parameters('databricks_pg_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('databricks_pg_properties_typeProperties_database')]",
+					"sslMode": 2,
+					"username": "[parameters('databricks_pg_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('databricks_pg_password')]"
+					},
+					"authenticationType": "Basic"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pg_bricks')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "databricks_pg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": "lineitem"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/databricks_pg')]"
 			]
 		}
 	]

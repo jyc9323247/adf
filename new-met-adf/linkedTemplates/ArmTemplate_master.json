@@ -27,9 +27,25 @@
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
 		},
+		"Odbc2_password": {
+			"type": "secureString",
+			"metadata": "'Odbc2'의 'password'에 대한 보안 문자열"
+		},
+		"Odbc_pg_password": {
+			"type": "secureString",
+			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
+		},
+		"PostgreSql1_password": {
+			"type": "secureString",
+			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
+		},
 		"ls_egress_postgres_MLKUDPD_password": {
 			"type": "secureString",
 			"metadata": "'ls_egress_postgres_MLKUDPD'의 'password'에 대한 보안 문자열"
+		},
+		"databricks_pg_password": {
+			"type": "secureString",
+			"metadata": "'databricks_pg'의 'password'에 대한 보안 문자열"
 		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
 			"type": "string",
@@ -83,6 +99,26 @@
 			"type": "string",
 			"defaultValue": "db2inst1"
 		},
+		"Odbc2_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"Odbc_pg_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"PostgreSql1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
+		},
+		"PostgreSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"PostgreSql1_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
 		"linkedService1_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "dfafdbewdarfdf.database.windows.net"
@@ -126,6 +162,18 @@
 		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
 			"type": "string",
 			"defaultValue": "@trigger().scheduledTime"
+		},
+		"databricks_pg_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net"
+		},
+		"databricks_pg_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"databricks_pg_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
 		},
 		"containerUri": {
 			"type": "string",
@@ -226,6 +274,18 @@
 					"Odbc1_password": {
 						"value": "[parameters('Odbc1_password')]"
 					},
+					"Odbc2_password": {
+						"value": "[parameters('Odbc2_password')]"
+					},
+					"Odbc_pg_password": {
+						"value": "[parameters('Odbc_pg_password')]"
+					},
+					"PostgreSql1_password": {
+						"value": "[parameters('PostgreSql1_password')]"
+					},
+					"databricks_pg_password": {
+						"value": "[parameters('databricks_pg_password')]"
+					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
 					},
@@ -244,8 +304,29 @@
 					"Odbc1_properties_typeProperties_userName": {
 						"value": "[parameters('Odbc1_properties_typeProperties_userName')]"
 					},
-					"every_mon_to_sat_properties_pipeline1_parameters_a": {
-						"value": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
+					"Odbc2_properties_typeProperties_userName": {
+						"value": "[parameters('Odbc2_properties_typeProperties_userName')]"
+					},
+					"Odbc_pg_properties_typeProperties_userName": {
+						"value": "[parameters('Odbc_pg_properties_typeProperties_userName')]"
+					},
+					"PostgreSql1_properties_typeProperties_server": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_server')]"
+					},
+					"PostgreSql1_properties_typeProperties_database": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_database')]"
+					},
+					"PostgreSql1_properties_typeProperties_username": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_username')]"
+					},
+					"databricks_pg_properties_typeProperties_server": {
+						"value": "[parameters('databricks_pg_properties_typeProperties_server')]"
+					},
+					"databricks_pg_properties_typeProperties_database": {
+						"value": "[parameters('databricks_pg_properties_typeProperties_database')]"
+					},
+					"databricks_pg_properties_typeProperties_username": {
+						"value": "[parameters('databricks_pg_properties_typeProperties_username')]"
 					}
 				}
 			},
@@ -266,6 +347,9 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"every_mon_to_sat_properties_pipeline1_parameters_a": {
+						"value": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
 					}
 				}
 			},

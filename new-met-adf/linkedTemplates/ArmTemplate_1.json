@@ -19,6 +19,22 @@
 			"type": "secureString",
 			"metadata": "'Odbc1'의 'password'에 대한 보안 문자열"
 		},
+		"Odbc2_password": {
+			"type": "secureString",
+			"metadata": "'Odbc2'의 'password'에 대한 보안 문자열"
+		},
+		"Odbc_pg_password": {
+			"type": "secureString",
+			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
+		},
+		"PostgreSql1_password": {
+			"type": "secureString",
+			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
+		},
+		"databricks_pg_password": {
+			"type": "secureString",
+			"metadata": "'databricks_pg'의 'password'에 대한 보안 문자열"
+		},
 		"AzureDataLakeStorage1_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://ab3.dfs.core.windows.net/"
@@ -43,22 +59,43 @@
 			"type": "string",
 			"defaultValue": "db2inst1"
 		},
-		"every_mon_to_sat_properties_pipeline1_parameters_a": {
+		"Odbc2_properties_typeProperties_userName": {
 			"type": "string",
-			"defaultValue": "dd"
+			"defaultValue": "azshir"
+		},
+		"Odbc_pg_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"PostgreSql1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
+		},
+		"PostgreSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"PostgreSql1_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
+		},
+		"databricks_pg_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net"
+		},
+		"databricks_pg_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "databricks_postgres"
+		},
+		"databricks_pg_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "azshir"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('factoryName'), '/default')]",
-			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
-			"apiVersion": "2018-06-01",
-			"properties": {},
-			"dependsOn": []
-		},
 		{
 			"name": "[concat(parameters('factoryName'), '/pl_cmn_master_start')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
@@ -644,47 +681,100 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/every_mon_to_sat')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
+			"name": "[concat(parameters('factoryName'), '/Odbc2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pipeline1",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"a": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
-						}
-					}
-				],
-				"type": "ScheduleTrigger",
+				"type": "Odbc",
 				"typeProperties": {
-					"recurrence": {
-						"frequency": "Week",
-						"interval": 1,
-						"startTime": "2026-09-19T06:32:00",
-						"timeZone": "Korea Standard Time",
-						"schedule": {
-							"minutes": [
-								0
-							],
-							"hours": [
-								3
-							],
-							"weekDays": [
-								"Monday",
-								"Tuesday",
-								"Wednesday",
-								"Thursday",
-								"Friday",
-								"Saturday"
-							]
-						}
+					"connectionString": "DSN=PG18;DisallowEscape=1;BatchSize=500",
+					"authenticationType": "Basic",
+					"userName": "[parameters('Odbc2_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Odbc2_password')]"
 					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Odbc_pg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Odbc",
+				"typeProperties": {
+					"connectionString": "DSN=PG;DisallowEscape=1;",
+					"authenticationType": "Basic",
+					"userName": "[parameters('Odbc_pg_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Odbc_pg_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PostgreSql1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "PostgreSqlV2",
+				"typeProperties": {
+					"server": "[parameters('PostgreSql1_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('PostgreSql1_properties_typeProperties_database')]",
+					"username": "[parameters('PostgreSql1_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('PostgreSql1_password')]"
+					},
+					"sslMode": 2,
+					"authenticationType": "Basic"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/databricks_pg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"version": "2.0",
+				"typeProperties": {
+					"server": "[parameters('databricks_pg_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('databricks_pg_properties_typeProperties_database')]",
+					"sslMode": 2,
+					"username": "[parameters('databricks_pg_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('databricks_pg_password')]"
+					},
+					"authenticationType": "Basic"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
 				}
 			},
 			"dependsOn": []
@@ -779,48 +869,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/Odbc1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/OdbcTable2')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Odbc1",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "OdbcTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/Odbc1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Parquet3')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "FileServer1",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Parquet",
-				"typeProperties": {
-					"location": {
-						"type": "FileServerLocation",
-						"fileName": "linelitem.parquet"
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/FileServer1')]"
 			]
 		}
 	]
