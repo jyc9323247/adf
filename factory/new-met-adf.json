@@ -19,6 +19,9 @@
 				"type": "bool",
 				"value": false
 			}
+		},
+		"globalConfigurations": {
+			"PipelineBillingEnabled": "true"
 		}
 	},
 	"location": "koreacentral",
