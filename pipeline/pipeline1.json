@@ -22,7 +22,7 @@
 					},
 					"sink": {
 						"type": "AzurePostgreSqlSink",
-						"writeBatchSize": 1000000,
+						"writeBatchSize": 100000,
 						"writeBatchTimeout": "00:30:00",
 						"preCopyScript": "delete from public.lineitem;",
 						"writeMethod": "BulkInsert"
