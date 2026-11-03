@@ -345,9 +345,9 @@
 			}
 		],
 		"parameters": {
-			"a": {
-				"type": "string",
-				"defaultValue": "a"
+			"batch_size": {
+				"type": "int",
+				"defaultValue": 1000000
 			}
 		},
 		"annotations": []

@@ -19,7 +19,7 @@
 					"type": "PipelineReference"
 				},
 				"parameters": {
-					"a": "ddd"
+					"batch_size": "ddd"
 				}
 			},
 			{
