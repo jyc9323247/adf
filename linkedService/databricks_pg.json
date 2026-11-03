@@ -6,13 +6,13 @@
 		"type": "AzurePostgreSql",
 		"version": "2.0",
 		"typeProperties": {
-			"server": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net",
+			"server": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net",
 			"port": 5432,
 			"database": "databricks_postgres",
 			"sslMode": 2,
 			"username": "azshir",
 			"authenticationType": "Basic",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIxODc3YzM0ZS1iNGRkLTQ0ODQtYjUxYS0xNDZlMWQ4YjU3ZjIiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJiYzViZmJlYS02Y2RlLTQxYmEtODdjNy0xZTU5OGU0MGFkN2EiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
