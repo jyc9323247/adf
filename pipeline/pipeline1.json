@@ -25,7 +25,7 @@
 						"writeBatchSize": 1000000,
 						"writeBatchTimeout": "00:30:00",
 						"preCopyScript": "delete from public.lineitem;",
-						"writeMethod": "CopyCommand"
+						"writeMethod": "BulkInsert"
 					},
 					"enableStaging": false,
 					"translator": {
