@@ -9,8 +9,8 @@
 		"type": "AzurePostgreSqlTable",
 		"schema": [],
 		"typeProperties": {
-			"schema": "PUBLIC",
-			"table": "LINEITEM"
+			"schema": "public",
+			"table": "lineitem"
 		}
 	}
 }
