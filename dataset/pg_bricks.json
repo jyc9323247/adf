@@ -1,0 +1,16 @@
+{
+	"name": "pg_bricks",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "databricks_pg",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "public",
+			"table": "lineitem"
+		}
+	}
+}
