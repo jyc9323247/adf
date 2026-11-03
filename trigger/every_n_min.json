@@ -15,15 +15,6 @@
 			},
 			{
 				"pipelineReference": {
-					"referenceName": "pipeline1",
-					"type": "PipelineReference"
-				},
-				"parameters": {
-					"batch_size": "ddd"
-				}
-			},
-			{
-				"pipelineReference": {
 					"referenceName": "pl_raw_orch_full",
 					"type": "PipelineReference"
 				},
