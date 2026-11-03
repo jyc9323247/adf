@@ -5,8 +5,6 @@
 			{
 				"name": "Copy data PG",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -24,7 +22,7 @@
 					},
 					"sink": {
 						"type": "OdbcSink",
-						"writeBatchSize": 0,
+						"writeBatchSize": 1000000,
 						"preCopyScript": "delete from lineitem;"
 					},
 					"enableStaging": false,
@@ -53,6 +51,8 @@
 			{
 				"name": "Copy data Gen2",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
