@@ -5,6 +5,8 @@
 			{
 				"name": "Copy data PG",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -290,8 +292,6 @@
 			{
 				"name": "Copy data  Ge2 PG",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data Gen2",
@@ -313,6 +313,7 @@
 						"type": "ParquetSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
+							"maxConcurrentConnections": 4,
 							"recursive": true,
 							"enablePartitionDiscovery": false
 						},
