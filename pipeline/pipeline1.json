@@ -3,17 +3,50 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Fail1",
-				"type": "Fail",
+				"name": "Copy data1",
+				"type": "Copy",
 				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
-					"message": {
-						"value": "@pipeline().parameters.a",
-						"type": "Expression"
+					"source": {
+						"type": "OdbcSource",
+						"query": "select * from db2inst1.lineitem",
+						"queryTimeout": "02:00:00"
 					},
-					"errorCode": "-1"
-				}
+					"sink": {
+						"type": "OdbcSink",
+						"writeBatchSize": 0,
+						"preCopyScript": "delete from lineitem;"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_src_odbc_table_MLIWT",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "OdbcTable3",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"parameters": {
