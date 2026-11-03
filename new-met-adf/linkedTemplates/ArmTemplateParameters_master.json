@@ -29,10 +29,10 @@
 		"PostgreSql1_password": {
 			"value": ""
 		},
-		"ls_egress_postgres_MLKUDPD_password": {
+		"databricks_pg_password": {
 			"value": ""
 		},
-		"databricks_pg_password": {
+		"ls_egress_postgres_MLKUDPD_password": {
 			"value": ""
 		},
 		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
@@ -89,6 +89,15 @@
 		"PostgreSql1_properties_typeProperties_username": {
 			"value": "azshir"
 		},
+		"databricks_pg_properties_typeProperties_server": {
+			"value": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net"
+		},
+		"databricks_pg_properties_typeProperties_database": {
+			"value": "databricks_postgres"
+		},
+		"databricks_pg_properties_typeProperties_username": {
+			"value": "azshir"
+		},
 		"linkedService1_properties_typeProperties_server": {
 			"value": "dfafdbewdarfdf.database.windows.net"
 		},
@@ -104,14 +113,8 @@
 		"ls_egress_postgres_MLKUDPD_properties_typeProperties_username": {
 			"value": "adfadm"
 		},
-		"every_mon_to_sat_properties_pipeline1_parameters_a": {
-			"value": "dd"
-		},
 		"every_n_min_properties_pipeline1_copy1_parameters_a": {
 			"value": "abc"
-		},
-		"every_n_min_properties_pipeline1_parameters_a": {
-			"value": "ddd"
 		},
 		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
 			"value": "FULL_DAILY"
@@ -121,15 +124,6 @@
 		},
 		"trg_sch_daily1-wkd_0100_kst_properties_pl_meta_orch_full_parameters_p_scheduled_time": {
 			"value": "@trigger().scheduledTime"
-		},
-		"databricks_pg_properties_typeProperties_server": {
-			"value": "ep-flat-hat-emkwhadi.database.koreacentral.azuredatabricks.net"
-		},
-		"databricks_pg_properties_typeProperties_database": {
-			"value": "databricks_postgres"
-		},
-		"databricks_pg_properties_typeProperties_username": {
-			"value": "azshir"
 		},
 		"containerUri": {
 			"value": ""

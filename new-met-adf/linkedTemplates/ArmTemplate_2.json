@@ -6,16 +6,41 @@
 			"type": "string",
 			"metadata": "Data Factory 이름",
 			"defaultValue": "new-met-adf"
-		},
-		"every_mon_to_sat_properties_pipeline1_parameters_a": {
-			"type": "string",
-			"defaultValue": "dd"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/OdbcTable1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Odbc1",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"schema": {
+						"type": "string"
+					},
+					"tablename": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "OdbcTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": {
+						"value": "@concat(dataset().schema,'.',dataset().tablename)",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/OdbcTable2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
@@ -29,6 +54,24 @@
 				"type": "OdbcTable",
 				"schema": [],
 				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OdbcTable3')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Odbc2",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "OdbcTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": "\"public\".\"lineitem\""
+				}
 			},
 			"dependsOn": []
 		},
@@ -231,24 +274,6 @@
 				"type": "OdbcTable",
 				"schema": [],
 				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/OdbcTable3')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Odbc2",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "OdbcTable",
-				"schema": [],
-				"typeProperties": {
-					"tableName": "\"public\".\"lineitem\""
-				}
 			},
 			"dependsOn": []
 		},
@@ -735,7 +760,10 @@
 							},
 							"sink": {
 								"type": "AzurePostgreSqlSink",
-								"writeBatchSize": 100000,
+								"writeBatchSize": {
+									"value": "@pipeline().parameters.batch_size",
+									"type": "Expression"
+								},
 								"writeBatchTimeout": "00:30:00",
 								"preCopyScript": "delete from public.lineitem;",
 								"writeMethod": "BulkInsert"
@@ -1065,9 +1093,9 @@
 					"elapsedTimeMetric": {}
 				},
 				"parameters": {
-					"a": {
-						"type": "string",
-						"defaultValue": "a"
+					"batch_size": {
+						"type": "int",
+						"defaultValue": 1000000
 					}
 				},
 				"annotations": []
@@ -2730,54 +2758,6 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_XMETA')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_MLIWPT')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/every_mon_to_sat')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pipeline1",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"a": "[parameters('every_mon_to_sat_properties_pipeline1_parameters_a')]"
-						}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Week",
-						"interval": 1,
-						"startTime": "2026-09-19T06:32:00",
-						"timeZone": "Korea Standard Time",
-						"schedule": {
-							"minutes": [
-								0
-							],
-							"hours": [
-								3
-							],
-							"weekDays": [
-								"Monday",
-								"Tuesday",
-								"Wednesday",
-								"Thursday",
-								"Friday",
-								"Saturday"
-							]
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pipeline1')]"
 			]
 		},
 		{

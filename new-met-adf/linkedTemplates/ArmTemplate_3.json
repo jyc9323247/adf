@@ -11,10 +11,6 @@
 			"type": "string",
 			"defaultValue": "abc"
 		},
-		"every_n_min_properties_pipeline1_parameters_a": {
-			"type": "string",
-			"defaultValue": "ddd"
-		},
 		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
 			"type": "string",
 			"defaultValue": "FULL_DAILY"
@@ -6645,15 +6641,6 @@
 						},
 						"parameters": {
 							"a": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
-						}
-					},
-					{
-						"pipelineReference": {
-							"referenceName": "pipeline1",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"a": "[parameters('every_n_min_properties_pipeline1_parameters_a')]"
 						}
 					},
 					{
