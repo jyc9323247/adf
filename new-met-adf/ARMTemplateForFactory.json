@@ -3000,190 +3000,12 @@
 									"type": "Expression"
 								},
 								"writeBatchTimeout": "00:30:00",
-								"preCopyScript": "delete from public.lineitem;",
-								"writeMethod": "BulkInsert"
+								"preCopyScript": "delete from public.LINEITEM;",
+								"writeMethod": "CopyCommand"
 							},
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "L_ORDERKEY",
-											"type": "Int32"
-										},
-										"sink": {
-											"name": "l_orderkey",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "L_PARTKEY",
-											"type": "Int32"
-										},
-										"sink": {
-											"name": "l_partkey",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "L_SUPPKEY",
-											"type": "Int32"
-										},
-										"sink": {
-											"name": "l_suppkey",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "L_LINENUMBER",
-											"type": "Int32"
-										},
-										"sink": {
-											"name": "l_linenumber",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "L_QUANTITY",
-											"type": "Decimal"
-										},
-										"sink": {
-											"name": "l_quantity",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										}
-									},
-									{
-										"source": {
-											"name": "L_EXTENDEDPRICE",
-											"type": "Decimal"
-										},
-										"sink": {
-											"name": "l_extendedprice",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										}
-									},
-									{
-										"source": {
-											"name": "L_DISCOUNT",
-											"type": "Decimal"
-										},
-										"sink": {
-											"name": "l_discount",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										}
-									},
-									{
-										"source": {
-											"name": "L_TAX",
-											"type": "Decimal"
-										},
-										"sink": {
-											"name": "l_tax",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										}
-									},
-									{
-										"source": {
-											"name": "L_RETURNFLAG",
-											"type": "String"
-										},
-										"sink": {
-											"name": "l_returnflag",
-											"type": "String",
-											"physicalType": "character"
-										}
-									},
-									{
-										"source": {
-											"name": "L_LINESTATUS",
-											"type": "String"
-										},
-										"sink": {
-											"name": "l_linestatus",
-											"type": "String",
-											"physicalType": "character"
-										}
-									},
-									{
-										"source": {
-											"name": "L_SHIPDATE",
-											"type": "DateTime"
-										},
-										"sink": {
-											"name": "l_shipdate",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "L_COMMITDATE",
-											"type": "DateTime"
-										},
-										"sink": {
-											"name": "l_commitdate",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "L_RECEIPTDATE",
-											"type": "DateTime"
-										},
-										"sink": {
-											"name": "l_receiptdate",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "L_SHIPINSTRUCT",
-											"type": "String"
-										},
-										"sink": {
-											"name": "l_shipinstruct",
-											"type": "String",
-											"physicalType": "character"
-										}
-									},
-									{
-										"source": {
-											"name": "L_SHIPMODE",
-											"type": "String"
-										},
-										"sink": {
-											"name": "l_shipmode",
-											"type": "String",
-											"physicalType": "character"
-										}
-									},
-									{
-										"source": {
-											"name": "L_COMMENT",
-											"type": "String"
-										},
-										"sink": {
-											"name": "l_comment",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									}
-								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -3238,6 +3060,184 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "L_ORDERKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "L_ORDERKEY",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "L_PARTKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "L_PARTKEY",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SUPPKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "L_SUPPKEY",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINENUMBER",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "L_LINENUMBER",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "L_QUANTITY",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "L_QUANTITY",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "L_EXTENDEDPRICE",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "L_EXTENDEDPRICE",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "L_DISCOUNT",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "L_DISCOUNT",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "L_TAX",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "L_TAX",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RETURNFLAG",
+											"type": "String"
+										},
+										"sink": {
+											"name": "L_RETURNFLAG",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINESTATUS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "L_LINESTATUS",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "L_SHIPDATE",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMITDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "L_COMMITDATE",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RECEIPTDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "L_RECEIPTDATE",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPINSTRUCT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "L_SHIPINSTRUCT",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPMODE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "L_SHIPMODE",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMENT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "L_COMMENT",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -3268,7 +3268,14 @@
 						"type": "Copy",
 						"state": "Inactive",
 						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Copy data Gen2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -3290,14 +3297,216 @@
 								}
 							},
 							"sink": {
-								"type": "OdbcSink",
+								"type": "AzurePostgreSqlSink",
 								"writeBatchSize": 1000000,
-								"preCopyScript": "delete from lineitem;",
-								"maxConcurrentConnections": 10
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
 							},
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "L_ORDERKEY",
+											"type": "Int32",
+											"physicalType": "INT32"
+										},
+										"sink": {
+											"name": "l_orderkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_PARTKEY",
+											"type": "Int32",
+											"physicalType": "INT32"
+										},
+										"sink": {
+											"name": "l_partkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SUPPKEY",
+											"type": "Int32",
+											"physicalType": "INT32"
+										},
+										"sink": {
+											"name": "l_suppkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINENUMBER",
+											"type": "Int32",
+											"physicalType": "INT32"
+										},
+										"sink": {
+											"name": "l_linenumber",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_QUANTITY",
+											"type": "Decimal",
+											"physicalType": "DECIMAL",
+											"scale": 18,
+											"precision": 38
+										},
+										"sink": {
+											"name": "l_quantity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_EXTENDEDPRICE",
+											"type": "Decimal",
+											"physicalType": "DECIMAL",
+											"scale": 18,
+											"precision": 38
+										},
+										"sink": {
+											"name": "l_extendedprice",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_DISCOUNT",
+											"type": "Decimal",
+											"physicalType": "DECIMAL",
+											"scale": 18,
+											"precision": 38
+										},
+										"sink": {
+											"name": "l_discount",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_TAX",
+											"type": "Decimal",
+											"physicalType": "DECIMAL",
+											"scale": 18,
+											"precision": 38
+										},
+										"sink": {
+											"name": "l_tax",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RETURNFLAG",
+											"type": "String",
+											"physicalType": "UTF8"
+										},
+										"sink": {
+											"name": "l_returnflag",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINESTATUS",
+											"type": "String",
+											"physicalType": "UTF8"
+										},
+										"sink": {
+											"name": "l_linestatus",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPDATE",
+											"type": "DateTime",
+											"physicalType": "INT96"
+										},
+										"sink": {
+											"name": "l_shipdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMITDATE",
+											"type": "DateTime",
+											"physicalType": "INT96"
+										},
+										"sink": {
+											"name": "l_commitdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RECEIPTDATE",
+											"type": "DateTime",
+											"physicalType": "INT96"
+										},
+										"sink": {
+											"name": "l_receiptdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPINSTRUCT",
+											"type": "String",
+											"physicalType": "UTF8"
+										},
+										"sink": {
+											"name": "l_shipinstruct",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPMODE",
+											"type": "String",
+											"physicalType": "UTF8"
+										},
+										"sink": {
+											"name": "l_shipmode",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMENT",
+											"type": "String",
+											"physicalType": "UTF8"
+										},
+										"sink": {
+											"name": "l_comment",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -3317,7 +3526,7 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "OdbcTable3",
+								"referenceName": "pg_bricks",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -3338,8 +3547,7 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
 				"[concat(variables('factoryId'), '/datasets/pg_bricks')]",
-				"[concat(variables('factoryId'), '/datasets/Parquet_snappy')]",
-				"[concat(variables('factoryId'), '/datasets/OdbcTable3')]"
+				"[concat(variables('factoryId'), '/datasets/Parquet_snappy')]"
 			]
 		},
 		{
@@ -11516,9 +11724,15 @@
 						"type": "SecureString",
 						"value": "[parameters('AzureDataLakeStorage2_accountKey')]"
 					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime2",
+					"type": "IntegrationRuntimeReference"
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime2')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureDatabricks1')]",
@@ -12200,6 +12414,27 @@
 			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
 			"apiVersion": "2018-06-01",
 			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime2')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 10,
+							"cleanup": false,
+							"customProperties": []
+						}
+					}
+				}
+			},
 			"dependsOn": []
 		}
 	]
