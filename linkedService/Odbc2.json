@@ -5,10 +5,10 @@
 		"annotations": [],
 		"type": "Odbc",
 		"typeProperties": {
-			"connectionString": "DSN=PG18;DisallowEscape=1;BatchSize=500;UseServerSidePrepare=0;",
+			"connectionString": "DSN=PG18;DisallowEscape=1;BatchSize=500",
 			"authenticationType": "Basic",
 			"userName": "azshir",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIwZGNmNjM4ZS0wODM4LTRjNWEtYWExMS1jMmVkNDczMTE4ZWIiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJhYTFmYjRjNC1hYmNlLTQwOTUtYjVmZi1jZTZlNWZjOGE5YTMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
 		},
 		"connectVia": {
 			"referenceName": "integrationRuntime1",
