@@ -12,10 +12,10 @@
 			"sslMode": 2,
 			"username": "azshir",
 			"authenticationType": "Basic",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJiYzViZmJlYS02Y2RlLTQxYmEtODdjNy0xZTU5OGU0MGFkN2EiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEQ0RkFFRkQzLUJFNUUtNENENC05OEE4LUI5QzNFNzc2RDdCM19hNzQzYjVlZC1kOTBhLTQ0NmItODA2NC04ODRkNTE0OGEwZWIiDQp9"
 		},
 		"connectVia": {
-			"referenceName": "integrationRuntime1",
+			"referenceName": "integrationRuntime2",
 			"type": "IntegrationRuntimeReference"
 		}
 	}
