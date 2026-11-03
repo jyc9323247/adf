@@ -21,9 +21,11 @@
 						"queryTimeout": "02:00:00"
 					},
 					"sink": {
-						"type": "OdbcSink",
+						"type": "AzurePostgreSqlSink",
 						"writeBatchSize": 1000000,
-						"preCopyScript": "delete from lineitem;"
+						"writeBatchTimeout": "00:30:00",
+						"preCopyScript": "delete from public.lineitem;",
+						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
 					"translator": {
@@ -43,7 +45,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "OdbcTable3",
+						"referenceName": "pg_bricks",
 						"type": "DatasetReference"
 					}
 				]
@@ -101,6 +103,65 @@
 							"p2": "test",
 							"p3": "lineitem.parquet"
 						}
+					}
+				]
+			},
+			{
+				"name": "Copy data  Ge2 PG",
+				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "ParquetReadSettings"
+						}
+					},
+					"sink": {
+						"type": "OdbcSink",
+						"writeBatchSize": 1000000,
+						"preCopyScript": "delete from lineitem;",
+						"maxConcurrentConnections": 10
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Parquet_snappy",
+						"type": "DatasetReference",
+						"parameters": {
+							"p2": "test",
+							"p3": "lineitem.parquet"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "OdbcTable3",
+						"type": "DatasetReference"
 					}
 				]
 			}
