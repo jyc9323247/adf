@@ -1,0 +1,37 @@
+{
+	"name": "pipeline3",
+	"properties": {
+		"activities": [
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql2",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "INSERT INTO adfadm.ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_type_cd,\n    run_type_override_cd,\n    run_param,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    created_by\n)\nVALUES\n(\n    '@{pipeline().RunId}',\n    '@{pipeline().Pipeline}',\n    'MANUAL',\n    'REQUEST',\n    '{\"request_src\":\"ETL_SIGNAL\"}'::jsonb,\n    0, 0, 0,\n    'RUNNING',\n    'ADF'\n)\nON CONFLICT (master_run_id) DO NOTHING;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
