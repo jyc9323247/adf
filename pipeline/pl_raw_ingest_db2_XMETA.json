@@ -85,7 +85,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "ls_egress_postgres_MLKUDPD",
+					"referenceName": "AzurePostgreSql2",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
@@ -121,7 +121,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "ls_egress_postgres_MLKUDPD",
+					"referenceName": "AzurePostgreSql2",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
@@ -157,7 +157,7 @@
 				},
 				"userProperties": [],
 				"linkedServiceName": {
-					"referenceName": "ls_egress_postgres_MLKUDPD",
+					"referenceName": "AzurePostgreSql2",
 					"type": "LinkedServiceReference"
 				},
 				"typeProperties": {
