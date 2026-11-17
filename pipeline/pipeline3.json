@@ -131,6 +131,80 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "End_master_run",
+				"description": "Master 종료 (수집 이력 집계)",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "/* End_master_run : ForEach 완료 시 (성공 / 실패 모두). RUNNING 인 Master 만 갱신 (Fail_master_run 이 바꾼 행 · SKIPPED 는 유지)\n   종료 시점에 RUNNING / PENDING 으로 남은 수집 행은 실패로 집계 */\nWITH c AS (\n    SELECT count(*)                                                        AS total_cnt,\n           count(*) FILTER (WHERE status = 'SUCCEEDED')                    AS succ_cnt,\n           count(*) FILTER (WHERE status IN ('FAILED','RUNNING','PENDING')) AS fail_cnt\n      FROM adfadm.ctl_ingest_pipeline_run\n     WHERE master_run_id = '@{pipeline().RunId}'\n       AND status <> 'SKIPPED'\n)\nUPDATE adfadm.ctl_master_pipeline_run m\n   SET child_total_cnt = c.total_cnt,\n       child_succ_cnt  = c.succ_cnt,\n       child_fail_cnt  = c.fail_cnt,\n       status          = CASE WHEN c.fail_cnt = 0 THEN 'SUCCEEDED' ELSE 'FAILED' END,\n       error_log       = CASE WHEN c.fail_cnt = 0 THEN m.error_log\n                              ELSE '수집 실패 ' || c.fail_cnt || '건 (ctl_ingest_pipeline_run 확인)' END,\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n  FROM c\n WHERE m.master_run_id = '@{pipeline().RunId}'\n   AND m.status = 'RUNNING';\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
+			},
+			{
+				"name": "End_master_run_copy1",
+				"description": "Master 종료 (수집 이력 집계)",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "\n\n\n-- =====================================================\n-- ETL Signal 상태 업데이트\n--\n-- Child SUCCEEDED → Signal DONE\n-- Child FAILED    → Signal FAILED\n-- PENDING/RUNNING  → 변경하지 않음\n-- =====================================================\n\nUPDATE adfadm.etl_signal s\nSET\n    status = CASE\n        WHEN p.status = 'SUCCEEDED' THEN 'DONE'\n        WHEN p.status = 'FAILED'    THEN 'FAILED'\n    END,\n\n    error_msg = CASE\n        WHEN p.status = 'FAILED'\n        THEN LEFT(\n            COALESCE(\n                NULLIF(p.error_log, ''),\n                'ADF_INGEST_FAILED'\n            ),\n            2000\n        )\n        ELSE NULL\n    END\n\nFROM adfadm.ctl_ingest_pipeline_run p\n\nWHERE s.signal_id = p.signal_id\n  AND p.master_run_id = '@{pipeline().RunId}'\n  AND p.signal_id IS NOT NULL\n  AND p.status IN ('SUCCEEDED', 'FAILED')\n  AND s.status = 'NEW';\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "00:10:00"
+				}
 			}
 		],
 		"annotations": []
