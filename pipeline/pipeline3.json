@@ -81,7 +81,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('SCR_PREPARE_SIGNAL').output.resultSets[0].rows",
+						"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL').output.resultSets[0].rows,\n    json('[]')\n)",
 						"type": "Expression"
 					},
 					"isSequential": false,
