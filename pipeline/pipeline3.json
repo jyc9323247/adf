@@ -32,7 +32,7 @@
 				}
 			},
 			{
-				"name": "Script1_copy1",
+				"name": "SCR_PREPARE_SIGNAL",
 				"type": "Script",
 				"dependsOn": [
 					{
@@ -72,7 +72,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Script1_copy1",
+						"activity": "SCR_PREPARE_SIGNAL",
 						"dependencyConditions": [
 							"Succeeded"
 						]
