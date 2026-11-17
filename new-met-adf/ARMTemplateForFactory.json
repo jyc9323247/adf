@@ -11,9 +11,17 @@
 			"type": "secureString",
 			"metadata": "'AzureDataLakeStorage2'의 'accountKey'에 대한 보안 문자열"
 		},
+		"AzureDatabricksDeltaLake1_accessToken": {
+			"type": "secureString",
+			"metadata": "'AzureDatabricksDeltaLake1'의 'accessToken'에 대한 보안 문자열"
+		},
 		"AzurePostgreSql1_password": {
 			"type": "secureString",
 			"metadata": "'AzurePostgreSql1'의 'password'에 대한 보안 문자열"
+		},
+		"AzurePostgreSql2_password": {
+			"type": "secureString",
+			"metadata": "'AzurePostgreSql2'의 'password'에 대한 보안 문자열"
 		},
 		"Db21_connectionString": {
 			"type": "secureString",
@@ -34,10 +42,6 @@
 		"Odbc_pg_password": {
 			"type": "secureString",
 			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
-		},
-		"PostgreSql1_password": {
-			"type": "secureString",
-			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
 		},
 		"databricks_pg_password": {
 			"type": "secureString",
@@ -79,6 +83,18 @@
 			"type": "string",
 			"defaultValue": "adfadm"
 		},
+		"AzurePostgreSql2_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "localhost"
+		},
+		"AzurePostgreSql2_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"AzurePostgreSql2_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "@{linkedService().domain_name}"
@@ -93,7 +109,7 @@
 		},
 		"FileServer1_properties_typeProperties_userId": {
 			"type": "string",
-			"defaultValue": ".\\jyc32"
+			"defaultValue": ".\\adf_user"
 		},
 		"Odbc1_properties_typeProperties_userName": {
 			"type": "string",
@@ -104,18 +120,6 @@
 			"defaultValue": "azshir"
 		},
 		"Odbc_pg_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "azshir"
-		},
-		"PostgreSql1_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
-		},
-		"PostgreSql1_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "databricks_postgres"
-		},
-		"PostgreSql1_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "azshir"
 		},
@@ -3006,6 +3010,184 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "L_ORDERKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_orderkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_PARTKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_partkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SUPPKEY",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_suppkey",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINENUMBER",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "l_linenumber",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "L_QUANTITY",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_quantity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_EXTENDEDPRICE",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_extendedprice",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_DISCOUNT",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_discount",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_TAX",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "l_tax",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RETURNFLAG",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_returnflag",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_LINESTATUS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_linestatus",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_shipdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMITDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_commitdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_RECEIPTDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "l_receiptdate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPINSTRUCT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_shipinstruct",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_SHIPMODE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_shipmode",
+											"type": "String",
+											"physicalType": "character"
+										}
+									},
+									{
+										"source": {
+											"name": "L_COMMENT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "l_comment",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -3289,6 +3471,7 @@
 								"type": "ParquetSource",
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
+									"maxConcurrentConnections": 4,
 									"recursive": true,
 									"enablePartitionDiscovery": false
 								},
@@ -5606,7 +5789,7 @@
 									},
 									"userProperties": [],
 									"linkedServiceName": {
-										"referenceName": "ls_egress_postgres_MLKUDPD",
+										"referenceName": "AzurePostgreSql2",
 										"type": "LinkedServiceReference"
 									},
 									"typeProperties": {
@@ -5686,7 +5869,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_egress_postgres_MLKUDPD')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql2')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_XMETA')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_raw_ingest_db2_MLIWPT')]"
 			]
@@ -6753,7 +6936,7 @@
 						},
 						"userProperties": [],
 						"linkedServiceName": {
-							"referenceName": "ls_egress_postgres_MLKUDPD",
+							"referenceName": "AzurePostgreSql2",
 							"type": "LinkedServiceReference"
 						},
 						"typeProperties": {
@@ -6789,7 +6972,7 @@
 						},
 						"userProperties": [],
 						"linkedServiceName": {
-							"referenceName": "ls_egress_postgres_MLKUDPD",
+							"referenceName": "AzurePostgreSql2",
 							"type": "LinkedServiceReference"
 						},
 						"typeProperties": {
@@ -6825,7 +7008,7 @@
 						},
 						"userProperties": [],
 						"linkedServiceName": {
-							"referenceName": "ls_egress_postgres_MLKUDPD",
+							"referenceName": "AzurePostgreSql2",
 							"type": "LinkedServiceReference"
 						},
 						"typeProperties": {
@@ -6900,7 +7083,7 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_src_odbc_table_MLIWT')]",
 				"[concat(variables('factoryId'), '/datasets/Parquet4')]",
-				"[concat(variables('factoryId'), '/linkedServices/ls_egress_postgres_MLKUDPD')]"
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql2')]"
 			]
 		},
 		{
@@ -11174,6 +11357,41 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricksDeltaLakeDataset1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricksDeltaLake1",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_schema": {
+						"type": "string"
+					},
+					"p_table": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLakeDataset",
+				"typeProperties": {
+					"database": {
+						"value": "@dataset().p_schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().p_table",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricksDeltaLake1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AzurePostgreSqlTable1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -11751,6 +11969,30 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricksDeltaLake1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLake",
+				"typeProperties": {
+					"domain": "https://adb-7405606315918295.15.azuredatabricks.net",
+					"clusterId": "1113-064416-jcee3xyd",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricksDeltaLake1_accessToken')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime2",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime2')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AzureKeyVault1')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -11775,7 +12017,7 @@
 					"server": "[parameters('AzurePostgreSql1_properties_typeProperties_server')]",
 					"port": "5432",
 					"database": "[parameters('AzurePostgreSql1_properties_typeProperties_database')]",
-					"sslMode": 2,
+					"sslMode": 0,
 					"username": "[parameters('AzurePostgreSql1_properties_typeProperties_username')]",
 					"password": {
 						"type": "SecureString",
@@ -11785,6 +12027,35 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzurePostgreSql2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"version": "2.0",
+				"typeProperties": {
+					"server": "[parameters('AzurePostgreSql2_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('AzurePostgreSql2_properties_typeProperties_database')]",
+					"sslMode": 2,
+					"username": "[parameters('AzurePostgreSql2_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('AzurePostgreSql2_password')]"
+					},
+					"authenticationType": "Basic"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
@@ -11871,7 +12142,7 @@
 				"annotations": [],
 				"type": "Odbc",
 				"typeProperties": {
-					"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
+					"connectionString": "DSN=XMETA;FET_BUF_SIZE=18192K;",
 					"authenticationType": "Basic",
 					"userName": "[parameters('Odbc1_properties_typeProperties_userName')]",
 					"password": {
@@ -11928,34 +12199,6 @@
 						"type": "SecureString",
 						"value": "[parameters('Odbc_pg_password')]"
 					}
-				},
-				"connectVia": {
-					"referenceName": "integrationRuntime1",
-					"type": "IntegrationRuntimeReference"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/PostgreSql1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "PostgreSqlV2",
-				"typeProperties": {
-					"server": "[parameters('PostgreSql1_properties_typeProperties_server')]",
-					"port": 5432,
-					"database": "[parameters('PostgreSql1_properties_typeProperties_database')]",
-					"username": "[parameters('PostgreSql1_properties_typeProperties_username')]",
-					"password": {
-						"type": "SecureString",
-						"value": "[parameters('PostgreSql1_password')]"
-					},
-					"sslMode": 2,
-					"authenticationType": "Basic"
 				},
 				"connectVia": {
 					"referenceName": "integrationRuntime1",
@@ -12410,13 +12653,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/default')]",
-			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
-			"apiVersion": "2018-06-01",
-			"properties": {},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/integrationRuntime2')]",
 			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
@@ -12436,6 +12672,235 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+			"apiVersion": "2018-06-01",
+			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline3')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Script1",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql2",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "INSERT INTO adfadm.ctl_master_pipeline_run\n(\n    master_run_id,\n    master_pipeline_nm,\n    trigger_type_cd,\n    run_type_override_cd,\n    run_param,\n    child_total_cnt,\n    child_succ_cnt,\n    child_fail_cnt,\n    status,\n    created_by\n)\nVALUES\n(\n    '@{pipeline().RunId}',\n    '@{pipeline().Pipeline}',\n    'MANUAL',\n    'REQUEST',\n    '{\"request_src\":\"ETL_SIGNAL\"}'::jsonb,\n    0, 0, 0,\n    'RUNNING',\n    'ADF'\n)\nON CONFLICT (master_run_id) DO NOTHING;",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "SCR_PREPARE_SIGNAL",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Script1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql2",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "\nWITH signal_src AS\n(\n    SELECT\n        s.signal_id,\n        s.src_db_nm,\n        s.src_schema_nm,\n        s.src_table_nm,\n        s.load_type,\n        s.load_col,\n        s.load_unit,\n        s.lookback_n,\n        s.load_from,\n        s.load_to,\n        s.incr_load_method,\n\n        m.target_cnt,\n        m.target_id,\n        m.src_type,\n        m.master_schema_nm,\n        m.master_table_nm,\n        m.init_wait_yn\n\n    FROM adfadm.etl_signal s\n\n    LEFT JOIN LATERAL\n    (\n        SELECT\n            COUNT(*) AS target_cnt,\n            MIN(t.target_id) AS target_id,\n            MIN(t.src_type) AS src_type,\n            MIN(t.src_schema_nm) AS master_schema_nm,\n            MIN(t.src_table_nm) AS master_table_nm,\n            MIN(t.init_wait_yn) AS init_wait_yn\n\n        FROM adfadm.ctl_ingest_target_master t\n\n        WHERE UPPER(t.src_db_nm) = UPPER(s.src_db_nm)\n          AND UPPER(t.src_schema_nm) = UPPER(s.src_schema_nm)\n          AND UPPER(t.src_table_nm) = UPPER(s.src_table_nm)\n          AND t.data_class = 'RAW'\n          AND t.delete_yn = 'N'\n    ) m ON TRUE\n\n    WHERE s.status = 'NEW'\n      AND NOT EXISTS\n      (\n          SELECT 1\n          FROM adfadm.ctl_ingest_pipeline_run p\n          WHERE p.signal_id = s.signal_id\n      )\n    ORDER BY s.signal_id\n    LIMIT 100\n    FOR UPDATE OF s SKIP LOCKED\n),\n\nvalidated AS\n(\n    SELECT\n        s.*,\n\n        CASE\n            WHEN target_cnt = 0\n                THEN 'TARGET_NOT_REGISTERED'\n\n            WHEN target_cnt > 1\n                THEN 'MULTIPLE_TARGETS_FOUND'\n\n            WHEN load_type = 'INCR'\n             AND init_wait_yn = 'Y'\n                THEN 'INITIAL_LOAD_REQUIRED'\n\n            WHEN UPPER(COALESCE(src_type, ''))\n                 NOT IN ('DB2', 'MSSQL')\n                THEN 'UNSUPPORTED_SOURCE_TYPE'\n\n            WHEN load_type NOT IN ('FULL', 'INCR')\n                THEN 'INVALID_LOAD_TYPE'\n\n            WHEN load_type = 'INCR'\n             AND (\n                    COALESCE(TRIM(load_col), '') = ''\n                 OR COALESCE(load_unit, '')\n                    NOT IN ('DAY', 'WEEK', 'MONTH')\n                 OR COALESCE(lookback_n, 0) < 1\n                 OR load_from IS NULL\n                 OR (\n                     load_to IS NOT NULL\n                     AND load_to <= load_from\n                 )\n             )\n                THEN 'INVALID_INCR_RANGE'\n\n            WHEN load_type = 'INCR'\n             AND load_unit = 'MONTH'\n             AND load_to IS NOT NULL\n             AND TO_CHAR(load_from, 'YYYYMM')\n                 >= TO_CHAR(load_to, 'YYYYMM')\n                THEN 'INVALID_MONTH_RANGE'\n\n            WHEN load_type = 'INCR'\n             AND COALESCE(incr_load_method, '')\n                 NOT IN\n                 (\n                     'UPSERT',\n                     'INSERT_ONLY',\n                     'RANGE_DELETE_INSERT'\n                 )\n                THEN 'INVALID_LOAD_METHOD'\n\n            -- RANGE 삭제 구간의 DAY/WEEK는\n            -- 일 단위 경계만 허용\n            WHEN load_type = 'INCR'\n             AND incr_load_method = 'RANGE_DELETE_INSERT'\n             AND load_unit IN ('DAY', 'WEEK')\n             AND (\n                 load_from::time <> TIME '00:00:00'\n                 OR (\n                     load_to IS NOT NULL\n                     AND load_to::time <> TIME '00:00:00'\n                 )\n             )\n                THEN 'INVALID_RANGE_TIME_BOUNDARY'\n\n            WHEN COALESCE(src_db_nm, '')\n                 !~ '^[A-Za-z_][A-Za-z0-9_]*$'\n              OR COALESCE(master_schema_nm, '')\n                 !~ '^[A-Za-z_][A-Za-z0-9_]*$'\n              OR COALESCE(master_table_nm, '')\n                 !~ '^[A-Za-z_][A-Za-z0-9_]*$'\n              OR (\n                   load_type = 'INCR'\n                   AND COALESCE(load_col, '')\n                       !~ '^[A-Za-z_][A-Za-z0-9_]*$'\n                 )\n                THEN 'INVALID_IDENTIFIER'\n\n            ELSE NULL\n        END AS error_code\n\n    FROM signal_src s\n),\n\nresolved AS\n(\n    SELECT\n        v.*,\n        UPPER(src_type) AS dbms_type,\n\n        CASE WHEN UPPER(src_type) = 'MSSQL'\n             THEN '[' || master_schema_nm || ']'\n             ELSE UPPER(master_schema_nm)\n        END AS sql_schema_nm,\n\n        CASE WHEN UPPER(src_type) = 'MSSQL'\n             THEN '[' || master_table_nm || ']'\n             ELSE UPPER(master_table_nm)\n        END AS sql_table_nm,\n\n        CASE WHEN load_type <> 'INCR' THEN NULL\n             WHEN UPPER(src_type) = 'MSSQL'\n             THEN '[' || load_col || ']'\n             ELSE UPPER(load_col)\n        END AS sql_column_nm,\n\n        CASE WHEN load_type = 'FULL'\n             THEN 'full' ELSE 'incr'\n        END AS path_type,\n\n        CASE\n            WHEN load_type = 'FULL' THEN 'daily'\n            WHEN load_unit = 'DAY' THEN 'daily'\n            WHEN load_unit = 'WEEK' THEN 'weekly'\n            WHEN load_unit = 'MONTH' THEN 'monthly'\n        END AS frequency_nm,\n\n        TIMEZONE(\n            'Asia/Seoul',\n            statement_timestamp()\n        ) AS batch_dt\n\n    FROM validated v\n),\n\nrange_sql AS\n(\n    SELECT\n        r.*,\n\n        CASE\n            WHEN load_type = 'FULL' THEN NULL\n\n            WHEN load_unit = 'MONTH'\n            THEN format(\n                '%s >= %L',\n                sql_column_nm,\n                TO_CHAR(load_from, 'YYYYMM')\n            )\n\n            WHEN dbms_type = 'DB2'\n            THEN format(\n                '%s >= TIMESTAMP(%L)',\n                sql_column_nm,\n                TO_CHAR(load_from, 'YYYY-MM-DD-HH24.MI.SS')\n            )\n\n            WHEN dbms_type = 'MSSQL'\n            THEN format(\n                '%s >= CONVERT(datetime2, %L, 126)',\n                sql_column_nm,\n                TO_CHAR(load_from, 'YYYY-MM-DD\"T\"HH24:MI:SS')\n            )\n        END AS from_condition,\n\n        CASE\n            WHEN load_type = 'FULL'\n              OR load_to IS NULL THEN NULL\n\n            WHEN load_unit = 'MONTH'\n            THEN format(\n                '%s < %L',\n                sql_column_nm,\n                TO_CHAR(load_to, 'YYYYMM')\n            )\n\n            WHEN dbms_type = 'DB2'\n            THEN format(\n                '%s < TIMESTAMP(%L)',\n                sql_column_nm,\n                TO_CHAR(load_to, 'YYYY-MM-DD-HH24.MI.SS')\n            )\n\n            WHEN dbms_type = 'MSSQL'\n            THEN format(\n                '%s < CONVERT(datetime2, %L, 126)',\n                sql_column_nm,\n                TO_CHAR(load_to, 'YYYY-MM-DD\"T\"HH24:MI:SS')\n            )\n        END AS to_condition\n\n    FROM resolved r\n),\n\nprepared AS\n(\n    SELECT\n        r.*,\n\n        LOWER(\n            'pl_raw_ingest_' || dbms_type\n            || '_' || src_db_nm\n        ) AS child_pipeline_nm,\n\n        CASE\n            WHEN error_code IS NOT NULL THEN NULL\n\n            WHEN dbms_type = 'DB2'\n             AND load_type = 'FULL'\n            THEN format(\n                'SELECT * FROM %s.%s WITH UR',\n                sql_schema_nm, sql_table_nm\n            )\n\n            WHEN dbms_type = 'MSSQL'\n             AND load_type = 'FULL'\n            THEN format(\n                'SELECT * FROM %s.%s WITH (NOLOCK)',\n                sql_schema_nm, sql_table_nm\n            )\n\n            WHEN dbms_type = 'DB2'\n             AND load_type = 'INCR'\n            THEN format(\n                'SELECT * FROM %s.%s WHERE %s WITH UR',\n                sql_schema_nm,\n                sql_table_nm,\n                CONCAT_WS(' AND ', from_condition, to_condition)\n            )\n\n            WHEN dbms_type = 'MSSQL'\n             AND load_type = 'INCR'\n            THEN format(\n                'SELECT * FROM %s.%s WITH (NOLOCK) WHERE %s',\n                sql_schema_nm,\n                sql_table_nm,\n                CONCAT_WS(' AND ', from_condition, to_condition)\n            )\n        END AS final_extract_query,\n\n        CASE\n            WHEN error_code IS NOT NULL THEN NULL\n            ELSE format(\n                '%s/frequency=%s/batch_datetime=%s/',\n                path_type,\n                frequency_nm,\n                TO_CHAR(batch_dt, 'YYYYMMDDHH24MI')\n            )\n        END AS final_landing_path,\n\n        CASE\n            WHEN error_code IS NOT NULL THEN NULL\n            ELSE format(\n                '%s.%s.%s.default.%s%s.parquet',\n                UPPER(src_db_nm),\n                UPPER(master_schema_nm),\n                UPPER(master_table_nm),\n                TO_CHAR(batch_dt, 'YYYYMMDDHH24MISS'),\n                LPAD(signal_id::text, 10, '0')\n            )\n        END AS final_file_name\n\n    FROM range_sql r\n),\n\nrange_meta AS\n(\n    SELECT\n        p.*,\n\n        CASE\n            WHEN load_type = 'FULL'\n            THEN 'FULL_DELETE_INSERT'\n            ELSE incr_load_method\n        END AS final_load_method_cd,\n\n        CASE\n            WHEN load_type = 'INCR'\n             AND incr_load_method = 'RANGE_DELETE_INSERT'\n            THEN UPPER(load_col)\n            ELSE NULL\n        END AS final_range_column_nm,\n\n        CASE\n            WHEN load_type = 'INCR'\n             AND incr_load_method = 'RANGE_DELETE_INSERT'\n            THEN CASE\n                WHEN load_to IS NULL THEN '>='\n                ELSE 'BETWEEN'\n            END\n            ELSE NULL\n        END AS final_range_operator_cd,\n\n        CASE\n            WHEN load_type = 'INCR'\n             AND incr_load_method = 'RANGE_DELETE_INSERT'\n             AND load_unit = 'MONTH'\n            THEN CASE\n                WHEN load_to IS NULL\n                THEN jsonb_build_array(\n                    TO_CHAR(load_from, 'YYYYMM')\n                )\n                ELSE jsonb_build_array(\n                    TO_CHAR(load_from, 'YYYYMM'),\n                    TO_CHAR(\n                        date_trunc('month', load_to)\n                        - INTERVAL '1 month',\n                        'YYYYMM'\n                    )\n                )\n            END\n\n            WHEN load_type = 'INCR'\n             AND incr_load_method = 'RANGE_DELETE_INSERT'\n             AND load_unit IN ('DAY', 'WEEK')\n            THEN CASE\n                WHEN load_to IS NULL\n                THEN jsonb_build_array(\n                    TO_CHAR(load_from, 'YYYYMMDD')\n                )\n                ELSE jsonb_build_array(\n                    TO_CHAR(load_from, 'YYYYMMDD'),\n                    TO_CHAR(\n                        load_to - INTERVAL '1 day',\n                        'YYYYMMDD'\n                    )\n                )\n            END\n            ELSE NULL\n        END AS final_range_value\n\n    FROM prepared p\n),\n\nready AS\n(\n    SELECT\n        r.*,\n\n        CASE\n            WHEN error_code IS NOT NULL\n                THEN error_code\n\n            WHEN final_extract_query IS NULL\n                THEN 'EXTRACT_QUERY_NOT_GENERATED'\n\n            WHEN final_landing_path IS NULL\n              OR final_file_name IS NULL\n                THEN 'GEN2_PATH_NOT_GENERATED'\n\n            WHEN LENGTH(child_pipeline_nm) > 200\n                THEN 'PIPELINE_NAME_TOO_LONG'\n\n            WHEN LENGTH(final_file_name) > 200\n                THEN 'FILE_NAME_TOO_LONG'\n\n            ELSE NULL\n        END AS final_error_code\n\n    FROM range_meta r\n),\n\n-- ============================================================\n-- 이번 실행에서 신규 등록된 Child만 확보\n-- ============================================================\nclaimed AS\n(\n    INSERT INTO adfadm.ctl_ingest_pipeline_run\n    (\n        signal_id,\n        master_run_id,\n        target_id,\n        ingest_pipeline_nm,\n        run_type_cd,\n        sink_type_cd,\n        load_method_cd,\n        range_column_nm,\n        range_operator_cd,\n        range_value,\n        incr_policy_id,\n        incr_column_nm,\n        incr_from_val,\n        incr_to_val,\n        src_type,\n        src_db_nm,\n        src_schema_nm,\n        src_table_nm,\n        data_class,\n        extract_query,\n        landing_path,\n        file_name,\n        init_wait_yn,\n        status,\n        created_by\n    )\n    SELECT\n        r.signal_id,\n        '@{pipeline().RunId}',\n        r.target_id,\n        r.child_pipeline_nm,\n        r.load_type,\n        'GEN2',\n        r.final_load_method_cd,\n        r.final_range_column_nm,\n        r.final_range_operator_cd,\n        r.final_range_value,\n        NULL,\n        CASE WHEN r.load_type = 'INCR'\n             THEN r.load_col END,\n        CASE WHEN r.load_type = 'INCR'\n             THEN r.load_from::text END,\n        CASE WHEN r.load_type = 'INCR'\n             THEN r.load_to::text END,\n        r.src_type,\n        r.src_db_nm,\n        r.master_schema_nm,\n        r.master_table_nm,\n        'RAW',\n        r.final_extract_query,\n        r.final_landing_path,\n        r.final_file_name,\n        r.init_wait_yn,\n        'PENDING',\n        'ADF'\n\n    FROM ready r\n    WHERE r.final_error_code IS NULL\n\n    ON CONFLICT (signal_id)\n    WHERE signal_id IS NOT NULL\n    DO NOTHING\n\n    RETURNING\n        ingest_pipeline_nm,\n        landing_path,\n        file_name,\n        extract_query,\n        ingest_pipeline_id,\n        master_run_id,\n        signal_id\n),\n\nrejected AS\n(\n    UPDATE adfadm.etl_signal s\n    SET\n        status = 'FAILED',\n        error_msg = LEFT(r.final_error_code, 2000)\n    FROM ready r\n    WHERE s.signal_id = r.signal_id\n      AND s.status = 'NEW'\n      AND r.final_error_code IS NOT NULL\n    RETURNING s.signal_id\n),\n\ncounts AS\n(\n    SELECT\n        (SELECT COUNT(*)::int FROM claimed)\n            AS claimed_cnt,\n        (SELECT COUNT(*)::int FROM rejected)\n            AS rejected_cnt\n),\n\nmaster_updated AS\n(\n    UPDATE adfadm.ctl_master_pipeline_run m\n    SET\n        child_total_cnt = c.claimed_cnt,\n        child_succ_cnt = 0,\n        child_fail_cnt = 0,\n\n        run_param =\n            COALESCE(m.run_param, '{}'::jsonb)\n            || jsonb_build_object(\n                'claimed_cnt', c.claimed_cnt,\n                'rejected_cnt', c.rejected_cnt\n            ),\n\n        status = CASE\n            WHEN c.claimed_cnt = 0\n             AND c.rejected_cnt = 0 THEN 'SKIPPED'\n            WHEN c.claimed_cnt = 0 THEN 'FAILED'\n            ELSE 'RUNNING'\n        END,\n\n        skip_reason_cd = CASE\n            WHEN c.claimed_cnt = 0\n             AND c.rejected_cnt = 0 THEN 'ETC'\n            ELSE NULL\n        END,\n\n        end_dt = CASE\n            WHEN c.claimed_cnt = 0 THEN NOW()\n            ELSE NULL\n        END,\n\n        error_log = CASE\n            WHEN c.rejected_cnt > 0\n            THEN 'SIGNAL_VALIDATION_FAILED: '\n                 || c.rejected_cnt::text\n            ELSE NULL\n        END,\n\n        updated_by = 'ADF',\n        updated_dt = NOW()\n\n    FROM counts c\n    WHERE m.master_run_id = '@{pipeline().RunId}'\n\n    RETURNING m.master_run_id\n)\n\n-- ============================================================\n-- ADF ForEach 반환\n-- 신규 INSERT에 성공한 Child만 반환\n-- ============================================================\nSELECT\n    c.ingest_pipeline_nm,\n    c.landing_path,\n    c.file_name,\n    c.extract_query,\n    c.ingest_pipeline_id,\n    c.master_run_id\nFROM claimed c\nCROSS JOIN master_updated m\nORDER BY c.signal_id;\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "SCR_PREPARE_SIGNAL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL').output.resultSets[0].rows,\n    json('[]')\n)",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "pl_dispatcher_ingest",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_dispatcher_ingest",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"p_child_pipeline_nm": {
+												"value": "@item().ingest_pipeline_nm",
+												"type": "Expression"
+											},
+											"p_landing_path": {
+												"value": "@item().landing_path",
+												"type": "Expression"
+											},
+											"p_file_name": {
+												"value": "@item().file_name",
+												"type": "Expression"
+											},
+											"p_extract_query": {
+												"value": "@item().extract_query",
+												"type": "Expression"
+											},
+											"p_ingest_pipeline_id": {
+												"value": "@item().ingest_pipeline_id",
+												"type": "Expression"
+											},
+											"p_master_run_id": {
+												"value": "@item().master_run_id",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "End_master_run",
+						"description": "Master 종료 (수집 이력 집계)",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "ForEach1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "/* End_master_run : ForEach 완료 시 (성공 / 실패 모두). RUNNING 인 Master 만 갱신 (Fail_master_run 이 바꾼 행 · SKIPPED 는 유지)\n   종료 시점에 RUNNING / PENDING 으로 남은 수집 행은 실패로 집계 */\nWITH c AS (\n    SELECT count(*)                                                        AS total_cnt,\n           count(*) FILTER (WHERE status = 'SUCCEEDED')                    AS succ_cnt,\n           count(*) FILTER (WHERE status IN ('FAILED','RUNNING','PENDING')) AS fail_cnt\n      FROM adfadm.ctl_ingest_pipeline_run\n     WHERE master_run_id = '@{pipeline().RunId}'\n       AND status <> 'SKIPPED'\n)\nUPDATE adfadm.ctl_master_pipeline_run m\n   SET child_total_cnt = c.total_cnt,\n       child_succ_cnt  = c.succ_cnt,\n       child_fail_cnt  = c.fail_cnt,\n       status          = CASE WHEN c.fail_cnt = 0 THEN 'SUCCEEDED' ELSE 'FAILED' END,\n       error_log       = CASE WHEN c.fail_cnt = 0 THEN m.error_log\n                              ELSE '수집 실패 ' || c.fail_cnt || '건 (ctl_ingest_pipeline_run 확인)' END,\n       end_dt          = now(),\n       updated_by      = '@{pipeline().DataFactory}',\n       updated_dt      = now()\n  FROM c\n WHERE m.master_run_id = '@{pipeline().RunId}'\n   AND m.status = 'RUNNING';\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					},
+					{
+						"name": "End_master_run_copy1",
+						"description": "Master 종료 (수집 이력 집계)",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "ForEach1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "AzurePostgreSql1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "\n\n\n-- =====================================================\n-- ETL Signal 상태 업데이트\n--\n-- Child SUCCEEDED → Signal DONE\n-- Child FAILED    → Signal FAILED\n-- PENDING/RUNNING  → 변경하지 않음\n-- =====================================================\n\nUPDATE adfadm.etl_signal s\nSET\n    status = CASE\n        WHEN p.status = 'SUCCEEDED' THEN 'DONE'\n        WHEN p.status = 'FAILED'    THEN 'FAILED'\n    END,\n\n    error_msg = CASE\n        WHEN p.status = 'FAILED'\n        THEN LEFT(\n            COALESCE(\n                NULLIF(p.error_log, ''),\n                'ADF_INGEST_FAILED'\n            ),\n            2000\n        )\n        ELSE NULL\n    END\n\nFROM adfadm.ctl_ingest_pipeline_run p\n\nWHERE s.signal_id = p.signal_id\n  AND p.master_run_id = '@{pipeline().RunId}'\n  AND p.signal_id IS NOT NULL\n  AND p.status IN ('SUCCEEDED', 'FAILED')\n  AND s.status = 'NEW';\n",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "00:10:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql2')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzurePostgreSql1')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_dispatcher_ingest')]"
+			]
 		}
 	]
 }

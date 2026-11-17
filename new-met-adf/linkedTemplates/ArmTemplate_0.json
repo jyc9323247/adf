@@ -180,7 +180,7 @@
 					"server": "[parameters('AzurePostgreSql1_properties_typeProperties_server')]",
 					"port": "5432",
 					"database": "[parameters('AzurePostgreSql1_properties_typeProperties_database')]",
-					"sslMode": 2,
+					"sslMode": 0,
 					"username": "[parameters('AzurePostgreSql1_properties_typeProperties_username')]",
 					"password": {
 						"type": "SecureString",
@@ -515,10 +515,24 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/default')]",
-			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime2')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
-			"properties": {},
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 10,
+							"cleanup": false,
+							"customProperties": []
+						}
+					}
+				}
+			},
 			"dependsOn": []
 		}
 	]

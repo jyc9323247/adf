@@ -8,7 +8,13 @@
 		"AzureDataLakeStorage2_accountKey": {
 			"value": ""
 		},
+		"AzureDatabricksDeltaLake1_accessToken": {
+			"value": ""
+		},
 		"AzurePostgreSql1_password": {
+			"value": ""
+		},
+		"AzurePostgreSql2_password": {
 			"value": ""
 		},
 		"Db21_connectionString": {
@@ -24,9 +30,6 @@
 			"value": ""
 		},
 		"Odbc_pg_password": {
-			"value": ""
-		},
-		"PostgreSql1_password": {
 			"value": ""
 		},
 		"databricks_pg_password": {
@@ -59,6 +62,15 @@
 		"AzurePostgreSql1_properties_typeProperties_username": {
 			"value": "adfadm"
 		},
+		"AzurePostgreSql2_properties_typeProperties_server": {
+			"value": "localhost"
+		},
+		"AzurePostgreSql2_properties_typeProperties_database": {
+			"value": "postgres"
+		},
+		"AzurePostgreSql2_properties_typeProperties_username": {
+			"value": "postgres"
+		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"value": "@{linkedService().domain_name}"
 		},
@@ -69,7 +81,7 @@
 			"value": "\\\\LAPTOP-039OO7L2\\share"
 		},
 		"FileServer1_properties_typeProperties_userId": {
-			"value": ".\\jyc32"
+			"value": ".\\adf_user"
 		},
 		"Odbc1_properties_typeProperties_userName": {
 			"value": "db2inst1"
@@ -78,15 +90,6 @@
 			"value": "azshir"
 		},
 		"Odbc_pg_properties_typeProperties_userName": {
-			"value": "azshir"
-		},
-		"PostgreSql1_properties_typeProperties_server": {
-			"value": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
-		},
-		"PostgreSql1_properties_typeProperties_database": {
-			"value": "databricks_postgres"
-		},
-		"PostgreSql1_properties_typeProperties_username": {
 			"value": "azshir"
 		},
 		"databricks_pg_properties_typeProperties_server": {

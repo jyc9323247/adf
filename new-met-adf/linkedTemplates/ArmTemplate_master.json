@@ -11,9 +11,17 @@
 			"type": "secureString",
 			"metadata": "'AzureDataLakeStorage2'의 'accountKey'에 대한 보안 문자열"
 		},
+		"AzureDatabricksDeltaLake1_accessToken": {
+			"type": "secureString",
+			"metadata": "'AzureDatabricksDeltaLake1'의 'accessToken'에 대한 보안 문자열"
+		},
 		"AzurePostgreSql1_password": {
 			"type": "secureString",
 			"metadata": "'AzurePostgreSql1'의 'password'에 대한 보안 문자열"
+		},
+		"AzurePostgreSql2_password": {
+			"type": "secureString",
+			"metadata": "'AzurePostgreSql2'의 'password'에 대한 보안 문자열"
 		},
 		"Db21_connectionString": {
 			"type": "secureString",
@@ -34,10 +42,6 @@
 		"Odbc_pg_password": {
 			"type": "secureString",
 			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
-		},
-		"PostgreSql1_password": {
-			"type": "secureString",
-			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
 		},
 		"databricks_pg_password": {
 			"type": "secureString",
@@ -79,6 +83,18 @@
 			"type": "string",
 			"defaultValue": "adfadm"
 		},
+		"AzurePostgreSql2_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "localhost"
+		},
+		"AzurePostgreSql2_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"AzurePostgreSql2_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "@{linkedService().domain_name}"
@@ -93,7 +109,7 @@
 		},
 		"FileServer1_properties_typeProperties_userId": {
 			"type": "string",
-			"defaultValue": ".\\jyc32"
+			"defaultValue": ".\\adf_user"
 		},
 		"Odbc1_properties_typeProperties_userName": {
 			"type": "string",
@@ -104,18 +120,6 @@
 			"defaultValue": "azshir"
 		},
 		"Odbc_pg_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "azshir"
-		},
-		"PostgreSql1_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
-		},
-		"PostgreSql1_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "databricks_postgres"
-		},
-		"PostgreSql1_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "azshir"
 		},
@@ -254,6 +258,12 @@
 					"AzureDataLakeStorage2_accountKey": {
 						"value": "[parameters('AzureDataLakeStorage2_accountKey')]"
 					},
+					"AzureDatabricksDeltaLake1_accessToken": {
+						"value": "[parameters('AzureDatabricksDeltaLake1_accessToken')]"
+					},
+					"AzurePostgreSql2_password": {
+						"value": "[parameters('AzurePostgreSql2_password')]"
+					},
 					"Db21_connectionString": {
 						"value": "[parameters('Db21_connectionString')]"
 					},
@@ -269,9 +279,6 @@
 					"Odbc_pg_password": {
 						"value": "[parameters('Odbc_pg_password')]"
 					},
-					"PostgreSql1_password": {
-						"value": "[parameters('PostgreSql1_password')]"
-					},
 					"databricks_pg_password": {
 						"value": "[parameters('databricks_pg_password')]"
 					},
@@ -280,6 +287,15 @@
 					},
 					"AzureDataLakeStorage2_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage2_properties_typeProperties_url')]"
+					},
+					"AzurePostgreSql2_properties_typeProperties_server": {
+						"value": "[parameters('AzurePostgreSql2_properties_typeProperties_server')]"
+					},
+					"AzurePostgreSql2_properties_typeProperties_database": {
+						"value": "[parameters('AzurePostgreSql2_properties_typeProperties_database')]"
+					},
+					"AzurePostgreSql2_properties_typeProperties_username": {
+						"value": "[parameters('AzurePostgreSql2_properties_typeProperties_username')]"
 					},
 					"AzureSqlDatabase1_properties_typeProperties_server": {
 						"value": "[parameters('AzureSqlDatabase1_properties_typeProperties_server')]"
@@ -301,15 +317,6 @@
 					},
 					"Odbc_pg_properties_typeProperties_userName": {
 						"value": "[parameters('Odbc_pg_properties_typeProperties_userName')]"
-					},
-					"PostgreSql1_properties_typeProperties_server": {
-						"value": "[parameters('PostgreSql1_properties_typeProperties_server')]"
-					},
-					"PostgreSql1_properties_typeProperties_database": {
-						"value": "[parameters('PostgreSql1_properties_typeProperties_database')]"
-					},
-					"PostgreSql1_properties_typeProperties_username": {
-						"value": "[parameters('PostgreSql1_properties_typeProperties_username')]"
 					},
 					"databricks_pg_properties_typeProperties_server": {
 						"value": "[parameters('databricks_pg_properties_typeProperties_server')]"

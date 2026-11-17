@@ -11,6 +11,14 @@
 			"type": "secureString",
 			"metadata": "'AzureDataLakeStorage2'의 'accountKey'에 대한 보안 문자열"
 		},
+		"AzureDatabricksDeltaLake1_accessToken": {
+			"type": "secureString",
+			"metadata": "'AzureDatabricksDeltaLake1'의 'accessToken'에 대한 보안 문자열"
+		},
+		"AzurePostgreSql2_password": {
+			"type": "secureString",
+			"metadata": "'AzurePostgreSql2'의 'password'에 대한 보안 문자열"
+		},
 		"Db21_connectionString": {
 			"type": "secureString",
 			"metadata": "'Db21'의 'connectionString'에 대한 보안 문자열"
@@ -31,10 +39,6 @@
 			"type": "secureString",
 			"metadata": "'Odbc_pg'의 'password'에 대한 보안 문자열"
 		},
-		"PostgreSql1_password": {
-			"type": "secureString",
-			"metadata": "'PostgreSql1'의 'password'에 대한 보안 문자열"
-		},
 		"databricks_pg_password": {
 			"type": "secureString",
 			"metadata": "'databricks_pg'의 'password'에 대한 보안 문자열"
@@ -46,6 +50,18 @@
 		"AzureDataLakeStorage2_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://ab3.dfs.core.windows.net/"
+		},
+		"AzurePostgreSql2_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "localhost"
+		},
+		"AzurePostgreSql2_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "postgres"
+		},
+		"AzurePostgreSql2_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "postgres"
 		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"type": "string",
@@ -61,7 +77,7 @@
 		},
 		"FileServer1_properties_typeProperties_userId": {
 			"type": "string",
-			"defaultValue": ".\\jyc32"
+			"defaultValue": ".\\adf_user"
 		},
 		"Odbc1_properties_typeProperties_userName": {
 			"type": "string",
@@ -72,18 +88,6 @@
 			"defaultValue": "azshir"
 		},
 		"Odbc_pg_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "azshir"
-		},
-		"PostgreSql1_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "ep-nameless-snow-emex00dd.database.koreacentral.azuredatabricks.net"
-		},
-		"PostgreSql1_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "databricks_postgres"
-		},
-		"PostgreSql1_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "azshir"
 		},
@@ -105,24 +109,10 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/integrationRuntime2')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"name": "[concat(parameters('factoryName'), '/default')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
 			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "Managed",
-				"typeProperties": {
-					"computeProperties": {
-						"location": "AutoResolve",
-						"dataFlowProperties": {
-							"computeType": "General",
-							"coreCount": 8,
-							"timeToLive": 10,
-							"cleanup": false,
-							"customProperties": []
-						}
-					}
-				}
-			},
+			"properties": {},
 			"dependsOn": []
 		},
 		{
@@ -596,9 +586,56 @@
 					"type": "IntegrationRuntimeReference"
 				}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntime2')]"
-			]
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricksDeltaLake1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLake",
+				"typeProperties": {
+					"domain": "https://adb-7405606315918295.15.azuredatabricks.net",
+					"clusterId": "1113-064416-jcee3xyd",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricksDeltaLake1_accessToken')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime2",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzurePostgreSql2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"version": "2.0",
+				"typeProperties": {
+					"server": "[parameters('AzurePostgreSql2_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('AzurePostgreSql2_properties_typeProperties_database')]",
+					"sslMode": 2,
+					"username": "[parameters('AzurePostgreSql2_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('AzurePostgreSql2_password')]"
+					},
+					"authenticationType": "Basic"
+				},
+				"connectVia": {
+					"referenceName": "integrationRuntime1",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
@@ -679,7 +716,7 @@
 				"annotations": [],
 				"type": "Odbc",
 				"typeProperties": {
-					"connectionString": "DSN=XMETA;FET_BUF_SIZE=8192K;",
+					"connectionString": "DSN=XMETA;FET_BUF_SIZE=18192K;",
 					"authenticationType": "Basic",
 					"userName": "[parameters('Odbc1_properties_typeProperties_userName')]",
 					"password": {
@@ -741,32 +778,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/PostgreSql1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "PostgreSqlV2",
-				"typeProperties": {
-					"server": "[parameters('PostgreSql1_properties_typeProperties_server')]",
-					"port": 5432,
-					"database": "[parameters('PostgreSql1_properties_typeProperties_database')]",
-					"username": "[parameters('PostgreSql1_properties_typeProperties_username')]",
-					"password": {
-						"type": "SecureString",
-						"value": "[parameters('PostgreSql1_password')]"
-					},
-					"sslMode": 2,
-					"authenticationType": "Basic"
-				},
-				"connectVia": {
-					"referenceName": "integrationRuntime1",
-					"type": "IntegrationRuntimeReference"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/databricks_pg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -794,64 +805,38 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Binary1')]",
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricksDeltaLakeDataset1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"linkedServiceName": {
-					"referenceName": "AzureDataLakeStorage1",
+					"referenceName": "AzureDatabricksDeltaLake1",
 					"type": "LinkedServiceReference"
 				},
 				"parameters": {
-					"p_file_name": {
+					"p_schema": {
+						"type": "string"
+					},
+					"p_table": {
 						"type": "string"
 					}
 				},
 				"annotations": [],
-				"type": "Binary",
+				"type": "AzureDatabricksDeltaLakeDataset",
 				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().p_file_name",
-							"type": "Expression"
-						},
-						"fileSystem": "ingest"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Binary2')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "FileServer1",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"p_file_name": {
-						"type": "string"
+					"database": {
+						"value": "@dataset().p_schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().p_table",
+						"type": "Expression"
 					}
 				},
-				"annotations": [],
-				"type": "Binary",
-				"typeProperties": {
-					"location": {
-						"type": "FileServerLocation",
-						"fileName": {
-							"value": "@dataset().p_file_name",
-							"type": "Expression"
-						}
-					}
-				}
+				"schema": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/FileServer1')]"
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricksDeltaLake1')]"
 			]
 		}
 	]
