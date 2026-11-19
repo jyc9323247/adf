@@ -1,33 +1,32 @@
- { 
-
+{
 	"name": "trg_sch_every_10_min",
-
 	"properties": {
-
 		"annotations": [],
-
 		"runtimeState": "Stopped",
-
 		"pipelines": [],
-
 		"type": "ScheduleTrigger",
-
 		"typeProperties": {
-
 			"recurrence": {
-
-				"frequency": "Minute",
-
-				"interval": 10,
-
+				"frequency": "Week",
+				"interval": 1,
 				"startTime": "2026-09-21T01:29:00",
-
-				"timeZone": "Korea Standard Time"
-
+				"timeZone": "Korea Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						5
+					],
+					"weekDays": [
+						"Monday",
+						"Tuesday",
+						"Wednesday",
+						"Thursday",
+						"Friday"
+					]
+				}
 			}
-
 		}
-
 	}
-
-} 
+}
