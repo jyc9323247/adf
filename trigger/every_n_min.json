@@ -6,15 +6,6 @@
 		"pipelines": [
 			{
 				"pipelineReference": {
-					"referenceName": "pipeline1_copy1",
-					"type": "PipelineReference"
-				},
-				"parameters": {
-					"a": "abc"
-				}
-			},
-			{
-				"pipelineReference": {
 					"referenceName": "pl_raw_orch_full",
 					"type": "PipelineReference"
 				},
