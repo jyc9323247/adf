@@ -7,10 +7,6 @@
 			"metadata": "Data Factory 이름",
 			"defaultValue": "new-met-adf"
 		},
-		"every_n_min_properties_pipeline1_copy1_parameters_a": {
-			"type": "string",
-			"defaultValue": "abc"
-		},
 		"every_n_min_properties_pl_raw_orch_full_parameters_p_run_group_nm": {
 			"type": "string",
 			"defaultValue": "FULL_DAILY"
@@ -8095,15 +8091,6 @@
 				"annotations": [],
 				"runtimeState": "Stopped",
 				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pipeline1_copy1",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"a": "[parameters('every_n_min_properties_pipeline1_copy1_parameters_a')]"
-						}
-					},
 					{
 						"pipelineReference": {
 							"referenceName": "pl_raw_orch_full",
