@@ -12664,7 +12664,7 @@
 			"properties": {
 				"description": "pl_meta_orch_full 직접 호출 (pl_cmn_orch_trigger_entry 미경유). 평일 새벽 01:00 KST, 그룹 1개(META_WEEKDAY_FULL) 고정. p_scheduled_time = 지연 모니터링용",
 				"annotations": [],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -12734,6 +12734,68 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trg_sch_every_10_min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pipeline1_copy1",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Week",
+						"interval": 1,
+						"startTime": "2026-09-21T01:29:00",
+						"timeZone": "Korea Standard Time",
+						"schedule": {
+							"minutes": [
+								0,
+								10,
+								20,
+								30,
+								40,
+								50
+							],
+							"hours": [
+								5,
+								6,
+								7,
+								8,
+								9,
+								10,
+								11,
+								12,
+								13,
+								14,
+								15,
+								16,
+								17
+							],
+							"weekDays": [
+								"Monday",
+								"Tuesday",
+								"Wednesday",
+								"Thursday",
+								"Friday"
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pipeline1_copy1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/trg_sch_every_day_7_time')]",
@@ -12866,68 +12928,6 @@
 			"apiVersion": "2018-06-01",
 			"properties": {},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/trg_sch_every_10_min')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pipeline1_copy1",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Week",
-						"interval": 1,
-						"startTime": "2026-09-21T01:29:00",
-						"timeZone": "Korea Standard Time",
-						"schedule": {
-							"minutes": [
-								0,
-								10,
-								20,
-								30,
-								40,
-								50
-							],
-							"hours": [
-								5,
-								6,
-								7,
-								8,
-								9,
-								10,
-								11,
-								12,
-								13,
-								14,
-								15,
-								16,
-								17
-							],
-							"weekDays": [
-								"Monday",
-								"Tuesday",
-								"Wednesday",
-								"Thursday",
-								"Friday"
-							]
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pipeline1_copy1')]"
-			]
 		}
 	]
 }
