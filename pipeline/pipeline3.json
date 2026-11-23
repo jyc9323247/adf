@@ -205,6 +205,107 @@
 					],
 					"scriptBlockExecutionTimeout": "00:10:00"
 				}
+			},
+			{
+				"name": "SCR_PREPARE_SIGNAL_copy1",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Script1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzurePostgreSql2",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "WITH signal_base AS (\n    SELECT\n        signal_id,\n        load_type,\n        frequency,\n        \"interval\",\n\n        '`bronze`.`'\n            || REPLACE(src_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(src_table_nm, '`', '``')\n            || '`' AS target_table,\n\n        '`'\n            || REPLACE(load_col, '`', '``')\n            || '`' AS target_col,\n\n        '`bronze`.`'\n            || REPLACE(del_lookup_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(del_lookup_table_nm, '`', '``')\n            || '`' AS lookup_table,\n\n        '`'\n            || REPLACE(del_lookup_col_nm, '`', '``')\n            || '`' AS lookup_col\n\n    FROM adfadm.etl_signal\n    WHERE status = 'NEW'\n      AND load_method = 'delete_only'\n      AND load_type IN (\n          'PRVDEL_DURATION',\n          'PRVDEL_IDENTITY',\n          'PRVDEL_SQL'\n      )\n\n\n    -- 동시 실행 시 다른 실행이 확보한 시그널은 건너뜀\n    FOR UPDATE SKIP LOCKED\n),\ngenerated AS (\n    SELECT\n        signal_id,\n\n        CASE\n            WHEN load_type = 'PRVDEL_DURATION' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col || ' < '\n                || CASE frequency\n                    WHEN 'DAY' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || \"interval\"::text || ')'\n\n                    WHEN 'WEEK' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || (\"interval\"::bigint * 7)::text || ')'\n\n                    WHEN 'MONTH' THEN\n                        'ADD_MONTHS(CURRENT_DATE(), -'\n                        || \"interval\"::text || ')'\n                   END\n\n            WHEN load_type = 'PRVDEL_IDENTITY' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col\n                || ' IN (SELECT ' || lookup_col\n                || ' FROM ' || lookup_table || ')'\n        END AS delete_query\n\n    FROM signal_base\n),\nupdated AS (\n    UPDATE adfadm.etl_signal AS s\n    SET\n        delete_query = g.delete_query,\n        status       = 'PENDING',\n        error_msg    = NULL,\n        updated_dt   = LOCALTIMESTAMP\n    FROM generated AS g\n    WHERE s.signal_id = g.signal_id\n      AND s.status = 'NEW'\n      AND (\n    g.delete_query IS NOT NULL\n    OR (\n        s.load_type = 'PRVDEL_SQL'\n        AND NULLIF(BTRIM(s.sql_file_nm), '') IS NOT NULL\n      )\n    )\n\n    RETURNING\n        s.signal_id,\n        s.load_type,\n        s.src_db_nm,\n        s.src_schema_nm,\n        s.src_table_nm,\n        s.delete_query,\n        s.sql_file_nm,\n        s.status\n)\nSELECT *\nFROM updated\nORDER BY signal_id;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ForEach1_copy1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "SCR_PREPARE_SIGNAL_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL').output.resultSets[0].rows,\n    json('[]')\n)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "pl_dispatcher_ingest_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_dispatcher_ingest",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_child_pipeline_nm": {
+										"value": "@item().ingest_pipeline_nm",
+										"type": "Expression"
+									},
+									"p_landing_path": {
+										"value": "@item().landing_path",
+										"type": "Expression"
+									},
+									"p_file_name": {
+										"value": "@item().file_name",
+										"type": "Expression"
+									},
+									"p_extract_query": {
+										"value": "@item().extract_query",
+										"type": "Expression"
+									},
+									"p_ingest_pipeline_id": {
+										"value": "@item().ingest_pipeline_id",
+										"type": "Expression"
+									},
+									"p_master_run_id": {
+										"value": "@item().master_run_id",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
 			}
 		],
 		"annotations": []
