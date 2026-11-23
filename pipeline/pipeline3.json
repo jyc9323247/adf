@@ -207,7 +207,7 @@
 				}
 			},
 			{
-				"name": "SCR_PREPARE_SIGNAL_copy1",
+				"name": "SCR_PREPARE_SIGNAL_DELETE",
 				"type": "Script",
 				"dependsOn": [
 					{
@@ -245,9 +245,11 @@
 			{
 				"name": "ForEach1_copy1",
 				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "SCR_PREPARE_SIGNAL_copy1",
+						"activity": "SCR_PREPARE_SIGNAL_DELETE",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -256,55 +258,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL').output.resultSets[0].rows,\n    json('[]')\n)",
+						"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL_DELETE').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL_DELETE').output.resultSets[0].rows,\n    json('[]')\n)",
 						"type": "Expression"
 					},
-					"isSequential": false,
-					"batchCount": 4,
-					"activities": [
-						{
-							"name": "pl_dispatcher_ingest_copy1",
-							"type": "ExecutePipeline",
-							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"pipeline": {
-									"referenceName": "pl_dispatcher_ingest",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true,
-								"parameters": {
-									"p_child_pipeline_nm": {
-										"value": "@item().ingest_pipeline_nm",
-										"type": "Expression"
-									},
-									"p_landing_path": {
-										"value": "@item().landing_path",
-										"type": "Expression"
-									},
-									"p_file_name": {
-										"value": "@item().file_name",
-										"type": "Expression"
-									},
-									"p_extract_query": {
-										"value": "@item().extract_query",
-										"type": "Expression"
-									},
-									"p_ingest_pipeline_id": {
-										"value": "@item().ingest_pipeline_id",
-										"type": "Expression"
-									},
-									"p_master_run_id": {
-										"value": "@item().master_run_id",
-										"type": "Expression"
-									}
-								}
-							}
-						}
-					]
+					"isSequential": true
 				}
 			}
 		],
