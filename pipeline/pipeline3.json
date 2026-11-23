@@ -348,7 +348,14 @@
 								"secureOutput": false,
 								"secureInput": false
 							},
-							"userProperties": []
+							"userProperties": [],
+							"typeProperties": {
+								"baseParameters": {
+									"signal_id": "@string(item().signal_id)",
+									"delete_query": "@coalesce(item().delete_query, '')",
+									"sql_file_nm": "@if(\n    empty(item().sql_file_nm),\n    '',\n    concat(\n        '/Volumes/',\n        item().src_db_nm, '/',\n        item().src_schema_nm, '/',\n        item().src_table_nm, '/',\n        item().load_type, '/',\n        item().sql_file_nm\n    )\n)"
+								}
+							}
 						}
 					]
 				}
