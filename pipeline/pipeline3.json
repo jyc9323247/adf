@@ -94,7 +94,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@and(\n    equals(item().extract_query, '-'),\n    not(empty(item().sql_file_nm))\n)",
+									"value": "@not(empty(item().sql_file_nm))\n",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
