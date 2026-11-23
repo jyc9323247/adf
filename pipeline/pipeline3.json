@@ -245,8 +245,6 @@
 			{
 				"name": "ForEach1_copy1",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "SCR_PREPARE_SIGNAL_DELETE",
@@ -261,7 +259,98 @@
 						"value": "@if(\n    greater(\n        length(activity('SCR_PREPARE_SIGNAL_DELETE').output.resultSets),\n        0\n    ),\n    activity('SCR_PREPARE_SIGNAL_DELETE').output.resultSets[0].rows,\n    json('[]')\n)",
 						"type": "Expression"
 					},
-					"isSequential": true
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "DELETE_DONE",
+							"description": "Master 종료 (수집 이력 집계)",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Run_Delete_Notebook",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql2",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "@concat(\n    'UPDATE adfadm.etl_signal',\n    ' SET status = ''DONE'',',\n    ' error_msg = NULL,',\n    ' updated_dt = LOCALTIMESTAMP',\n    ' WHERE signal_id = ',\n    string(item().signal_id),\n    ' AND status = ''PENDING'';'\n)",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "00:10:00"
+							}
+						},
+						{
+							"name": "DELETE_DONE_copy1",
+							"description": "Master 종료 (수집 이력 집계)",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Run_Delete_Notebook",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzurePostgreSql2",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "@concat(\n    'UPDATE adfadm.etl_signal',\n    ' SET status = ''FAILED'',',\n    ' error_msg = ',\n    decodeUriComponent('%27'),\n    replace(\n        take(\n            string(activity('Run_Delete_Notebook').error.message),\n            2000\n        ),\n        decodeUriComponent('%27'),\n        decodeUriComponent('%27%27')\n    ),\n    decodeUriComponent('%27'),\n    ', updated_dt = LOCALTIMESTAMP',\n    ' WHERE signal_id = ',\n    string(item().signal_id),\n    ' AND status = ''PENDING'';'\n)",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "00:10:00"
+							}
+						},
+						{
+							"name": "Run_Delete_Notebook",
+							"type": "DatabricksNotebook",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": []
+						}
+					]
 				}
 			}
 		],
