@@ -28,8 +28,8 @@
 				},
 				"container": "ingest"
 			},
-			"columnDelimiter": "",
-			"rowDelimiter": "",
+			"columnDelimiter": "§",
+			"rowDelimiter": "¶",
 			"escapeChar": "",
 			"firstRowAsHeader": false,
 			"quoteChar": ""
