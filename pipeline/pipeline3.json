@@ -94,7 +94,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@equals(item().load_type, 'INCR_SQL')",
+									"value": "@and(\n    empty(item().extract_query),\n    not(empty(item().sql_file_nm))\n)",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -170,8 +170,14 @@
 												"referenceName": "DelimitedText1",
 												"type": "DatasetReference",
 												"parameters": {
-													"sql_directory": "sql",
-													"sql_file_nm": "sel.sql"
+													"sql_directory": {
+														"value": "@item().sql_directory",
+														"type": "Expression"
+													},
+													"sql_file_nm": {
+														"value": "@item().sql_file_nm",
+														"type": "Expression"
+													}
 												}
 											}
 										}
