@@ -1,5 +1,5 @@
 {
-	"name": "pl_raw_orch_init",
+	"name": "pl_raw_orch_init_old",
 	"properties": {
 		"description": "RAW 초기적재 / FULL_REFRESH / PARTIAL_REFRESH / 재수집 요청(REQUEST) 마스터 (v8.3). Ins_master_run -> run_check -> 원천조회(PART) -> 수집 이력 생성 -> ForEach dispatcher -> Master 종료 -> Req_end",
 		"activities": [
