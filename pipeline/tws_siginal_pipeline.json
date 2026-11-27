@@ -242,6 +242,8 @@
 				"name": "End_master_run",
 				"description": "Master 종료 (수집 이력 집계)",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "ForEach1",
@@ -279,6 +281,8 @@
 				"name": "End_master_run_copy1",
 				"description": "Master 종료 (수집 이력 집계)",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "ForEach1",
@@ -315,8 +319,6 @@
 			{
 				"name": "SCR_PREPARE_SIGNAL_DELETE",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Script1",
@@ -342,7 +344,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "WITH signal_base AS (\n    SELECT\n        signal_id,\n        load_type,\n        frequency,\n        \"interval\",\n\n        '`bronze`.`'\n            || REPLACE(src_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(src_table_nm, '`', '``')\n            || '`' AS target_table,\n\n        '`'\n            || REPLACE(load_col, '`', '``')\n            || '`' AS target_col,\n\n        '`bronze`.`'\n            || REPLACE(del_lookup_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(del_lookup_table_nm, '`', '``')\n            || '`' AS lookup_table,\n\n        '`'\n            || REPLACE(del_lookup_col_nm, '`', '``')\n            || '`' AS lookup_col\n\n    FROM adfadm.etl_signal\n    WHERE status = 'NEW'\n      AND load_method = 'delete_only'\n      AND load_type IN (\n          'PRVDEL_DURATION',\n          'PRVDEL_IDENTITY',\n          'PRVDEL_SQL'\n      )\n\n\n    -- 동시 실행 시 다른 실행이 확보한 시그널은 건너뜀\n    FOR UPDATE SKIP LOCKED\n),\ngenerated AS (\n    SELECT\n        signal_id,\n\n        CASE\n            WHEN load_type = 'PRVDEL_DURATION' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col || ' < '\n                || CASE frequency\n                    WHEN 'DAY' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || \"interval\"::text || ')'\n\n                    WHEN 'WEEK' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || (\"interval\"::bigint * 7)::text || ')'\n\n                    WHEN 'MONTH' THEN\n                        'ADD_MONTHS(CURRENT_DATE(), -'\n                        || \"interval\"::text || ')'\n                   END\n\n            WHEN load_type = 'PRVDEL_IDENTITY' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col\n                || ' IN (SELECT ' || lookup_col\n                || ' FROM ' || lookup_table || ')'\n        END AS delete_query\n\n    FROM signal_base\n),\nupdated AS (\n    UPDATE adfadm.etl_signal AS s\n    SET\n        delete_query = g.delete_query,\n        status       = 'PENDING',\n        error_msg    = NULL,\n        updated_dt   = LOCALTIMESTAMP\n    FROM generated AS g\n    WHERE s.signal_id = g.signal_id\n      AND s.status = 'NEW'\n      AND (\n    g.delete_query IS NOT NULL\n    OR (\n        s.load_type = 'PRVDEL_SQL'\n        AND NULLIF(BTRIM(s.sql_file_nm), '') IS NOT NULL\n      )\n    )\n\n    RETURNING\n        s.signal_id,\n        s.load_type,\n        s.src_db_nm,\n        s.src_schema_nm,\n        s.src_table_nm,\n        s.delete_query,\n        s.sql_file_nm,\n        s.status\n)\nSELECT *\nFROM updated\nORDER BY signal_id;",
+								"value": "WITH signal_base AS (\n    SELECT\n        s.signal_id,\n        s.load_type,\n        s.frequency,\n        s.\"interval\",\n\n        '`bronze`.`'\n            || REPLACE(s.src_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(s.src_table_nm, '`', '``')\n            || '`' AS target_table,\n\n        '`'\n            || REPLACE(s.load_col, '`', '``')\n            || '`' AS target_col,\n\n        '`bronze`.`'\n            || REPLACE(s.del_lookup_schema_nm, '`', '``')\n            || '`.`'\n            || REPLACE(s.del_lookup_table_nm, '`', '``')\n            || '`' AS lookup_table,\n\n        '`'\n            || REPLACE(s.del_lookup_col_nm, '`', '``')\n            || '`' AS lookup_col,\n\n        EXISTS (\n            SELECT 1\n            FROM adfadm.ctl_ingest_target_master AS t\n            WHERE UPPER(t.src_db_nm) = UPPER(s.src_db_nm)\n              AND UPPER(t.src_schema_nm) = UPPER(s.src_schema_nm)\n              AND UPPER(t.src_table_nm) = UPPER(s.src_table_nm)\n              AND t.data_class = 'RAW'\n              AND t.delete_yn = 'N'\n        ) AS target_registered\n\n    FROM adfadm.etl_signal AS s\n    WHERE s.status = 'NEW'\n      AND s.load_method = 'delete_only'\n      AND s.load_type IN (\n          'PRVDEL_DURATION',\n          'PRVDEL_IDENTITY',\n          'PRVDEL_SQL'\n      )\n\n    -- 동시 실행 시 다른 실행이 확보한 시그널은 건너뜀\n    FOR UPDATE OF s SKIP LOCKED\n),\ngenerated AS (\n    SELECT\n        signal_id,\n        target_registered,\n\n        CASE\n            WHEN NOT target_registered THEN NULL\n\n            WHEN load_type = 'PRVDEL_DURATION' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col || ' < '\n                || CASE frequency\n                    WHEN 'DAY' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || \"interval\"::text || ')'\n\n                    WHEN 'WEEK' THEN\n                        'DATE_SUB(CURRENT_DATE(), '\n                        || (\"interval\"::bigint * 7)::text || ')'\n\n                    WHEN 'MONTH' THEN\n                        'ADD_MONTHS(CURRENT_DATE(), -'\n                        || \"interval\"::text || ')'\n                   END\n\n            WHEN load_type = 'PRVDEL_IDENTITY' THEN\n                'DELETE FROM ' || target_table\n                || ' WHERE ' || target_col\n                || ' IN (SELECT ' || lookup_col\n                || ' FROM ' || lookup_table || ')'\n        END AS delete_query\n\n    FROM signal_base\n),\nupdated AS (\n    UPDATE adfadm.etl_signal AS s\n    SET\n        delete_query = g.delete_query,\n        status = CASE\n            WHEN g.target_registered THEN 'PENDING'\n            ELSE 'FAILED'\n        END,\n        error_msg = CASE\n            WHEN NOT g.target_registered THEN 'TARGET_NOT_REGISTERED'\n            ELSE NULL\n        END,\n        updated_dt = LOCALTIMESTAMP\n    FROM generated AS g\n    WHERE s.signal_id = g.signal_id\n      AND s.status = 'NEW'\n      AND (\n          NOT g.target_registered\n          OR g.delete_query IS NOT NULL\n          OR (\n              s.load_type = 'PRVDEL_SQL'\n              AND NULLIF(BTRIM(s.sql_file_nm), '') IS NOT NULL\n          )\n      )\n    RETURNING\n        s.signal_id,\n        s.load_type,\n        s.src_db_nm,\n        s.src_schema_nm,\n        s.src_table_nm,\n        s.delete_query,\n        s.sql_file_nm,\n        s.status\n)\nSELECT *\nFROM updated\nWHERE status = 'PENDING'\nORDER BY signal_id;",
 								"type": "Expression"
 							}
 						}
@@ -458,16 +460,41 @@
 								"secureOutput": false,
 								"secureInput": false
 							},
-							"userProperties": [],
-							"typeProperties": {
-								"baseParameters": {
-									"signal_id": "@string(item().signal_id)",
-									"delete_query": "@coalesce(item().delete_query, '')",
-									"sql_file_nm": "@if(\n    empty(item().sql_file_nm),\n    '',\n    concat(\n        '/Volumes/',\n        item().src_db_nm, '/',\n        item().src_schema_nm, '/',\n        item().src_table_nm, '/',\n        item().load_type, '/',\n        item().sql_file_nm\n    )\n)"
-								}
-							}
+							"userProperties": []
 						}
 					]
+				}
+			},
+			{
+				"name": "LK_SUCCESS_SIGNALS",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "End_master_run_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "WITH success_signals AS (\n    SELECT DISTINCT p.signal_id\n    FROM adfadm.ctl_ingest_pipeline_run AS p\n    WHERE p.master_run_id = '@{pipeline().RunId}'\n      AND p.status = 'SUCCESS'\n      AND p.signal_id IS NOT NULL\n)\nSELECT\n    COALESCE(\n        STRING_AGG(signal_id::text, ',' ORDER BY signal_id),\n        ''\n    ) AS signal_ids,\n    COUNT(*) AS signal_count\nFROM success_signals;",
+						"partitionOption": "None",
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					}
 				}
 			}
 		],
